@@ -189,19 +189,16 @@ class OptimizedVectorizer(HybridVectorizer):
         quantized_image = OptimizedImageProcessor.fast_color_quantization(image, n_colors)
         
         # Execute strategy with optimizations
-        if strategy == 'hybrid_fast':
-            return self._optimized_hybrid_fast(image, edge_map, quantized_image, metadata)
-        elif strategy == 'primitive_focused':
-            return self._optimized_primitive_focused(image, edge_map, quantized_image, metadata)
-        elif strategy == 'classical_refined':
-            return self._optimized_classical_refined(image, edge_map, quantized_image, metadata)
-        elif strategy == 'vtracer_high_fidelity':
+        if strategy == 'vtracer_high_fidelity':
             print("🎯 OptimizedVectorizer calling _vtracer_high_fidelity_strategy")
             return self._vtracer_high_fidelity_strategy(image, edge_map, quantized_image, metadata)
+        elif strategy == 'experimental':
+            print("🧪 OptimizedVectorizer calling _experimental_strategy_v2")
+            return self._experimental_strategy_v2(image, edge_map, quantized_image, metadata)
         else:
-            return self._optimized_hybrid_comprehensive(
-                image, edge_map, quantized_image, metadata, remaining_time
-            )
+            # Default to VTracer for any unknown strategy
+            print("🎯 Defaulting to VTracer for unknown strategy:", strategy)
+            return self._vtracer_high_fidelity_strategy(image, edge_map, quantized_image, metadata)
     
     def _get_cached_edge_map(self, image: np.ndarray, params: Dict) -> np.ndarray:
         """Get edge map with caching"""
@@ -222,138 +219,11 @@ class OptimizedVectorizer(HybridVectorizer):
         
         return edge_map
     
-    def _optimized_hybrid_fast(self, image: np.ndarray, edge_map: np.ndarray,
+    def _experimental_strategy_v2(self, image: np.ndarray, edge_map: np.ndarray,
                               quantized_image: np.ndarray, metadata: Any) -> Any:
-        """Ultra-fast hybrid approach with minimal processing"""
+        """Experimental strategy V3 focusing on actual VTracer limitations"""
+        from ..strategies.experimental_vtracer_v3 import ExperimentalVTracerV3Strategy
         
-        # Use hierarchical processing for speed
-        if self.enable_hierarchical:
-            scales = OptimizedImageProcessor.hierarchical_processing(image, [0.5, 1.0])
-            
-            # Process at low resolution first
-            small_image = scales[0.5]
-            small_edge = cv2.resize(edge_map, small_image.shape[:2][::-1])
-            small_quantized = cv2.resize(quantized_image, small_image.shape[:2][::-1])
-            
-            # Quick classical trace on small image
-            svg_builder = self.classical_tracer.trace_with_colors(small_image, small_quantized)
-            
-            # Scale up paths to full resolution
-            scale_factor = 2.0  # 1.0 / 0.5
-            for element in svg_builder.elements:
-                if hasattr(element, 'points'):
-                    element.points = [(x * scale_factor, y * scale_factor) for x, y in element.points]
-                elif hasattr(element, 'center'):
-                    element.center = (element.center[0] * scale_factor, element.center[1] * scale_factor)
-                    if hasattr(element, 'radius'):
-                        element.radius *= scale_factor
-        else:
-            # Standard fast processing
-            svg_builder = self.classical_tracer.trace_with_colors(image, quantized_image)
-        
-        return svg_builder
+        experimental_tracer = ExperimentalVTracerV3Strategy()
+        return experimental_tracer.vectorize(image, quantized_image, edge_map)
     
-    def _optimized_primitive_focused(self, image: np.ndarray, edge_map: np.ndarray,
-                                    quantized_image: np.ndarray, metadata: Any) -> Any:
-        """Optimized primitive detection strategy"""
-        
-        h, w = image.shape[:2]
-        from ..core.svg_builder import SVGBuilder
-        svg_builder = SVGBuilder(w, h)
-        
-        # Parallel primitive detection
-        if self.enable_parallel:
-            primitives = self.primitive_detector.detect_all_primitives(image, edge_map)
-        else:
-            primitives = self.primitive_detector.detect_all_primitives(image, edge_map)
-        
-        filtered_primitives = self.primitive_detector.filter_overlapping_primitives(primitives, 0.4)
-        
-        # Add primitives with optimized color sampling
-        for circle in filtered_primitives['circles']:
-            if circle.confidence > 0.4:  # Lower threshold for speed
-                color = self._sample_color_at_point(quantized_image, circle.center)
-                svg_builder.add_circle(circle.center, circle.radius, color)
-        
-        for rect in filtered_primitives['rectangles']:
-            if rect.confidence > 0.4:
-                color = self._sample_color_at_point(quantized_image, 
-                    (rect.x + rect.width/2, rect.y + rect.height/2))
-                svg_builder.add_rectangle(rect.x, rect.y, rect.width, rect.height, color)
-        
-        return svg_builder
-    
-    def _optimized_classical_refined(self, image: np.ndarray, edge_map: np.ndarray,
-                                    quantized_image: np.ndarray, metadata: Any) -> Any:
-        """Optimized classical tracing with smart refinement"""
-        
-        # Multi-threaded processing if possible
-        svg_builder = self.classical_tracer.trace_with_colors(image, quantized_image)
-        
-        # Selective path refinement - only refine complex paths
-        refined_elements = []
-        for element in svg_builder.elements:
-            if hasattr(element, 'points') and len(element.points) > 8:
-                # Only refine complex paths
-                smoothed_points = self.classical_tracer.smooth_path(element.points)
-                simplified_points = self.classical_tracer.douglas_peucker(smoothed_points, 1.5)
-                element.points = simplified_points
-            refined_elements.append(element)
-        
-        svg_builder.elements = refined_elements
-        return svg_builder
-    
-    def _optimized_hybrid_comprehensive(self, image: np.ndarray, edge_map: np.ndarray,
-                                       quantized_image: np.ndarray, metadata: Any,
-                                       remaining_time: float) -> Any:
-        """Optimized comprehensive strategy with time management"""
-        
-        h, w = image.shape[:2]
-        from ..core.svg_builder import SVGBuilder
-        svg_builder = SVGBuilder(w, h)
-        
-        time_budget = remaining_time / 3  # Divide time between strategies
-        
-        # Strategy 1: Fast primitive detection
-        start_time = time.time()
-        primitives = self.primitive_detector.detect_all_primitives(image, edge_map)
-        filtered_primitives = self.primitive_detector.filter_overlapping_primitives(primitives)
-        
-        # Add high-confidence primitives
-        for circle in filtered_primitives['circles']:
-            if circle.confidence > 0.7:
-                color = self._sample_color_at_point(quantized_image, circle.center)
-                svg_builder.add_circle(circle.center, circle.radius, color)
-        
-        for rect in filtered_primitives['rectangles']:
-            if rect.confidence > 0.7:
-                color = self._sample_color_at_point(quantized_image, 
-                    (rect.x + rect.width/2, rect.y + rect.height/2))
-                svg_builder.add_rectangle(rect.x, rect.y, rect.width, rect.height, color)
-        
-        # Strategy 2: Classical tracing (if time allows)
-        if time.time() - start_time < time_budget:
-            classical_svg = self.classical_tracer.trace_with_colors(image, quantized_image)
-            
-            # Add non-overlapping paths
-            for element in classical_svg.elements:
-                if hasattr(element, 'points'):
-                    if not self._overlaps_with_primitives(element.points, filtered_primitives):
-                        svg_builder.add_path(element.points, element.color, element.fill, element.stroke_width)
-        
-        # Strategy 3: GPU-accelerated optimization (if available and time allows)
-        if (self.gpu_accelerator and self.gpu_accelerator.enabled and 
-            time.time() - start_time < time_budget * 2):
-            
-            # Select candidates for GPU optimization
-            gpu_candidates = [e for e in svg_builder.elements 
-                            if hasattr(e, 'points') and len(e.points) > 6][:2]  # Limit for time
-            
-            for element in gpu_candidates:
-                try:
-                    # GPU optimization would go here
-                    pass
-                except:
-                    continue
-        
-        return svg_builder

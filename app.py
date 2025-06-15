@@ -39,6 +39,128 @@ def allowed_file(filename):
 def index():
     return render_template('index.html')
 
+@app.route('/api/extract-palettes', methods=['POST'])
+def extract_palettes():
+    try:
+        # Check if file was uploaded
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not allowed_file(file.filename):
+            return jsonify({'error': 'Invalid file type'}), 400
+        
+        # Save uploaded file
+        filename = secure_filename(file.filename)
+        unique_id = str(uuid.uuid4())
+        filename_with_id = f"{unique_id}_{filename}"
+        input_path = os.path.join(app.config['UPLOAD_FOLDER'], filename_with_id)
+        file.save(input_path)
+        
+        # Load image for palette extraction
+        from PIL import Image
+        import numpy as np
+        
+        image = Image.open(input_path)
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        
+        image_array = np.array(image)
+        
+        # Extract palettes using experimental strategy
+        from vectorcraft.strategies.experimental_vtracer_v3 import ExperimentalVTracerV3Strategy
+        experimental_strategy = ExperimentalVTracerV3Strategy()
+        
+        palettes = experimental_strategy.extract_color_palettes(image_array)
+        
+        # Convert numpy int64 to regular Python int for JSON serialization
+        json_palettes = {}
+        for key, palette in palettes.items():
+            json_palettes[key] = [[int(color[0]), int(color[1]), int(color[2])] for color in palette]
+        
+        # Clean up temp file
+        os.remove(input_path)
+        
+        return jsonify({
+            'success': True,
+            'palettes': json_palettes
+        })
+        
+    except Exception as e:
+        print(f"❌ Palette extraction error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/palette-preview', methods=['POST'])
+def generate_palette_preview():
+    try:
+        # Check if file was uploaded
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not allowed_file(file.filename):
+            return jsonify({'error': 'Invalid file type'}), 400
+        
+        # Get selected palette
+        selected_palette_json = request.form.get('selected_palette')
+        if not selected_palette_json:
+            return jsonify({'error': 'No palette selected'}), 400
+        
+        import json
+        selected_palette = json.loads(selected_palette_json)
+        
+        # Save uploaded file
+        filename = secure_filename(file.filename)
+        unique_id = str(uuid.uuid4())
+        filename_with_id = f"{unique_id}_{filename}"
+        input_path = os.path.join(app.config['UPLOAD_FOLDER'], filename_with_id)
+        file.save(input_path)
+        
+        # Load image for preview generation
+        from PIL import Image
+        import numpy as np
+        
+        image = Image.open(input_path)
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        
+        image_array = np.array(image)
+        
+        # Generate preview using experimental strategy
+        from vectorcraft.strategies.experimental_vtracer_v3 import ExperimentalVTracerV3Strategy
+        experimental_strategy = ExperimentalVTracerV3Strategy()
+        
+        preview_image = experimental_strategy.create_quantized_preview(image_array, selected_palette)
+        
+        # Convert preview back to PIL Image and encode as base64
+        from io import BytesIO
+        import base64
+        
+        preview_pil = Image.fromarray(preview_image.astype('uint8'))
+        buffer = BytesIO()
+        preview_pil.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        preview_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
+        # Clean up temp file
+        os.remove(input_path)
+        
+        return jsonify({
+            'success': True,
+            'preview_image': f'data:image/png;base64,{preview_base64}'
+        })
+        
+    except Exception as e:
+        print(f"❌ Palette preview error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/vectorize', methods=['POST'])
 def vectorize_image():
     try:
@@ -56,7 +178,7 @@ def vectorize_image():
         # Use optimized vectorization approach
         vectorizer_type = 'optimized'  # Always use optimized
         target_time = float(request.form.get('target_time', 60))
-        strategy = 'vtracer_high_fidelity'  # Use VTracer for maximum quality
+        strategy = request.form.get('strategy', 'vtracer_high_fidelity')  # Allow strategy selection
         
         # Extract vectorization parameters from form
         vectorization_params = {
@@ -93,9 +215,75 @@ def vectorize_image():
         
         print(f"🎯 WEB INTERFACE: Using {strategy} strategy for {filename}")
         
+        # Check if palette-based vectorization is requested
+        use_palette = request.form.get('use_palette', 'false').lower() == 'true'
+        selected_palette = None
+        
+        if use_palette and request.form.get('selected_palette'):
+            import json
+            try:
+                selected_palette = json.loads(request.form.get('selected_palette'))
+                print(f"🎨 Using custom palette with {len(selected_palette)} colors: {selected_palette}")
+                print(f"🎨 Strategy: {strategy}")
+                print(f"🎨 Use palette: {use_palette}")
+            except Exception as e:
+                print(f"❌ Failed to parse selected palette: {e}, using standard vectorization")
+                use_palette = False
+        
         # Vectorize image
         start_time = time.time()
-        result = vectorizer.vectorize(input_path, target_time=target_time)
+        
+        print(f"🎨 Palette condition check: use_palette={use_palette}, has_palette={selected_palette is not None}, strategy={strategy}")
+        
+        if use_palette and selected_palette and strategy == 'experimental':
+            # Use palette-based vectorization
+            from PIL import Image
+            import numpy as np
+            from vectorcraft.strategies.experimental_vtracer_v3 import ExperimentalVTracerV3Strategy
+            
+            # Load image for palette-based processing
+            image = Image.open(input_path)
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            image_array = np.array(image)
+            
+            # Use experimental strategy with palette
+            experimental_strategy = ExperimentalVTracerV3Strategy()
+            print(f"🎨 Processing with palette: {selected_palette}")
+            palette_result = experimental_strategy.vectorize_with_palette(
+                image_array, selected_palette, None, None
+            )
+            print(f"🎨 Palette result elements: {len(palette_result.elements) if hasattr(palette_result, 'elements') else 'No elements'}")
+            
+            # Create a result-like object
+            class ImageMetadata:
+                def __init__(self, image):
+                    self.width = image.width
+                    self.height = image.height
+                    self.edge_density = 0.5  # Default values
+                    self.text_probability = 0.1
+                    self.geometric_probability = 0.8
+                    self.gradient_probability = 0.2
+            
+            class PaletteResult:
+                def __init__(self, svg_builder, processing_time, image):
+                    self.svg_builder = svg_builder
+                    self.processing_time = processing_time
+                    self.strategy_used = f"experimental_palette_{len(selected_palette)}_colors"
+                    self.quality_score = 0.85  # Estimate for palette-based
+                    self.metadata = {
+                        'content_type': 'palette_based',
+                        'num_elements': len(svg_builder.elements) if hasattr(svg_builder, 'elements') else 0,
+                        'palette_colors': len(selected_palette),
+                        'image_metadata': ImageMetadata(image),
+                        'performance_stats': {}
+                    }
+            
+            result = PaletteResult(palette_result, time.time() - start_time, image)
+        else:
+            # Standard vectorization
+            result = vectorizer.vectorize(input_path, target_time=target_time)
+        
         processing_time = time.time() - start_time
         
         # Restore original strategy selection
@@ -106,17 +294,32 @@ def vectorize_image():
         if hasattr(vectorizer, 'real_vtracer') and vectorizer.real_vtracer.available:
             vectorizer.real_vtracer.custom_params = None
         
-        # Save SVG result
-        svg_filename = f"{unique_id}_result.svg"
+        # Save SVG result with version info
+        version_suffix = "_v1.0.0-experimental" if strategy == 'experimental' else ""
+        palette_suffix = f"_palette_{len(selected_palette)}colors" if use_palette and selected_palette else ""
+        svg_filename = f"{unique_id}_result{version_suffix}{palette_suffix}.svg"
         svg_path = os.path.join(app.config['RESULTS_FOLDER'], svg_filename)
+        
+        # Also save to output folder with timestamp for tracking improvements
+        timestamp = int(time.time())
+        output_filename = f"{timestamp}_{strategy}_result.svg"
+        output_path = os.path.join("output", output_filename)
+        os.makedirs("output", exist_ok=True)
         
         # Handle different result types from vectorization
         if hasattr(result, 'svg_builder') and result.svg_builder:
+            print(f"🎨 Using svg_builder, elements: {len(result.svg_builder.elements) if hasattr(result.svg_builder, 'elements') else 'No elements'}")
             result.svg_builder.save(svg_path)
+            result.svg_builder.save(output_path)  # Save to output folder too
             svg_content = result.svg_builder.get_svg_string()
+            print(f"🎨 SVG content length: {len(svg_content)} characters")
+            print(f"🎨 SVG preview: {svg_content[:200]}...")
         else:
+            print(f"🎨 Using direct SVG result")
             # Handle direct SVG result
             with open(svg_path, 'w') as f:
+                f.write(result.get_svg_string())
+            with open(output_path, 'w') as f:  # Save to output folder too
                 f.write(result.get_svg_string())
             svg_content = result.get_svg_string()
         
@@ -131,6 +334,9 @@ def vectorize_image():
         # Clean up uploaded file
         os.remove(input_path)
         
+        download_url = url_for('download_result', filename=svg_filename)
+        print(f"🔗 Download URL: {download_url} (filename: {svg_filename})")
+        
         return jsonify({
             'success': True,
             'processing_time': result.processing_time,
@@ -143,7 +349,7 @@ def vectorize_image():
             'svg_b64': svg_b64,
             'original_b64': img_b64,
             'original_ext': img_ext,
-            'download_url': url_for('download_result', filename=svg_filename),
+            'download_url': download_url,
             'metadata': {
                 'image_size': f"{result.metadata['image_metadata'].width}x{result.metadata['image_metadata'].height}",
                 'edge_density': result.metadata['image_metadata'].edge_density,
