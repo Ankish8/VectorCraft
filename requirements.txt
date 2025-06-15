@@ -11,3 +11,5 @@ scipy>=1.7.0
 networkx>=2.6.0
 shapely>=1.8.0
 potrace>=0.1.0
+flask>=2.0.0
+werkzeug>=2.0.0
