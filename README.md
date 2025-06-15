@@ -1,21 +1,41 @@
-# VectorCraft 2.0
+# VectorCraft - Professional Vector Conversion
 
-A cutting-edge AI-powered raster-to-vector conversion system that transforms bitmap images into high-quality scalable vector graphics (SVG). Built with advanced computer vision, machine learning, and hybrid optimization techniques.
+Transform any image into crisp, scalable vectors instantly with professional-grade quality.
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
-[![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)](https://flask.palletsprojects.com/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![VectorCraft](https://img.shields.io/badge/VectorCraft-v1.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-## 🚀 Features
+## ✨ Features
 
-- **Professional Quality Output**: Achieves commercial-grade vectorization results comparable to leading tools
-- **Multi-Strategy Processing**: Employs five distinct vectorization strategies optimized for different content types
-- **Real-time Processing**: Optimized for speed while maintaining quality (typically <2 minutes)
-- **Intelligent Content Analysis**: Automatically detects and optimizes for text, geometric shapes, gradients, and mixed content
-- **Advanced Edge Detection**: Multi-scale edge detection algorithms for precise boundary extraction
-- **Perceptual Color Quantization**: Smart color reduction using LAB color space for visual fidelity
-- **GPU Acceleration**: Optional CUDA support for enhanced performance
-- **Web Interface**: Interactive browser-based tool with real-time preview
+### 🎯 **Professional Vector Conversion**
+- High-quality image to SVG conversion
+- Advanced vectorization algorithms 
+- Supports PNG, JPG, GIF, BMP, TIFF (up to 16MB)
+- Infinitely scalable output
+
+### 🎨 **Smart Color Management**
+- **Standard Mode**: Optimized for most images
+- **Custom Palette Mode**: Brand-aware color control
+- Automatic palette extraction and suggestions
+- Real-time color preview
+
+### 🔍 **True Vector Zoom**
+- No pixelation at any zoom level (0.1x to 50x)
+- Mouse wheel and keyboard controls
+- Professional pan and zoom interface
+- Persistent across all operations
+
+### ⚙️ **Advanced Settings**
+- **Quality vs Speed**: Adjustable processing quality
+- **Detail Capture**: Fine-tune detail preservation  
+- **Edge Style**: Balance sharp corners vs smooth curves
+- Real-time parameter preview
+
+### 🚀 **Professional UX**
+- Intuitive drag-and-drop interface
+- Real-time processing feedback
+- Comprehensive help documentation
+- Smart error handling with user-friendly messages
 
 ## 🔧 Installation
 

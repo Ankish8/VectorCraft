@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-VectorCraft 2.0 Web Interface
-Flask web application for testing vectorization locally
+VectorCraft - Professional Vector Conversion
+Flask web application for high-quality image to vector conversion
 """
 
 import os
@@ -436,18 +436,20 @@ def health_check():
     """Health check endpoint"""
     return jsonify({
         'status': 'healthy',
-        'version': '2.0.0',
-        'vectorizers': ['standard', 'optimized'],
+        'version': '1.0.0',
+        'name': 'VectorCraft',
+        'vectorizers': ['standard', 'advanced'],
         'supported_formats': list(ALLOWED_EXTENSIONS)
     })
 
 if __name__ == '__main__':
-    print("🚀 Starting VectorCraft 2.0 Web Interface...")
-    print("📊 Initializing vectorizers...")
+    print("🚀 Starting VectorCraft - Professional Vector Conversion...")
+    print("📊 Initializing advanced vectorization engines...")
     print("✅ Ready!")
-    print("\n🌐 Access the web interface at: http://localhost:8080")
+    print("\n🌐 Access VectorCraft at: http://localhost:8080")
     print("🔧 API endpoint: http://localhost:8080/api/vectorize")
     print("📋 Health check: http://localhost:8080/health")
-    print("\n Press Ctrl+C to stop the server")
+    print("\n💡 Convert any image to a crisp, scalable vector!")
+    print(" Press Ctrl+C to stop the server")
     
     app.run(debug=True, host='0.0.0.0', port=8080)

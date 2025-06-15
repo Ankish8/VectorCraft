@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VectorCraft 2.0</title>
+    <title>VectorCraft - Professional Vector Conversion</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
@@ -83,6 +83,38 @@
             border-color: #6366f1;
             color: #6366f1;
         }
+        
+        /* Improved upload area animation */
+        .upload-area {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .upload-area:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Better button hover effects */
+        .btn-primary {
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        
+        /* Smooth loading animation */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .animate-pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -91,11 +123,11 @@
         <div class="max-w-7xl mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">VectorCraft 2.0</h1>
-                    <p class="text-gray-600">Professional raster to vector conversion with advanced algorithms</p>
+                    <h1 class="text-2xl font-bold text-gray-900">VectorCraft</h1>
+                    <p class="text-gray-600">Transform images into crisp, scalable vectors instantly</p>
                 </div>
                 <div class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                    ✓ Hybrid Engine Active
+                    ✓ Advanced Engine Ready
                 </div>
             </div>
         </div>
@@ -109,9 +141,9 @@
                 <div class="w-20 h-20 mx-auto mb-6 text-gray-400">
                     <i data-lucide="upload-cloud" class="w-20 h-20"></i>
                 </div>
-                <h2 class="text-2xl font-semibold text-gray-900 mb-3">Upload your image</h2>
-                <p class="text-gray-600 mb-4">Drag and drop or click to select an image file</p>
-                <p class="text-sm text-gray-500">PNG, JPG, GIF, BMP, TIFF • Max 16MB</p>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-3">Get started with your image</h2>
+                <p class="text-gray-600 mb-4">Drag and drop or click to browse - we'll convert it to a scalable vector</p>
+                <p class="text-sm text-gray-500">Supports PNG, JPG, GIF, BMP, TIFF • Maximum 16MB</p>
                 <input type="file" id="fileInput" accept="image/*" class="hidden">
             </div>
         </div>
@@ -121,8 +153,8 @@
             <div class="w-16 h-16 mx-auto mb-6 animate-spin text-indigo-600">
                 <i data-lucide="loader-2" class="w-16 h-16"></i>
             </div>
-            <h2 class="text-2xl font-semibold text-gray-900 mb-3">Processing image</h2>
-            <p class="text-gray-600">Converting your image to vector format...</p>
+            <h2 class="text-2xl font-semibold text-gray-900 mb-3">Creating your vector</h2>
+            <p class="text-gray-600">Analyzing your image and generating high-quality vector paths...</p>
             <div class="mt-8 w-80 bg-gray-200 rounded-full h-3 mx-auto">
                 <div class="bg-indigo-600 h-3 rounded-full animate-pulse" style="width: 60%"></div>
             </div>
@@ -134,7 +166,7 @@
             <div class="bg-gray-50 border-b border-gray-200 px-8 py-6">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <h2 class="text-2xl font-semibold text-gray-900">Vector Result</h2>
+                        <h2 class="text-2xl font-semibold text-gray-900">Your Vector</h2>
                     </div>
                     
                     <div class="flex items-center gap-3">
@@ -144,8 +176,8 @@
                         </label>
                         
                         <select id="strategySelector" class="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" onchange="updateStrategy()">
-                            <option value="vtracer_high_fidelity">VTracer</option>
-                            <option value="experimental">🧪 Experiment</option>
+                            <option value="vtracer_high_fidelity">Standard</option>
+                            <option value="experimental">🎨 Custom Palette</option>
                         </select>
                         
                         <button id="paletteToggle" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors" style="display: none;" onclick="openColorsTab()">
@@ -158,14 +190,23 @@
                             <span>Settings</span>
                         </button>
                         
+                        <button onclick="showHelp()" 
+                                class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                title="View help and tips">
+                            <i data-lucide="help-circle" class="w-4 h-4 mr-1"></i>
+                            Help
+                        </button>
+                        
                         <button onclick="uploadNewImage()" 
-                                class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                                class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                                title="Upload a new image">
                             <i data-lucide="upload" class="w-4 h-4 mr-1"></i>
-                            New
+                            New Image
                         </button>
                         
                         <button onclick="downloadSVG()" 
-                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700">
+                                class="btn-primary inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700"
+                                title="Download your vector as SVG file">
                             <i data-lucide="download" class="w-4 h-4 mr-2"></i>
                             Download SVG
                         </button>
@@ -222,39 +263,43 @@
                     <div id="settingsTabContent" class="p-8">
                         <div class="space-y-8">
                             <div>
-                                <h3 class="text-lg font-semibold text-gray-900 mb-6">Adjust Parameters</h3>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">Fine-tune Your Vector</h3>
+                                <p class="text-sm text-gray-600 mb-6">Adjust these settings to optimize quality for your specific image type</p>
                             </div>
                         
                         <!-- Quality Control -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-4">Quality</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Quality vs Speed</label>
+                            <p class="text-xs text-gray-500 mb-3">Higher values produce cleaner results but take longer to process</p>
                             <input type="range" id="filterSpeckle" min="1" max="10" value="4" class="w-full slider" oninput="updateParameterValue('filterSpeckle', this.value); updatePreview();">
                             <div class="flex justify-between text-sm text-gray-500 mt-2">
                                 <span>Fast</span>
                                 <span id="filterSpeckleValue" class="font-medium text-indigo-600">4</span>
-                                <span>Best</span>
+                                <span>Highest Quality</span>
                             </div>
                         </div>
                         
                         <!-- Detail Level -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-4">Detail Level</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Detail Capture</label>
+                            <p class="text-xs text-gray-500 mb-3">How much fine detail to preserve in the vector output</p>
                             <input type="range" id="colorPrecision" min="1" max="16" value="8" class="w-full slider" oninput="updateParameterValue('colorPrecision', this.value); updatePreview();">
                             <div class="flex justify-between text-sm text-gray-500 mt-2">
                                 <span>Simple</span>
                                 <span id="colorPrecisionValue" class="font-medium text-indigo-600">8</span>
-                                <span>Detailed</span>
+                                <span>Highly Detailed</span>
                             </div>
                         </div>
                         
                         <!-- Smoothness -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-4">Smoothness</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Edge Style</label>
+                            <p class="text-xs text-gray-500 mb-3">Balance between sharp corners and smooth curves</p>
                             <input type="range" id="cornerThreshold" min="0" max="180" value="90" class="w-full slider" oninput="updateParameterValue('cornerThreshold', this.value); updatePreview();">
                             <div class="flex justify-between text-sm text-gray-500 mt-2">
-                                <span>Sharp</span>
+                                <span>Sharp Corners</span>
                                 <span id="cornerThresholdValue" class="font-medium text-indigo-600">90</span>
-                                <span>Smooth</span>
+                                <span>Smooth Curves</span>
                             </div>
                         </div>
                         
@@ -363,6 +408,77 @@
         </div>
     </div>
 
+    <!-- Help Modal -->
+    <div id="helpModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+        <div class="bg-white rounded-lg p-8 max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">VectorCraft Help</h2>
+                <button onclick="closeHelp()" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">🚀 Getting Started</h3>
+                    <ol class="list-decimal list-inside space-y-2 text-gray-700">
+                        <li>Upload your image by dragging and dropping or clicking to browse</li>
+                        <li>Choose "Standard" for most images or "Custom Palette" for color control</li>
+                        <li>Adjust settings in the sidebar to fine-tune quality</li>
+                        <li>Download your crisp, scalable SVG file</li>
+                    </ol>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">🎛️ Settings Guide</h3>
+                    <ul class="space-y-3 text-gray-700">
+                        <li><strong>Quality vs Speed:</strong> Higher values = cleaner results, slower processing</li>
+                        <li><strong>Detail Capture:</strong> Controls how much fine detail is preserved</li>
+                        <li><strong>Edge Style:</strong> Sharp corners for logos, smooth curves for artwork</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">🎨 Custom Palette Mode</h3>
+                    <ul class="space-y-2 text-gray-700">
+                        <li>• Automatically suggests color palettes from your image</li>
+                        <li>• Perfect for logos and branded content</li>
+                        <li>• Preview different color combinations in real-time</li>
+                        <li>• Create custom palettes with your brand colors</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">🔍 Vector Zoom</h3>
+                    <ul class="space-y-2 text-gray-700">
+                        <li>• <kbd class="px-2 py-1 bg-gray-100 rounded text-xs">Mouse wheel</kbd> - Zoom in/out</li>
+                        <li>• <kbd class="px-2 py-1 bg-gray-100 rounded text-xs">Drag</kbd> - Pan around</li>
+                        <li>• <kbd class="px-2 py-1 bg-gray-100 rounded text-xs">+/-</kbd> keys - Zoom controls</li>
+                        <li>• <kbd class="px-2 py-1 bg-gray-100 rounded text-xs">0</kbd> - Fit to view</li>
+                        <li>• <kbd class="px-2 py-1 bg-gray-100 rounded text-xs">1</kbd> - Actual size</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">💡 Tips for Best Results</h3>
+                    <ul class="space-y-2 text-gray-700">
+                        <li>• <strong>Logos & Text:</strong> Use higher quality settings</li>
+                        <li>• <strong>Photos:</strong> Lower detail capture works better</li>
+                        <li>• <strong>Line Art:</strong> Sharp corner settings preserve crisp edges</li>
+                        <li>• <strong>Illustrations:</strong> Smooth curve settings for artistic styles</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-blue-900 mb-2">📁 File Formats</h4>
+                    <p class="text-blue-800 text-sm">
+                        <strong>Input:</strong> PNG, JPG, GIF, BMP, TIFF (max 16MB)<br>
+                        <strong>Output:</strong> SVG (infinitely scalable, web-ready)
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Color Picker Modal -->
     <div id="colorPickerModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" style="display: none; z-index: 1001;">
@@ -637,13 +753,21 @@
         function downloadSVG() {
             if (currentDownloadUrl) {
                 window.open(currentDownloadUrl, '_blank');
+                showSuccessMessage('Your SVG file is downloading!');
+            } else {
+                showUserFriendlyError('No vector file available to download. Please process an image first.');
             }
         }
 
         function showError(message) {
             document.getElementById('processingPanel').style.display = 'none';
-            alert('Error: ' + message);
-            document.getElementById('uploadSection').style.display = 'block';
+            document.getElementById('loadingOverlay').style.display = 'none';
+            showUserFriendlyError(message);
+            
+            // Show upload section if no results are visible
+            if (document.getElementById('resultsContainer').style.display === 'none') {
+                document.getElementById('uploadSection').style.display = 'block';
+            }
         }
 
         function resetParameters() {
@@ -1389,7 +1513,92 @@
             }
         });
         
-        console.log('🎯 VectorCraft 2.0 with True Vector Zoom initialized!');
+        // ==========================================
+        // HELP MODAL FUNCTIONS
+        // ==========================================
+        
+        function showHelp() {
+            document.getElementById('helpModal').style.display = 'flex';
+            lucide.createIcons();
+        }
+        
+        function closeHelp() {
+            document.getElementById('helpModal').style.display = 'none';
+        }
+        
+        // Close help modal when clicking outside
+        document.getElementById('helpModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeHelp();
+            }
+        });
+        
+        // ==========================================
+        // IMPROVED ERROR HANDLING
+        // ==========================================
+        
+        function showUserFriendlyError(error) {
+            const errorMessages = {
+                'Network error': 'Unable to connect to the server. Please check your internet connection and try again.',
+                'File too large': 'Your image is too large. Please use an image smaller than 16MB.',
+                'Invalid file type': 'Please upload a valid image file (PNG, JPG, GIF, BMP, or TIFF).',
+                'Processing failed': 'We encountered an issue processing your image. Please try adjusting the settings or using a different image.',
+                'No file uploaded': 'Please select an image file to convert.',
+                'Timeout': 'Processing took too long. Try reducing the quality settings or using a smaller image.'
+            };
+            
+            let userMessage = errorMessages[error] || error;
+            
+            // Show user-friendly error
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg z-50 max-w-md';
+            errorDiv.innerHTML = `
+                <div class="flex items-start">
+                    <i data-lucide="alert-circle" class="w-5 h-5 mr-2 mt-0.5 flex-shrink-0"></i>
+                    <div>
+                        <strong>Oops!</strong><br>
+                        ${userMessage}
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-red-500 hover:text-red-700">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(errorDiv);
+            lucide.createIcons();
+            
+            // Auto-remove after 8 seconds
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.remove();
+                }
+            }, 8000);
+        }
+        
+        function showSuccessMessage(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow-lg z-50 max-w-md';
+            successDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i data-lucide="check-circle" class="w-5 h-5 mr-2 flex-shrink-0"></i>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-green-500 hover:text-green-700">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(successDiv);
+            lucide.createIcons();
+            
+            // Auto-remove after 4 seconds
+            setTimeout(() => {
+                if (successDiv.parentNode) {
+                    successDiv.remove();
+                }
+            }, 4000);
+        }
+        
+        console.log('🎯 VectorCraft - Professional Vector Conversion initialized!');
         console.log('🔍 Zoom Controls:');
         console.log('   • Mouse wheel: Zoom in/out');
         console.log('   • Drag: Pan around');
