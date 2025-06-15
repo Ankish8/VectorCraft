@@ -6,7 +6,6 @@
     <title>VectorCraft 2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
     <style>
         .slider {
             -webkit-appearance: none;
@@ -37,51 +36,13 @@
             background-color: #f8fafc;
         }
         
-        #svgDisplay {
-            overflow: hidden;
-        }
-        
         #svgDisplay svg {
-            cursor: grab;
-        }
-        
-        #svgDisplay svg:active {
-            cursor: grabbing;
-        }
-        
-        .zoom-controls {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 8px;
-            padding: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            z-index: 10;
-        }
-        
-        .zoom-btn {
-            width: 32px;
-            height: 32px;
-            border: none;
-            background: white;
-            color: #374151;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid #e5e7eb;
-        }
-        
-        .zoom-btn:hover {
-            background: #f3f4f6;
-            border-color: #6366f1;
-            color: #6366f1;
+            max-width: 100% !important;
+            max-height: 100% !important;
+            width: auto !important;
+            height: auto !important;
+            display: block !important;
+            margin: auto !important;
         }
     </style>
 </head>
@@ -148,7 +109,7 @@
                             <option value="experimental">🧪 Experiment</option>
                         </select>
                         
-                        <button id="paletteToggle" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors" style="display: none;" onclick="openColorsTab()">
+                        <button id="paletteToggle" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors" style="display: none;" onclick="togglePaletteSelector()">
                             <i data-lucide="palette" class="w-4 h-4"></i>
                             <span>Colors</span>
                         </button>
@@ -177,23 +138,7 @@
                 <!-- Main Display Area -->
                 <div class="flex-1 relative bg-white" style="height: 80vh;">
                     <img id="originalImage" class="absolute inset-0 w-full h-full object-contain p-12 opacity-0 transition-opacity duration-300">
-                    <div id="svgDisplay" class="absolute inset-0 w-full h-full transition-opacity duration-300 overflow-hidden">
-                        <!-- Zoom Controls -->
-                        <div class="zoom-controls" id="zoomControls" style="display: none;">
-                            <button class="zoom-btn" onclick="zoomIn()" title="Zoom In">
-                                <i data-lucide="zoom-in" class="w-4 h-4"></i>
-                            </button>
-                            <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out">
-                                <i data-lucide="zoom-out" class="w-4 h-4"></i>
-                            </button>
-                            <button class="zoom-btn" onclick="resetZoom()" title="Fit to View">
-                                <i data-lucide="maximize" class="w-4 h-4"></i>
-                            </button>
-                            <button class="zoom-btn" onclick="actualSize()" title="Actual Size">
-                                <i data-lucide="move-3d" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-                    </div>
+                    <div id="svgDisplay" class="absolute inset-0 w-full h-full flex items-center justify-center p-12 transition-opacity duration-300 overflow-hidden"></div>
                     <div id="loadingOverlay" 
                          class="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center" 
                          style="display: none;">
@@ -207,23 +152,11 @@
                 </div>
                 
                 <!-- Controls Sidebar -->
-                <div id="controlsSidebar" class="w-96 bg-gray-50 border-l border-gray-200 overflow-y-auto" style="height: 80vh; display: none;">
-                    <!-- Tab Headers -->
-                    <div class="flex border-b border-gray-300 bg-white">
-                        <button id="settingsTab" class="flex-1 px-4 py-3 text-sm font-medium text-gray-700 bg-white border-b-2 border-indigo-500" onclick="switchTab('settings')">
-                            <i data-lucide="sliders" class="w-4 h-4 inline mr-2"></i>Settings
-                        </button>
-                        <button id="colorsTab" class="flex-1 px-4 py-3 text-sm font-medium text-gray-500 bg-gray-50 border-b-2 border-transparent hover:text-gray-700" onclick="switchTab('colors')">
-                            <i data-lucide="palette" class="w-4 h-4 inline mr-2"></i>Colors
-                        </button>
-                    </div>
-
-                    <!-- Settings Tab Content -->
-                    <div id="settingsTabContent" class="p-8">
-                        <div class="space-y-8">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900 mb-6">Adjust Parameters</h3>
-                            </div>
+                <div id="controlsSidebar" class="w-96 bg-gray-50 border-l border-gray-200 p-8 overflow-y-auto" style="height: 80vh; display: none;">
+                    <div class="space-y-8">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-6">Adjust Parameters</h3>
+                        </div>
                         
                         <!-- Quality Control -->
                         <div>
@@ -305,64 +238,82 @@
                                 </button>
                             </div>
                         </div>
-                        </div>
-                    </div>
-
-                    <!-- Colors Tab Content -->
-                    <div id="colorsTabContent" class="p-8" style="display: none;">
-                        <div class="space-y-6">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Color Palettes</h3>
-                                <p class="text-sm text-gray-600 mb-6">Choose colors detected in your image. Click to preview, then apply.</p>
-                            </div>
-
-                            <!-- Suggested Palettes Section -->
-                            <div class="space-y-4">
-                                <h4 class="text-base font-medium text-gray-900">Suggested Palettes</h4>
-                                <div id="suggestedPalettesIntegrated" class="space-y-3">
-                                    <!-- Detected color palettes will appear here -->
-                                </div>
-                                
-                                <div class="pt-4 border-t border-gray-200">
-                                    <button id="applySelectedPaletteIntegrated" onclick="applySelectedPalette()" disabled class="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
-                                        Apply Selected Palette
-                                    </button>
-                                </div>
-                                
-                                <button onclick="resetToOriginalPreview()" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">
-                                    🔄 Reset to Original
-                                </button>
-                            </div>
-
-                            <!-- Advanced Options -->
-                            <details class="border-t border-gray-200 pt-6">
-                                <summary class="text-sm font-medium text-gray-600 cursor-pointer mb-4 hover:text-gray-800">Advanced: Custom Palette</summary>
-                                <div class="border border-gray-300 rounded-lg p-4 bg-gray-50">
-                                    <div id="customPaletteColorsIntegrated" class="flex flex-wrap gap-2 mb-4 min-h-[40px]">
-                                        <!-- Custom colors appear here -->
-                                    </div>
-                                    <div class="flex gap-2">
-                                        <button onclick="addCustomColor()" class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-100 flex items-center justify-center gap-2">
-                                            <i data-lucide="plus" class="w-4 h-4"></i>
-                                            Add Color
-                                        </button>
-                                        <button onclick="previewCustomPalette()" class="flex-1 px-3 py-2 text-sm border border-indigo-300 text-indigo-600 rounded hover:bg-indigo-50">
-                                            Preview
-                                        </button>
-                                        <button onclick="applyCustomPalette()" class="flex-1 px-3 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">
-                                            Apply
-                                        </button>
-                                    </div>
-                                    <p class="text-xs text-gray-500 mt-2">Select a color above to change it.<br>Click in image to set the color (ctrl-click to blend).</p>
-                                </div>
-                            </details>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Palette Selection Modal (Vector Magic Style) -->
+    <div id="paletteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" style="display: none; z-index: 1000;">
+        <div class="bg-white rounded-xl shadow-2xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-2xl font-bold text-gray-900">Palette Selection</h2>
+                    <button onclick="closePaletteModal()" class="text-gray-400 hover:text-gray-600">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <p class="text-gray-600 mt-2">Choose colors detected in your image. Click to preview, then use Apply button.</p>
+            </div>
+            
+            <div class="flex" style="height: 75vh;">
+                <!-- Left side: Image Preview -->
+                <div class="flex-1 bg-gray-100 flex items-center justify-center p-8">
+                    <div id="paletteImagePreview" class="max-w-full max-h-full bg-white rounded-lg shadow-lg overflow-hidden">
+                        <!-- Image preview will be inserted here -->
+                    </div>
+                </div>
+                
+                <!-- Right side: Palette Options -->
+                <div class="w-80 bg-white border-l border-gray-200 overflow-y-auto">
+                    <div class="p-6">
+                        <!-- Suggested Palettes Section -->
+                        <div class="mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-3">Suggested Palettes</h3>
+                            <div id="suggestedPalettes" class="space-y-2">
+                                <!-- Detected color palettes will appear here -->
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2 italic">Click to preview.</p>
+                            
+                            <div class="mt-3 pt-3 border-t border-gray-200">
+                                <button id="applySelectedPalette" onclick="applySelectedPalette()" disabled class="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                                    Apply Selected Palette
+                                </button>
+                            </div>
+                            
+                            <button onclick="showImageInPaletteModal()" class="mt-2 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">
+                                🔄 Reset to Original
+                            </button>
+                        </div>
+                        
+                        <!-- Advanced Options (Hidden by default) -->
+                        <details class="border-t border-gray-200 pt-6">
+                            <summary class="text-sm font-medium text-gray-600 cursor-pointer mb-4 hover:text-gray-800">Advanced: Custom Palette</summary>
+                            <div class="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                                <div id="customPaletteColors" class="flex flex-wrap gap-2 mb-4 min-h-[40px]">
+                                    <!-- Custom colors appear here -->
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="addCustomColor()" class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded hover:bg-gray-100 flex items-center justify-center gap-2">
+                                        <i data-lucide="plus" class="w-4 h-4"></i>
+                                        Add Color
+                                    </button>
+                                    <button onclick="previewCustomPalette()" class="flex-1 px-3 py-2 text-sm border border-indigo-300 text-indigo-600 rounded hover:bg-indigo-50">
+                                        Preview
+                                    </button>
+                                    <button onclick="applyCustomPalette()" class="flex-1 px-3 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                                        Apply
+                                    </button>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-2">Select a color above to change it.<br>Click in image to set the color (ctrl-click to blend).</p>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Color Picker Modal -->
     <div id="colorPickerModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" style="display: none; z-index: 1001;">
@@ -392,40 +343,6 @@
         let selectedPalette = null;
         let customPalette = [];
 
-        // Tab switching functionality
-        function switchTab(tabName) {
-            console.log('🔄 Switching to tab:', tabName);
-            
-            // Update tab buttons
-            const settingsTab = document.getElementById('settingsTab');
-            const colorsTab = document.getElementById('colorsTab');
-            const settingsContent = document.getElementById('settingsTabContent');
-            const colorsContent = document.getElementById('colorsTabContent');
-
-            if (tabName === 'settings') {
-                // Activate settings tab
-                settingsTab.className = 'flex-1 px-4 py-3 text-sm font-medium text-gray-700 bg-white border-b-2 border-indigo-500';
-                colorsTab.className = 'flex-1 px-4 py-3 text-sm font-medium text-gray-500 bg-gray-50 border-b-2 border-transparent hover:text-gray-700';
-                settingsContent.style.display = 'block';
-                colorsContent.style.display = 'none';
-            } else if (tabName === 'colors') {
-                // Activate colors tab
-                settingsTab.className = 'flex-1 px-4 py-3 text-sm font-medium text-gray-500 bg-gray-50 border-b-2 border-transparent hover:text-gray-700';
-                colorsTab.className = 'flex-1 px-4 py-3 text-sm font-medium text-gray-700 bg-white border-b-2 border-indigo-500';
-                settingsContent.style.display = 'none';
-                colorsContent.style.display = 'block';
-                
-                // Auto-extract palettes when opening colors tab if not already done
-                if (currentImageFile && !extractedPalettes) {
-                    console.log('🎨 Auto-extracting palettes for colors tab...');
-                    extractColorPalettes();
-                }
-            }
-            
-            // Refresh icons
-            lucide.createIcons();
-        }
-
         // File upload handling
         document.getElementById('fileInput').addEventListener('change', handleFileSelect);
         
@@ -451,34 +368,15 @@
             }
         });
 
-        // Open Colors Tab function
-        function openColorsTab() {
-            console.log('🎨 Opening Colors tab...');
-            const sidebar = document.getElementById('controlsSidebar');
-            const controlsToggle = document.getElementById('controlsToggle');
-            
-            // Show sidebar if hidden
-            if (sidebar.style.display === 'none') {
-                sidebar.style.display = 'block';
-                controlsToggle.innerHTML = '<i data-lucide="x" class="w-5 h-5"></i><span>Close</span>';
-            }
-            
-            // Switch to colors tab
-            switchTab('colors');
-            lucide.createIcons();
-        }
-
-        // Controls toggle - updated for tabbed interface
+        // Controls toggle
         document.getElementById('controlsToggle').addEventListener('click', function() {
             const sidebar = document.getElementById('controlsSidebar');
             if (sidebar.style.display === 'none') {
                 sidebar.style.display = 'block';
                 this.innerHTML = '<i data-lucide="x" class="w-5 h-5"></i><span>Close</span>';
-                // Default to settings tab when opening
-                switchTab('settings');
             } else {
                 sidebar.style.display = 'none';
-                this.innerHTML = '<i data-lucide="sliders" class="w-5 h-5"></i><span>Settings</span>';
+                this.innerHTML = '<i data-lucide="sliders" class="w-5 h-5"></i><span>Controls</span>';
             }
             lucide.createIcons();
         });
@@ -571,26 +469,31 @@
             
             if (data.svg_content) {
                 console.log('🖼️ SVG preview:', data.svg_content.substring(0, 200));
-                
-                // Clear previous content and zoom instance
-                if (window.svgPanZoomInstance) {
-                    window.svgPanZoomInstance.destroy();
-                    window.svgPanZoomInstance = null;
-                }
-                
-                // Preserve zoom controls during content update
-                const zoomControls = svgDisplay.querySelector('.zoom-controls');
-                const zoomControlsHTML = zoomControls ? zoomControls.outerHTML : '';
-                
                 svgDisplay.innerHTML = data.svg_content;
                 
-                // Re-add zoom controls
-                if (zoomControlsHTML) {
-                    svgDisplay.insertAdjacentHTML('beforeend', zoomControlsHTML);
-                }
-                
-                // Initialize true vector zoom
-                initializeVectorZoom();
+                // Ensure SVG scales properly
+                setTimeout(() => {
+                    const svg = svgDisplay.querySelector('svg');
+                    if (svg) {
+                        console.log('✅ SVG element found and configured');
+                        svg.removeAttribute('width');
+                        svg.removeAttribute('height');
+                        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                        
+                        if (!svg.getAttribute('viewBox')) {
+                            try {
+                                const bbox = svg.getBBox();
+                                if (bbox.width > 0 && bbox.height > 0) {
+                                    svg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+                                }
+                            } catch (e) {
+                                console.warn('Could not set viewBox:', e);
+                            }
+                        }
+                    } else {
+                        console.error('❌ No SVG element found in svgDisplay');
+                    }
+                }, 100);
             } else {
                 console.error('❌ No SVG content in response!');
                 console.log('📄 Full response data:', data);
@@ -598,7 +501,6 @@
             
             // Store download URL
             currentDownloadUrl = data.download_url;
-            console.log('🔗 Updated download URL:', currentDownloadUrl);
             
             // Stats display removed for cleaner UI
             
@@ -711,11 +613,6 @@
             document.getElementById('fileInput').value = '';
             currentImageFile = null;
             currentDownloadUrl = null;
-            
-            // Clear applied palette
-            window.currentAppliedPalette = null;
-            selectedPalette = null;
-            extractedPalettes = null;
         }
 
         function updateParameterValue(paramName, value) {
@@ -749,17 +646,7 @@
             formData.append('file', file);
             formData.append('vectorizer', document.getElementById('vectorizerType').value);
             formData.append('target_time', document.getElementById('targetTime').value);
-            
-            // Check if we have an applied palette - if so, use it with parameter updates
-            if (window.currentAppliedPalette && window.currentAppliedPalette.colors) {
-                console.log('🎨 Parameter update with applied palette:', window.currentAppliedPalette);
-                formData.append('strategy', 'experimental'); // Force experimental for palette
-                formData.append('use_palette', 'true');
-                formData.append('selected_palette', JSON.stringify(window.currentAppliedPalette.colors));
-            } else {
-                console.log('🎨 Parameter update without palette');
-                formData.append('strategy', document.getElementById('strategy').value);
-            }
+            formData.append('strategy', document.getElementById('strategy').value);
             
             // Add VTracer parameters
             addVTracerParams(formData);
@@ -773,13 +660,6 @@
                 isProcessing = false;
                 if (data.success) {
                     displayResults(data, file);
-                    
-                    // Ensure zoom is available after parameter update
-                    setTimeout(() => {
-                        if (data.svg_content && data.svg_content.includes('<svg')) {
-                            initializeVectorZoom();
-                        }
-                    }, 200);
                 } else {
                     document.getElementById('loadingOverlay').style.display = 'none';
                     console.error('Update failed:', data.error);
@@ -792,7 +672,43 @@
             });
         }
 
-        // Palette Selection Functions (modal functions removed - using integrated sidebar)
+        // Palette Selection Functions
+        function togglePaletteSelector() {
+            // Show the image preview in the palette modal
+            if (currentImageFile) {
+                showImageInPaletteModal();
+                
+                // Extract palettes if not already done
+                if (!extractedPalettes) {
+                    console.log('🎨 Extracting palettes when opening modal...');
+                    extractColorPalettes();
+                }
+            }
+            document.getElementById('paletteModal').style.display = 'flex';
+            lucide.createIcons();
+        }
+        
+        function showImageInPaletteModal() {
+            const previewContainer = document.getElementById('paletteImagePreview');
+            
+            // Always reset to show original image when opening modal
+            if (currentImageFile) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'max-w-full max-h-full object-contain';
+                    img.style.maxHeight = '500px';
+                    previewContainer.innerHTML = '';
+                    previewContainer.appendChild(img);
+                };
+                reader.readAsDataURL(currentImageFile);
+            }
+        }
+
+        function closePaletteModal() {
+            document.getElementById('paletteModal').style.display = 'none';
+        }
 
         function extractColorPalettes() {
             if (!currentImageFile) {
@@ -831,9 +747,8 @@
         }
 
         function displaySuggestedPalettes(palettes) {
-            const container = document.getElementById('suggestedPalettesIntegrated');
+            const container = document.getElementById('suggestedPalettes');
             container.innerHTML = '';
-            console.log('🎨 Displaying palettes in integrated sidebar');
 
             // Sort palettes by color count (Vector Magic style: fewer colors first)
             const sortedKeys = Object.keys(palettes).filter(key => key.includes('_colors')).sort((a, b) => {
@@ -868,7 +783,7 @@
                     generatePalettePreview(palette);
                     
                     // Enable apply button when palette is selected
-                    const applyBtn = document.getElementById('applySelectedPaletteIntegrated');
+                    const applyBtn = document.getElementById('applySelectedPalette');
                     applyBtn.disabled = false;
                     applyBtn.textContent = `Apply ${colorCount} Colors`;
                     console.log('🎨 Apply button text set to:', applyBtn.textContent);
@@ -901,7 +816,7 @@
             console.log('🎨 selectPalette called with:', name, 'palette length:', palette.length);
             
             // Clear previous selections
-            document.querySelectorAll('#suggestedPalettesIntegrated > div').forEach(row => {
+            document.querySelectorAll('#suggestedPalettes > div').forEach(row => {
                 row.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-50');
                 // Don't remove the recommended blue styling
                 if (!row.querySelector('.text-indigo-600')) {
@@ -923,26 +838,18 @@
             
             console.log('🖼️ Generating real-time preview for palette:', palette);
             
-            // Show loading state in main preview area while preserving zoom controls
-            const previewContainer = document.getElementById('svgDisplay');
-            const zoomControls = previewContainer.querySelector('.zoom-controls');
-            const zoomControlsHTML = zoomControls ? zoomControls.outerHTML : '';
-            
+            // Show loading state
+            const previewContainer = document.getElementById('paletteImagePreview');
             previewContainer.innerHTML = `
-                <div class="flex items-center justify-center h-full text-gray-500">
+                <div class="flex items-center justify-center h-64 text-gray-500">
                     <div class="text-center">
-                        <div class="w-12 h-12 mx-auto mb-4 animate-spin text-indigo-600">
-                            <i data-lucide="loader-2" class="w-12 h-12"></i>
+                        <div class="w-8 h-8 mx-auto mb-2 animate-spin text-indigo-600">
+                            <i data-lucide="loader-2" class="w-8 h-8"></i>
                         </div>
-                        <p class="text-lg">Generating palette preview...</p>
+                        <p class="text-sm">Generating preview...</p>
                     </div>
                 </div>
             `;
-            
-            // Re-add zoom controls
-            if (zoomControlsHTML) {
-                previewContainer.insertAdjacentHTML('beforeend', zoomControlsHTML);
-            }
             lucide.createIcons();
             
             const formData = new FormData();
@@ -964,41 +871,21 @@
             })
             .then(data => {
                 if (data.success) {
-                    // Update the preview image in the main area while preserving zoom controls
-                    const zoomControls = previewContainer.querySelector('.zoom-controls');
-                    const zoomControlsHTML = zoomControls ? zoomControls.outerHTML : '';
-                    
-                    previewContainer.innerHTML = `<img src="${data.preview_image}" class="max-w-full max-h-full object-contain p-12">`;
-                    
-                    // Re-add zoom controls
-                    if (zoomControlsHTML) {
-                        previewContainer.insertAdjacentHTML('beforeend', zoomControlsHTML);
-                    }
-                    
-                    console.log('✅ Palette preview updated successfully in main area');
+                    // Update the preview image in the modal
+                    previewContainer.innerHTML = `<img src="${data.preview_image}" class="max-w-full max-h-full object-contain" style="max-height: 500px;">`;
+                    console.log('✅ Preview updated successfully');
                 } else {
                     console.error('❌ Preview generation failed:', data.error);
-                    const zoomControls = previewContainer.querySelector('.zoom-controls');
-                    const zoomControlsHTML = zoomControls ? zoomControls.outerHTML : '';
-                    
                     previewContainer.innerHTML = `
-                        <div class="flex items-center justify-center h-full text-red-500">
-                            <p class="text-lg">Preview generation failed: ${data.error}</p>
+                        <div class="flex items-center justify-center h-64 text-red-500">
+                            <p class="text-sm">Preview generation failed: ${data.error}</p>
                         </div>
                     `;
-                    
-                    // Re-add zoom controls
-                    if (zoomControlsHTML) {
-                        previewContainer.insertAdjacentHTML('beforeend', zoomControlsHTML);
-                    }
                 }
             })
             .catch(error => {
                 clearTimeout(timeoutId); // Clear timeout on error
                 console.error('❌ Preview generation error:', error);
-                
-                const zoomControls = previewContainer.querySelector('.zoom-controls');
-                const zoomControlsHTML = zoomControls ? zoomControls.outerHTML : '';
                 
                 if (error.name === 'AbortError') {
                     previewContainer.innerHTML = `
@@ -1013,11 +900,6 @@
                         </div>
                     `;
                 }
-                
-                // Re-add zoom controls
-                if (zoomControlsHTML) {
-                    previewContainer.insertAdjacentHTML('beforeend', zoomControlsHTML);
-                }
             });
         }
 
@@ -1025,6 +907,8 @@
             selectedPalette = { colors: palette, name: name };
             console.log('🎨 Applying palette:', name, palette);
             console.log('🎨 Palette has', palette.length, 'colors');
+            
+            closePaletteModal();
             
             // Reprocess image with selected palette
             if (currentImageFile) {
@@ -1041,12 +925,12 @@
             formData.append('file', file);
             formData.append('vectorizer', document.getElementById('vectorizerType').value);
             formData.append('target_time', document.getElementById('targetTime').value);
-            formData.append('strategy', 'experimental'); // Force experimental strategy for palette processing
+            formData.append('strategy', document.getElementById('strategy').value);
             formData.append('use_palette', 'true');
             formData.append('selected_palette', JSON.stringify(palette));
             
             console.log('🎨 FormData being sent:');
-            console.log('  - strategy: experimental (forced for palette processing)');
+            console.log('  - strategy:', document.getElementById('strategy').value);
             console.log('  - use_palette: true');
             console.log('  - selected_palette:', JSON.stringify(palette));
 
@@ -1066,13 +950,6 @@
                     console.log('   SVG elements:', data.num_elements);
                     console.log('   SVG content length:', data.svg_content ? data.svg_content.length : 0);
                     displayResults(data, file);
-                    
-                    // Ensure zoom is available after palette change
-                    setTimeout(() => {
-                        if (data.svg_content && data.svg_content.includes('<svg')) {
-                            initializeVectorZoom();
-                        }
-                    }, 200);
                 } else {
                     document.getElementById('loadingOverlay').style.display = 'none';
                     console.error('❌ Palette vectorization failed:', data.error);
@@ -1129,7 +1006,7 @@
         }
 
         function updateCustomPaletteDisplay() {
-            const container = document.getElementById('customPaletteColorsIntegrated');
+            const container = document.getElementById('customPaletteColors');
             container.innerHTML = '';
 
             // Always show at least 6 slots like Vector Magic
@@ -1199,205 +1076,12 @@
         function applySelectedPalette() {
             if (selectedPalette && selectedPalette.colors) {
                 console.log('🎯 Applying selected palette:', selectedPalette);
-                
-                // Store that we're using a palette for future parameter adjustments
-                window.currentAppliedPalette = selectedPalette;
-                
-                // Directly process image with palette without modal operations
-                if (currentImageFile) {
-                    processImageWithPalette(currentImageFile, selectedPalette.colors);
-                    
-                    // Close the drawer after applying
-                    setTimeout(() => {
-                        const sidebar = document.getElementById('controlsSidebar');
-                        const controlsToggle = document.getElementById('controlsToggle');
-                        sidebar.style.display = 'none';
-                        controlsToggle.innerHTML = '<i data-lucide="sliders" class="w-5 h-5"></i><span>Settings</span>';
-                        lucide.createIcons();
-                    }, 1000); // Small delay to let user see the result first
-                }
+                applyPalette(selectedPalette.colors, selectedPalette.name);
             } else {
                 console.warn('❌ No palette selected');
                 alert('Please select a palette first');
             }
         }
-
-        // Reset to original preview function
-        function resetToOriginalPreview() {
-            if (currentImageFile) {
-                console.log('🔄 Resetting to original preview');
-                
-                // Clear selected palette
-                selectedPalette = null;
-                
-                // Clear applied palette for parameter adjustments
-                window.currentAppliedPalette = null;
-                
-                // Disable apply button
-                const applyBtn = document.getElementById('applySelectedPaletteIntegrated');
-                applyBtn.disabled = true;
-                applyBtn.textContent = 'Apply Selected Palette';
-                
-                // Clear palette selections
-                document.querySelectorAll('#suggestedPalettesIntegrated > div').forEach(row => {
-                    row.classList.remove('ring-2', 'ring-indigo-500', 'bg-indigo-50');
-                });
-                
-                // Reprocess the image with original settings (no palette)
-                processImage(currentImageFile);
-            }
-        }
-
-        // ==========================================
-        // TRUE VECTOR ZOOM CONTROL FUNCTIONS
-        // ==========================================
-        
-        // Global zoom instance
-        window.svgPanZoomInstance = null;
-        
-        // Helper function to initialize vector zoom consistently
-        function initializeVectorZoom() {
-            setTimeout(() => {
-                const svgDisplay = document.getElementById('svgDisplay');
-                const svg = svgDisplay.querySelector('svg');
-                
-                if (svg) {
-                    console.log('✅ SVG element found, initializing true vector zoom...');
-                    
-                    // Prepare SVG for vector zoom
-                    svg.removeAttribute('width');
-                    svg.removeAttribute('height');
-                    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-                    svg.style.width = '100%';
-                    svg.style.height = '100%';
-                    
-                    // Set viewBox if not present
-                    if (!svg.getAttribute('viewBox')) {
-                        try {
-                            const bbox = svg.getBBox();
-                            if (bbox.width > 0 && bbox.height > 0) {
-                                svg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
-                                console.log(`📏 Set viewBox: ${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
-                            }
-                        } catch (e) {
-                            console.warn('Could not set viewBox:', e);
-                            // Fallback viewBox
-                            svg.setAttribute('viewBox', '0 0 800 600');
-                        }
-                    }
-                    
-                    // Initialize svg-pan-zoom for true vector zoom
-                    try {
-                        window.svgPanZoomInstance = svgPanZoom(svg, {
-                            zoomEnabled: true,
-                            panEnabled: true,
-                            controlIconsEnabled: false,
-                            fit: true,
-                            center: true,
-                            minZoom: 0.1,
-                            maxZoom: 50,
-                            zoomScaleSensitivity: 0.2,
-                            mouseWheelZoomEnabled: true,
-                            preventMouseEventsDefault: true,
-                            beforeZoom: function(oldScale, newScale) {
-                                // Limit zoom range
-                                return newScale >= 0.1 && newScale <= 50;
-                            },
-                            onZoom: function(scale) {
-                                console.log('🔍 Vector zoom scale:', scale.toFixed(2) + 'x');
-                            }
-                        });
-                        
-                        // Show zoom controls
-                        const zoomControlsElement = document.getElementById('zoomControls');
-                        if (zoomControlsElement) {
-                            zoomControlsElement.style.display = 'flex';
-                        }
-                        
-                        console.log('🎯 True vector zoom initialized successfully!');
-                        console.log('📊 Zoom range: 0.1x to 50x');
-                        console.log('🖱️ Controls: Mouse wheel = zoom, Drag = pan');
-                        
-                    } catch (e) {
-                        console.error('❌ Failed to initialize vector zoom:', e);
-                    }
-                    
-                } else {
-                    console.log('ℹ️ No SVG element found - zoom not applicable');
-                }
-            }, 100);
-        }
-        
-        function zoomIn() {
-            if (window.svgPanZoomInstance) {
-                window.svgPanZoomInstance.zoomIn();
-                console.log('🔍 Zoom In - Scale:', window.svgPanZoomInstance.getZoom().toFixed(2) + 'x');
-            }
-        }
-        
-        function zoomOut() {
-            if (window.svgPanZoomInstance) {
-                window.svgPanZoomInstance.zoomOut();
-                console.log('🔍 Zoom Out - Scale:', window.svgPanZoomInstance.getZoom().toFixed(2) + 'x');
-            }
-        }
-        
-        function resetZoom() {
-            if (window.svgPanZoomInstance) {
-                window.svgPanZoomInstance.fit();
-                window.svgPanZoomInstance.center();
-                console.log('🔍 Reset Zoom - Fit to view');
-            }
-        }
-        
-        function actualSize() {
-            if (window.svgPanZoomInstance) {
-                window.svgPanZoomInstance.reset();
-                console.log('🔍 Actual Size - 1:1 scale');
-            }
-        }
-        
-        // Keyboard shortcuts for zoom
-        document.addEventListener('keydown', function(e) {
-            if (!window.svgPanZoomInstance) return;
-            
-            // Only work when results are visible
-            const resultsContainer = document.getElementById('resultsContainer');
-            if (resultsContainer.style.display !== 'block') return;
-            
-            // Prevent shortcuts when typing in inputs
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-            
-            switch(e.key) {
-                case '+':
-                case '=':
-                    e.preventDefault();
-                    zoomIn();
-                    break;
-                case '-':
-                    e.preventDefault();
-                    zoomOut();
-                    break;
-                case '0':
-                    e.preventDefault();
-                    resetZoom();
-                    break;
-                case '1':
-                    e.preventDefault();
-                    actualSize();
-                    break;
-            }
-        });
-        
-        console.log('🎯 VectorCraft 2.0 with True Vector Zoom initialized!');
-        console.log('🔍 Zoom Controls:');
-        console.log('   • Mouse wheel: Zoom in/out');
-        console.log('   • Drag: Pan around');
-        console.log('   • + key: Zoom in');
-        console.log('   • - key: Zoom out');
-        console.log('   • 0 key: Fit to view');
-        console.log('   • 1 key: Actual size');
-        console.log('   • Buttons: Top-right corner when viewing SVG');
     </script>
 </body>
 </html>
