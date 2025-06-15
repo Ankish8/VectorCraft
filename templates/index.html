@@ -37,7 +37,7 @@
         }
         
         /* Professional SVG Viewer Styles */
-        #svgViewerContainer {
+        .viewer-background {
             background-image: 
                 linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
                 linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
@@ -47,8 +47,33 @@
             background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
         }
         
-        #svgViewerContainer.grabbing {
+        #singleViewContainer, #originalPanel, #vectorizedPanel, #overlayViewContainer {
+            background-image: 
+                linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+                linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
+                linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        
+        .viewer-panel.grabbing {
             cursor: grabbing !important;
+        }
+        
+        /* Split view specific styles */
+        #splitDivider {
+            transition: background-color 0.2s ease;
+        }
+        
+        #splitDivider:hover {
+            background-color: #6366f1 !important;
+        }
+        
+        /* View mode button states */
+        .view-mode-active {
+            background-color: white !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
         }
         
         #svgTransformContainer {
@@ -167,8 +192,23 @@
             <div class="flex">
                 <!-- Main Display Area with Dynamic Viewer -->
                 <div class="flex-1 relative bg-white" style="height: 80vh;">
-                    <!-- Zoom & Pan Controls Bar -->
+                    <!-- Enhanced Controls Bar -->
                     <div class="absolute top-4 left-4 z-10 bg-white shadow-lg rounded-lg p-2 flex items-center gap-2 border border-gray-200">
+                        <!-- View Mode Controls -->
+                        <div class="flex items-center bg-gray-100 rounded p-1">
+                            <button id="viewModeVectorized" class="px-3 py-1 text-sm rounded bg-white shadow-sm transition-all" title="Vectorized Only">
+                                <i data-lucide="image" class="w-4 h-4"></i>
+                            </button>
+                            <button id="viewModeSplit" class="px-3 py-1 text-sm rounded hover:bg-white transition-all" title="Side by Side">
+                                <i data-lucide="layout-panel-left" class="w-4 h-4"></i>
+                            </button>
+                            <button id="viewModeOverlay" class="px-3 py-1 text-sm rounded hover:bg-white transition-all" title="Overlay">
+                                <i data-lucide="layers" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="w-px h-6 bg-gray-300"></div>
+                        
                         <!-- Zoom Controls -->
                         <button id="zoomOut" class="p-2 hover:bg-gray-100 rounded transition-colors" title="Zoom Out">
                             <i data-lucide="minus" class="w-4 h-4"></i>
@@ -189,7 +229,7 @@
                             <i data-lucide="plus" class="w-4 h-4"></i>
                         </button>
                         
-                        <div class="w-px h-6 bg-gray-300 mx-1"></div>
+                        <div class="w-px h-6 bg-gray-300"></div>
                         
                         <!-- Fit Controls -->
                         <button id="fitToContainer" class="px-3 py-1 text-sm hover:bg-gray-100 rounded transition-colors" title="Fit to Container">
@@ -201,19 +241,74 @@
                         </button>
                     </div>
                     
+                    <!-- Overlay Controls (hidden by default) -->
+                    <div id="overlayControls" class="absolute top-4 right-4 z-10 bg-white shadow-lg rounded-lg p-3 border border-gray-200" style="display: none;">
+                        <div class="flex items-center gap-3">
+                            <label class="text-sm font-medium text-gray-700">Opacity:</label>
+                            <input type="range" id="overlayOpacity" min="0" max="100" value="50" class="slider w-24">
+                            <span id="overlayOpacityValue" class="text-sm font-medium text-indigo-600 w-8">50%</span>
+                        </div>
+                    </div>
+                    
                     <!-- Zoom Info Display -->
                     <div id="zoomInfo" class="absolute top-4 right-4 z-10 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm" style="display: none;">
                         100%
                     </div>
                     
-                    <!-- SVG Viewer Container -->
-                    <div id="svgViewerContainer" class="absolute inset-0 overflow-hidden cursor-grab select-none" style="background-color: #f8f9fa;">
-                        <!-- Original Image (hidden by default) -->
-                        <img id="originalImage" class="absolute opacity-0 transition-opacity duration-300 pointer-events-none">
+                    <!-- Multi-Mode Viewer Container -->
+                    <div id="viewerMainContainer" class="absolute inset-0">
+                        <!-- Single View Mode (Vectorized Only) -->
+                        <div id="singleViewContainer" class="absolute inset-0 overflow-hidden cursor-grab select-none" style="background-color: #f8f9fa;">
+                            <!-- Original Image (hidden by default, used for comparison modes) -->
+                            <img id="originalImage" class="absolute opacity-0 transition-opacity duration-300 pointer-events-none">
+                            
+                            <!-- SVG Container with Transform -->
+                            <div id="svgTransformContainer" class="absolute" style="transform-origin: 0 0; will-change: transform;">
+                                <div id="svgDisplay" class="overflow-visible"></div>
+                            </div>
+                        </div>
                         
-                        <!-- SVG Container with Transform -->
-                        <div id="svgTransformContainer" class="absolute" style="transform-origin: 0 0; will-change: transform;">
-                            <div id="svgDisplay" class="overflow-visible"></div>
+                        <!-- Split View Mode (Side by Side) -->
+                        <div id="splitViewContainer" class="absolute inset-0 flex" style="display: none;">
+                            <!-- Original Panel -->
+                            <div id="originalPanel" class="flex-1 relative overflow-hidden cursor-grab select-none" style="background-color: #f8f9fa;">
+                                <div class="absolute top-4 left-4 z-10 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs">
+                                    Original
+                                </div>
+                                <div id="originalTransformContainer" class="absolute" style="transform-origin: 0 0; will-change: transform;">
+                                    <img id="originalImageSplit" class="block pointer-events-none">
+                                </div>
+                            </div>
+                            
+                            <!-- Resizable Divider -->
+                            <div id="splitDivider" class="w-1 bg-gray-400 cursor-col-resize hover:bg-indigo-500 transition-colors relative">
+                                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-6 h-12 bg-white border border-gray-300 rounded flex items-center justify-center shadow-lg">
+                                    <i data-lucide="grip-vertical" class="w-3 h-3 text-gray-500"></i>
+                                </div>
+                            </div>
+                            
+                            <!-- Vectorized Panel -->
+                            <div id="vectorizedPanel" class="flex-1 relative overflow-hidden cursor-grab select-none" style="background-color: #f8f9fa;">
+                                <div class="absolute top-4 left-4 z-10 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs">
+                                    Vectorized
+                                </div>
+                                <div id="svgTransformContainerSplit" class="absolute" style="transform-origin: 0 0; will-change: transform;">
+                                    <div id="svgDisplaySplit" class="overflow-visible"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Overlay View Mode -->
+                        <div id="overlayViewContainer" class="absolute inset-0 overflow-hidden cursor-grab select-none" style="background-color: #f8f9fa; display: none;">
+                            <!-- Original Image Layer -->
+                            <div id="originalOverlayTransformContainer" class="absolute" style="transform-origin: 0 0; will-change: transform;">
+                                <img id="originalImageOverlay" class="block pointer-events-none">
+                            </div>
+                            
+                            <!-- SVG Overlay Layer -->
+                            <div id="svgOverlayTransformContainer" class="absolute" style="transform-origin: 0 0; will-change: transform; opacity: 0.5;">
+                                <div id="svgDisplayOverlay" class="overflow-visible"></div>
+                            </div>
                         </div>
                     </div>
                     
@@ -597,9 +692,12 @@
                 
                 // Use our professional SVG viewer
                 if (!svgViewer) {
-                    svgViewer = new SVGViewer();
+                    svgViewer = new AdvancedSVGViewer();
                 }
-                svgViewer.setSVGContent(data.svg_content);
+                
+                // Get original image element for comparison modes
+                const originalImageEl = document.getElementById('originalImage');
+                svgViewer.setSVGContent(data.svg_content, originalImageEl);
             } else {
                 console.error('❌ No SVG content in response!');
                 console.log('📄 Full response data:', data);
@@ -1214,28 +1312,60 @@
         // PROFESSIONAL SVG ZOOM & PAN SYSTEM
         // =====================================================================
         
-        class SVGViewer {
+        class AdvancedSVGViewer {
             constructor() {
+                // Core state
                 this.zoom = 1.0;
                 this.panX = 0;
                 this.panY = 0;
                 this.isDragging = false;
                 this.lastMousePos = { x: 0, y: 0 };
                 this.svgDimensions = { width: 0, height: 0 };
+                this.originalDimensions = { width: 0, height: 0 };
                 this.containerDimensions = { width: 0, height: 0 };
                 
-                // Get DOM elements
-                this.container = document.getElementById('svgViewerContainer');
-                this.transformContainer = document.getElementById('svgTransformContainer');
-                this.svgDisplay = document.getElementById('svgDisplay');
+                // View modes
+                this.viewMode = 'vectorized'; // 'vectorized', 'split', 'overlay'
+                this.splitRatio = 0.5; // For split view
+                this.overlayOpacity = 0.5; // For overlay view
+                
+                // Current content
+                this.svgContent = '';
+                this.originalImage = null;
+                
+                // DOM elements
+                this.mainContainer = document.getElementById('viewerMainContainer');
                 this.zoomInfo = document.getElementById('zoomInfo');
                 this.zoomPreset = document.getElementById('zoomPreset');
+                
+                // View containers
+                this.singleContainer = document.getElementById('singleViewContainer');
+                this.splitContainer = document.getElementById('splitViewContainer');
+                this.overlayContainer = document.getElementById('overlayViewContainer');
+                
+                // Transform containers
+                this.svgTransform = document.getElementById('svgTransformContainer');
+                this.svgDisplay = document.getElementById('svgDisplay');
                 
                 this.initializeEventListeners();
                 this.updateContainerDimensions();
             }
             
             initializeEventListeners() {
+                // View mode controls
+                document.getElementById('viewModeVectorized').addEventListener('click', () => this.setViewMode('vectorized'));
+                document.getElementById('viewModeSplit').addEventListener('click', () => this.setViewMode('split'));
+                document.getElementById('viewModeOverlay').addEventListener('click', () => this.setViewMode('overlay'));
+                
+                // Overlay opacity control
+                const overlayOpacitySlider = document.getElementById('overlayOpacity');
+                const overlayOpacityValue = document.getElementById('overlayOpacityValue');
+                overlayOpacitySlider.addEventListener('input', (e) => {
+                    this.overlayOpacity = e.target.value / 100;
+                    overlayOpacityValue.textContent = e.target.value + '%';
+                    this.updateOverlayOpacity();
+                });
+                
                 // Zoom controls
                 document.getElementById('zoomIn').addEventListener('click', () => this.zoomStep(1.2));
                 document.getElementById('zoomOut').addEventListener('click', () => this.zoomStep(1/1.2));
@@ -1247,17 +1377,11 @@
                     this.setZoom(parseFloat(e.target.value));
                 });
                 
-                // Mouse wheel zoom
-                this.container.addEventListener('wheel', (e) => {
-                    e.preventDefault();
-                    const delta = e.deltaY > 0 ? 1/1.1 : 1.1;
-                    this.zoomAtPoint(delta, e.clientX, e.clientY);
-                });
+                // Mouse wheel zoom - handle all containers
+                this.addWheelListeners();
                 
-                // Mouse drag for panning
-                this.container.addEventListener('mousedown', (e) => this.startDrag(e));
-                document.addEventListener('mousemove', (e) => this.drag(e));
-                document.addEventListener('mouseup', () => this.endDrag());
+                // Mouse drag for panning - handle all containers
+                this.addDragListeners();
                 
                 // Keyboard shortcuts
                 document.addEventListener('keydown', (e) => {
@@ -1290,16 +1414,190 @@
                 window.addEventListener('resize', () => {
                     this.updateContainerDimensions();
                     this.constrainPan();
-                    this.updateTransform();
+                    this.updateAllTransforms();
+                });
+                
+                // Split view divider dragging
+                this.initializeSplitDivider();
+            }
+            
+            addWheelListeners() {
+                const containers = [this.singleContainer, this.overlayContainer];
+                
+                // Add split view panels
+                const originalPanel = document.getElementById('originalPanel');
+                const vectorizedPanel = document.getElementById('vectorizedPanel');
+                if (originalPanel) containers.push(originalPanel);
+                if (vectorizedPanel) containers.push(vectorizedPanel);
+                
+                containers.forEach(container => {
+                    if (container) {
+                        container.addEventListener('wheel', (e) => {
+                            e.preventDefault();
+                            const delta = e.deltaY > 0 ? 1/1.1 : 1.1;
+                            this.zoomAtPoint(delta, e.clientX, e.clientY);
+                        });
+                    }
                 });
             }
             
-            updateContainerDimensions() {
-                const rect = this.container.getBoundingClientRect();
-                this.containerDimensions = { width: rect.width, height: rect.height };
+            addDragListeners() {
+                const containers = [this.singleContainer, this.overlayContainer];
+                
+                // Add split view panels
+                const originalPanel = document.getElementById('originalPanel');
+                const vectorizedPanel = document.getElementById('vectorizedPanel');
+                if (originalPanel) containers.push(originalPanel);
+                if (vectorizedPanel) containers.push(vectorizedPanel);
+                
+                containers.forEach(container => {
+                    if (container) {
+                        container.addEventListener('mousedown', (e) => this.startDrag(e));
+                    }
+                });
+                
+                document.addEventListener('mousemove', (e) => this.drag(e));
+                document.addEventListener('mouseup', () => this.endDrag());
             }
             
-            setSVGContent(svgContent) {
+            initializeSplitDivider() {
+                const divider = document.getElementById('splitDivider');
+                if (!divider) return;
+                
+                let isDraggingDivider = false;
+                
+                divider.addEventListener('mousedown', (e) => {
+                    isDraggingDivider = true;
+                    divider.style.backgroundColor = '#6366f1';
+                    e.preventDefault();
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDraggingDivider) return;
+                    
+                    const splitContainer = document.getElementById('splitViewContainer');
+                    if (!splitContainer) return;
+                    
+                    const rect = splitContainer.getBoundingClientRect();
+                    const newRatio = (e.clientX - rect.left) / rect.width;
+                    
+                    this.splitRatio = Math.max(0.2, Math.min(0.8, newRatio));
+                    this.updateSplitLayout();
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    if (isDraggingDivider) {
+                        isDraggingDivider = false;
+                        divider.style.backgroundColor = '';
+                    }
+                });
+            }
+            
+            setViewMode(mode) {
+                this.viewMode = mode;
+                
+                // Update UI button states
+                document.querySelectorAll('[id^="viewMode"]').forEach(btn => {
+                    btn.classList.remove('view-mode-active');
+                });
+                document.getElementById(`viewMode${mode.charAt(0).toUpperCase() + mode.slice(1)}`).classList.add('view-mode-active');
+                
+                // Hide all containers
+                this.singleContainer.style.display = 'none';
+                this.splitContainer.style.display = 'none';
+                this.overlayContainer.style.display = 'none';
+                
+                // Show/hide overlay controls
+                const overlayControls = document.getElementById('overlayControls');
+                overlayControls.style.display = mode === 'overlay' ? 'block' : 'none';
+                
+                // Show appropriate container
+                switch (mode) {
+                    case 'vectorized':
+                        this.singleContainer.style.display = 'block';
+                        break;
+                    case 'split':
+                        this.splitContainer.style.display = 'flex';
+                        this.setupSplitView();
+                        break;
+                    case 'overlay':
+                        this.overlayContainer.style.display = 'block';
+                        this.setupOverlayView();
+                        break;
+                }
+                
+                this.updateContainerDimensions();
+                this.updateAllTransforms();
+            }
+            
+            setupSplitView() {
+                if (!this.originalImage || !this.svgContent) return;
+                
+                // Set up original image in split view
+                const originalImgSplit = document.getElementById('originalImageSplit');
+                originalImgSplit.src = this.originalImage.src;
+                
+                // Set up SVG in split view
+                const svgDisplaySplit = document.getElementById('svgDisplaySplit');
+                svgDisplaySplit.innerHTML = this.svgContent;
+                
+                this.updateSplitLayout();
+            }
+            
+            updateSplitLayout() {
+                const originalPanel = document.getElementById('originalPanel');
+                const vectorizedPanel = document.getElementById('vectorizedPanel');
+                const divider = document.getElementById('splitDivider');
+                
+                if (originalPanel && vectorizedPanel && divider) {
+                    originalPanel.style.width = `${this.splitRatio * 100}%`;
+                    vectorizedPanel.style.width = `${(1 - this.splitRatio) * 100}%`;
+                }
+            }
+            
+            setupOverlayView() {
+                if (!this.originalImage || !this.svgContent) return;
+                
+                // Set up original image in overlay view
+                const originalImgOverlay = document.getElementById('originalImageOverlay');
+                originalImgOverlay.src = this.originalImage.src;
+                
+                // Set up SVG in overlay view
+                const svgDisplayOverlay = document.getElementById('svgDisplayOverlay');
+                svgDisplayOverlay.innerHTML = this.svgContent;
+                
+                this.updateOverlayOpacity();
+            }
+            
+            updateOverlayOpacity() {
+                const svgOverlayContainer = document.getElementById('svgOverlayTransformContainer');
+                if (svgOverlayContainer) {
+                    svgOverlayContainer.style.opacity = this.overlayOpacity.toString();
+                }
+            }
+            
+            updateContainerDimensions() {
+                const activeContainer = this.getActiveContainer();
+                if (activeContainer) {
+                    const rect = activeContainer.getBoundingClientRect();
+                    this.containerDimensions = { width: rect.width, height: rect.height };
+                }
+            }
+            
+            getActiveContainer() {
+                switch (this.viewMode) {
+                    case 'vectorized': return this.singleContainer;
+                    case 'split': return this.splitContainer;
+                    case 'overlay': return this.overlayContainer;
+                    default: return this.singleContainer;
+                }
+            }
+            
+            setSVGContent(svgContent, originalImageElement = null) {
+                this.svgContent = svgContent;
+                this.originalImage = originalImageElement;
+                
+                // Set SVG content in all displays
                 this.svgDisplay.innerHTML = svgContent;
                 
                 // Get SVG dimensions
@@ -1350,7 +1648,7 @@
                 this.zoom = newZoom;
                 
                 this.constrainPan();
-                this.updateTransform();
+                this.updateAllTransforms();
                 this.updateUI();
             }
             
@@ -1369,7 +1667,7 @@
                 this.zoom = newZoom;
                 
                 this.constrainPan();
-                this.updateTransform();
+                this.updateAllTransforms();
                 this.updateUI();
             }
             
@@ -1390,7 +1688,7 @@
                 this.panX = (this.containerDimensions.width - this.svgDimensions.width * scale) / 2;
                 this.panY = (this.containerDimensions.height - this.svgDimensions.height * scale) / 2;
                 
-                this.updateTransform();
+                this.updateAllTransforms();
                 this.updateUI();
             }
             
@@ -1417,7 +1715,7 @@
                 this.lastMousePos = { x: e.clientX, y: e.clientY };
                 
                 this.constrainPan();
-                this.updateTransform();
+                this.updateAllTransforms();
             }
             
             endDrag() {
@@ -1454,8 +1752,31 @@
             }
             
             updateTransform() {
-                this.transformContainer.style.transform = 
-                    `translate(${this.panX}px, ${this.panY}px) scale(${this.zoom})`;
+                // Update single view
+                if (this.svgTransform) {
+                    this.svgTransform.style.transform = 
+                        `translate(${this.panX}px, ${this.panY}px) scale(${this.zoom})`;
+                }
+            }
+            
+            updateAllTransforms() {
+                const transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.zoom})`;
+                
+                // Update all transform containers
+                const transforms = [
+                    'svgTransformContainer',
+                    'svgTransformContainerSplit', 
+                    'originalTransformContainer',
+                    'svgOverlayTransformContainer',
+                    'originalOverlayTransformContainer'
+                ];
+                
+                transforms.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.style.transform = transform;
+                    }
+                });
             }
             
             updateUI() {
@@ -1492,15 +1813,15 @@
             }
         }
         
-        // Initialize SVG Viewer
+        // Initialize Advanced SVG Viewer
         let svgViewer;
         
         // Override the SVG display function to use our viewer
-        function displaySVGWithViewer(svgContent) {
+        function displaySVGWithViewer(svgContent, originalImageElement = null) {
             if (!svgViewer) {
-                svgViewer = new SVGViewer();
+                svgViewer = new AdvancedSVGViewer();
             }
-            svgViewer.setSVGContent(svgContent);
+            svgViewer.setSVGContent(svgContent, originalImageElement);
         }
         
         // Professional SVG viewer is now integrated directly into displayResults()
