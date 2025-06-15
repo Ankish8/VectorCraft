@@ -32,32 +32,94 @@ class PrimitiveDetector:
         self.rect_min_area = 100
         
     def detect_circles(self, image: np.ndarray, edge_map: np.ndarray) -> List[Circle]:
-        """Detect circles using HoughCircles"""
+        """Enhanced circle detection with multiple methods"""
         gray = cv2.cvtColor((image * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY) if len(image.shape) == 3 else (image * 255).astype(np.uint8)
         
+        circles_combined = []
+        
+        # Method 1: Standard HoughCircles with adaptive parameters
         circles = cv2.HoughCircles(
-            gray,
-            cv2.HOUGH_GRADIENT,
-            dp=1,
-            minDist=30,
-            param1=50,
-            param2=30,
-            minRadius=self.circle_min_radius,
-            maxRadius=self.circle_max_radius
+            gray, cv2.HOUGH_GRADIENT, dp=1, minDist=15,  # Closer circles allowed
+            param1=30, param2=15,  # Lower thresholds for subtle circles
+            minRadius=3, maxRadius=min(gray.shape) // 2
         )
         
-        detected_circles = []
         if circles is not None:
             circles = np.round(circles[0, :]).astype("int")
             for (x, y, r) in circles:
-                # Calculate confidence based on edge alignment
-                confidence = self._calculate_circle_confidence(edge_map, (x, y), r)
-                detected_circles.append(Circle((float(x), float(y)), float(r), confidence))
+                confidence = self._calculate_circle_confidence_enhanced(edge_map, (x, y), r)
+                if confidence > 0.2:  # Lower threshold for subtle shapes
+                    circles_combined.append(Circle((float(x), float(y)), float(r), confidence))
         
-        return detected_circles
+        # Method 2: Contour-based circle detection
+        contours, _ = cv2.findContours(edge_map, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        for contour in contours:
+            if len(contour) >= 5:  # Need at least 5 points for ellipse fitting
+                try:
+                    ellipse = cv2.fitEllipse(contour)
+                    center, axes, angle = ellipse
+                    
+                    # Check if it's approximately circular
+                    ratio = min(axes) / max(axes) if max(axes) > 0 else 0
+                    if ratio > 0.7:  # Fairly circular
+                        radius = np.mean(axes) / 2
+                        confidence = ratio * 0.6  # Base confidence on circularity
+                        if radius > 3:  # Minimum meaningful radius
+                            circles_combined.append(Circle(center, radius, confidence))
+                except:
+                    continue  # Skip if ellipse fitting fails
+        
+        return self._filter_duplicate_circles(circles_combined)
+    
+    def _calculate_circle_confidence_enhanced(self, edge_map: np.ndarray, center: Tuple[int, int], radius: int) -> float:
+        """Enhanced circle confidence calculation"""
+        x, y = center
+        
+        # Sample more points around the circle
+        angles = np.linspace(0, 2*np.pi, 32)  # More sample points
+        edge_hits = 0
+        
+        for angle in angles:
+            # Sample points at multiple radii around the target radius
+            for r_offset in [-2, -1, 0, 1, 2]:
+                px = int(x + (radius + r_offset) * np.cos(angle))
+                py = int(y + (radius + r_offset) * np.sin(angle))
+                
+                if 0 <= px < edge_map.shape[1] and 0 <= py < edge_map.shape[0]:
+                    if edge_map[py, px] > 0:
+                        edge_hits += 1
+                        break  # Found edge at this angle
+        
+        return edge_hits / len(angles)
+    
+    def _filter_duplicate_circles(self, circles: List[Circle]) -> List[Circle]:
+        """Filter out duplicate/overlapping circles"""
+        if not circles:
+            return circles
+        
+        # Sort by confidence
+        circles.sort(key=lambda c: c.confidence, reverse=True)
+        
+        filtered = []
+        for circle in circles:
+            is_duplicate = False
+            for existing in filtered:
+                # Check distance between centers
+                dist = np.sqrt((circle.center[0] - existing.center[0])**2 + 
+                              (circle.center[1] - existing.center[1])**2)
+                # If centers are close and radii similar, it's a duplicate
+                if dist < max(circle.radius, existing.radius) * 0.5:
+                    is_duplicate = True
+                    break
+            
+            if not is_duplicate:
+                filtered.append(circle)
+        
+        return filtered
     
     def detect_rectangles(self, edge_map: np.ndarray) -> List[Rectangle]:
-        """Detect rectangles from contours"""
+        """Enhanced rectangle detection with better approximation"""
         # Ensure edge_map is uint8
         if edge_map.dtype != np.uint8:
             edge_map = edge_map.astype(np.uint8)
@@ -67,28 +129,93 @@ class PrimitiveDetector:
         rectangles = []
         for contour in contours:
             area = cv2.contourArea(contour)
-            if area < self.rect_min_area:
+            if area < 50:  # Lower minimum area for small rectangles
                 continue
                 
-            # Approximate contour to polygon
-            epsilon = 0.02 * cv2.arcLength(contour, True)
-            approx = cv2.approxPolyDP(contour, epsilon, True)
-            
-            # Check if it's roughly rectangular (4 corners)
-            if len(approx) == 4:
-                # Get rotated rectangle
-                rect = cv2.minAreaRect(contour)
-                (center_x, center_y), (width, height), angle = rect
+            # Try multiple epsilon values for better approximation
+            for epsilon_factor in [0.01, 0.02, 0.03]:
+                epsilon = epsilon_factor * cv2.arcLength(contour, True)
+                approx = cv2.approxPolyDP(contour, epsilon, True)
                 
-                # Calculate confidence based on how well it fits a rectangle
-                confidence = self._calculate_rect_confidence(contour, rect)
-                
-                x = center_x - width / 2
-                y = center_y - height / 2
-                
-                rectangles.append(Rectangle(x, y, width, height, angle, confidence))
+                # Check if it's rectangular (3-6 corners, allowing for slight variations)
+                if 3 <= len(approx) <= 6:
+                    # Get rotated rectangle
+                    rect = cv2.minAreaRect(contour)
+                    (center_x, center_y), (width, height), angle = rect
+                    
+                    # Skip very thin rectangles (likely noise)
+                    if min(width, height) < 3:
+                        continue
+                    
+                    # Calculate confidence based on how well it fits a rectangle
+                    confidence = self._calculate_rect_confidence_enhanced(contour, rect, len(approx))
+                    
+                    if confidence > 0.3:  # Lower threshold for subtle rectangles
+                        x = center_x - width / 2
+                        y = center_y - height / 2
+                        
+                        rectangles.append(Rectangle(x, y, width, height, angle, confidence))
+                        break  # Found good approximation, no need to try other epsilons
         
-        return rectangles
+        return self._filter_duplicate_rectangles(rectangles)
+    
+    def _calculate_rect_confidence_enhanced(self, contour: np.ndarray, rect: Tuple, num_corners: int) -> float:
+        """Enhanced rectangle confidence calculation"""
+        # Get the four corner points of the rectangle
+        box = cv2.boxPoints(rect)
+        box = np.int0(box)
+        
+        # Calculate area ratio
+        contour_area = cv2.contourArea(contour)
+        rect_area = cv2.contourArea(box)
+        
+        if rect_area == 0:
+            return 0.0
+            
+        area_ratio = min(contour_area, rect_area) / max(contour_area, rect_area)
+        
+        # Calculate perimeter ratio
+        contour_perimeter = cv2.arcLength(contour, True)
+        rect_perimeter = cv2.arcLength(box, True)
+        
+        if rect_perimeter == 0:
+            return 0.0
+            
+        perimeter_ratio = min(contour_perimeter, rect_perimeter) / max(contour_perimeter, rect_perimeter)
+        
+        # Bonus for having close to 4 corners
+        corner_bonus = 1.0 if num_corners == 4 else (0.8 if num_corners in [3, 5] else 0.6)
+        
+        # Combine ratios with corner bonus
+        confidence = (area_ratio * 0.4 + perimeter_ratio * 0.4 + corner_bonus * 0.2)
+        
+        return confidence
+    
+    def _filter_duplicate_rectangles(self, rectangles: List[Rectangle]) -> List[Rectangle]:
+        """Filter out duplicate/overlapping rectangles"""
+        if not rectangles:
+            return rectangles
+        
+        # Sort by confidence
+        rectangles.sort(key=lambda r: r.confidence, reverse=True)
+        
+        filtered = []
+        for rect in rectangles:
+            is_duplicate = False
+            for existing in filtered:
+                # Check overlap using center distance and size similarity
+                center_dist = np.sqrt((rect.x + rect.width/2 - existing.x - existing.width/2)**2 + 
+                                    (rect.y + rect.height/2 - existing.y - existing.height/2)**2)
+                avg_size = (rect.width + rect.height + existing.width + existing.height) / 4
+                
+                if center_dist < avg_size * 0.3:  # Close centers
+                    is_duplicate = True
+                    break
+            
+            if not is_duplicate:
+                filtered.append(rect)
+        
+        return filtered
     
     def detect_lines(self, edge_map: np.ndarray) -> List[Line]:
         """Detect straight lines using HoughLines"""

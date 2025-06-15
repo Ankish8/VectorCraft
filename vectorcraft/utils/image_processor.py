@@ -114,13 +114,15 @@ class ImageProcessor:
         
         return min(1.0, gradient_score * 5)
     
-    def create_edge_map(self, image: np.ndarray, method: str = 'canny') -> np.ndarray:
+    def create_edge_map(self, image: np.ndarray, method: str = 'enhanced') -> np.ndarray:
         if len(image.shape) == 3:
             gray = cv2.cvtColor((image * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY)
         else:
             gray = (image * 255).astype(np.uint8)
         
-        if method == 'canny':
+        if method == 'enhanced':
+            return self.enhanced_edge_detection(image)
+        elif method == 'canny':
             return cv2.Canny(gray, 50, 150)
         elif method == 'sobel':
             grad_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
@@ -129,6 +131,43 @@ class ImageProcessor:
             return (magnitude > 30).astype(np.uint8) * 255
         else:
             raise ValueError(f"Unknown edge detection method: {method}")
+    
+    def enhanced_edge_detection(self, image: np.ndarray) -> np.ndarray:
+        """Enhanced edge detection for low-contrast images like Frame 53"""
+        gray = cv2.cvtColor((image * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY) if len(image.shape) == 3 else (image * 255).astype(np.uint8)
+        
+        # Multi-scale edge detection
+        edges_multi = np.zeros_like(gray)
+        
+        # Different scales for comprehensive detection
+        for sigma in [0.5, 1.0, 2.0]:
+            # Gaussian blur for noise reduction
+            blurred = cv2.GaussianBlur(gray, (0, 0), sigma)
+            
+            # Adaptive thresholding based on local statistics
+            mean_val = np.mean(blurred)
+            std_val = np.std(blurred)
+            
+            # Lower thresholds for low-contrast images like Frame 53
+            low_thresh = max(5, mean_val - std_val * 0.5)  # More sensitive
+            high_thresh = mean_val + std_val * 0.5
+            
+            edges = cv2.Canny(blurred, low_thresh, high_thresh)
+            edges_multi = cv2.bitwise_or(edges_multi, edges)
+        
+        # Morphological operations to connect broken edges
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        edges_multi = cv2.morphologyEx(edges_multi, cv2.MORPH_CLOSE, kernel)
+        
+        # Additional edge enhancement for very low contrast areas
+        # Use adaptive threshold on the original image
+        adaptive_thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+        adaptive_edges = cv2.Canny(255 - adaptive_thresh, 30, 60)  # Invert for dark objects
+        
+        # Combine all edge detection results
+        final_edges = cv2.bitwise_or(edges_multi, adaptive_edges)
+        
+        return final_edges
     
     def segment_colors(self, image: np.ndarray, n_colors: int = 8) -> np.ndarray:
         # Color quantization using simple k-means alternative
