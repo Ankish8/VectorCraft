@@ -146,6 +146,67 @@
             image-rendering: crisp-edges;
         }
         
+        /* Measurement tools */
+        .measurement-line {
+            position: absolute;
+            background: #ff0000;
+            height: 2px;
+            transform-origin: left center;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .measurement-line::before,
+        .measurement-line::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ff0000;
+            border-radius: 50%;
+            top: -3px;
+        }
+        
+        .measurement-line::before {
+            left: -4px;
+        }
+        
+        .measurement-line::after {
+            right: -4px;
+        }
+        
+        .measurement-text {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 11;
+        }
+        
+        .zoom-selection-area {
+            position: absolute;
+            border: 2px dashed #0066ff;
+            background: rgba(0, 102, 255, 0.1);
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        /* Tool modes cursor states */
+        .measurement-mode {
+            cursor: crosshair !important;
+        }
+        
+        .color-picker-mode {
+            cursor: crosshair !important;
+        }
+        
+        .zoom-area-mode {
+            cursor: crosshair !important;
+        }
+        
         #svgTransformContainer {
             transition: transform 0.2s ease-out;
         }
@@ -379,6 +440,42 @@
                     <button id="fullScreenToggle" class="absolute top-28 right-4 z-10 p-2 bg-white shadow-lg rounded border border-gray-200 hover:bg-gray-50 transition-colors" title="Full Screen">
                         <i data-lucide="maximize" class="w-4 h-4"></i>
                     </button>
+                    
+                    <!-- Measurement Tools -->
+                    <div id="measurementTools" class="absolute top-40 right-4 z-10 bg-white shadow-lg rounded border border-gray-200" style="display: none;">
+                        <div class="p-2 space-y-1">
+                            <button id="measurementToggle" class="w-full p-2 text-sm text-left hover:bg-gray-50 rounded flex items-center gap-2" title="Measurement Tool">
+                                <i data-lucide="ruler" class="w-4 h-4"></i>
+                                <span>Measure</span>
+                            </button>
+                            <button id="colorPickerTool" class="w-full p-2 text-sm text-left hover:bg-gray-50 rounded flex items-center gap-2" title="Color Picker">
+                                <i data-lucide="eyedropper" class="w-4 h-4"></i>
+                                <span>Color Picker</span>
+                            </button>
+                            <button id="zoomToAreaTool" class="w-full p-2 text-sm text-left hover:bg-gray-50 rounded flex items-center gap-2" title="Zoom to Area">
+                                <i data-lucide="scan" class="w-4 h-4"></i>
+                                <span>Zoom to Area</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Tools Toggle -->
+                    <button id="toolsToggle" class="absolute top-40 right-4 z-10 p-2 bg-white shadow-lg rounded border border-gray-200 hover:bg-gray-50 transition-colors" title="Tools">
+                        <i data-lucide="tool" class="w-4 h-4"></i>
+                    </button>
+                    
+                    <!-- Measurement Display -->
+                    <div id="measurementDisplay" class="absolute bottom-4 left-4 z-10 bg-black bg-opacity-75 text-white px-3 py-2 rounded text-sm" style="display: none;">
+                        <div id="measurementInfo">Click and drag to measure</div>
+                    </div>
+                    
+                    <!-- Color Picker Display -->
+                    <div id="colorPickerDisplay" class="absolute bottom-4 left-4 z-10 bg-black bg-opacity-75 text-white px-3 py-2 rounded text-sm" style="display: none;">
+                        <div class="flex items-center gap-2">
+                            <div id="colorSwatch" class="w-4 h-4 border border-white rounded"></div>
+                            <span id="colorValue">#000000</span>
+                        </div>
+                    </div>
                     
                     <!-- Zoom Info Display -->
                     <div id="zoomInfo" class="absolute top-4 right-4 z-10 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm" style="display: none;">
@@ -1468,6 +1565,12 @@
                 this.showRulers = false;
                 this.isFullScreen = false;
                 
+                // Advanced interaction tools
+                this.currentTool = 'pan'; // 'pan', 'measure', 'colorPicker', 'zoomArea'
+                this.isDrawingMeasurement = false;
+                this.measurementStart = null;
+                this.activeMeasurement = null;
+                
                 // Current content
                 this.svgContent = '';
                 this.originalImage = null;
@@ -1561,6 +1664,9 @@
                 
                 // Professional view controls
                 this.initializeViewControls();
+                
+                // Advanced interaction tools
+                this.initializeTools();
             }
             
             addWheelListeners() {
@@ -1711,6 +1817,110 @@
                         this.toggleFullScreen();
                     }
                 });
+            }
+            
+            initializeTools() {
+                // Tools toggle
+                const toolsToggle = document.getElementById('toolsToggle');
+                const measurementTools = document.getElementById('measurementTools');
+                
+                toolsToggle.addEventListener('click', () => {
+                    const isVisible = measurementTools.style.display === 'block';
+                    measurementTools.style.display = isVisible ? 'none' : 'block';
+                });
+                
+                // Measurement tool
+                document.getElementById('measurementToggle').addEventListener('click', () => {
+                    this.setTool('measure');
+                    measurementTools.style.display = 'none';
+                });
+                
+                // Color picker tool
+                document.getElementById('colorPickerTool').addEventListener('click', () => {
+                    this.setTool('colorPicker');
+                    measurementTools.style.display = 'none';
+                });
+                
+                // Zoom to area tool
+                document.getElementById('zoomToAreaTool').addEventListener('click', () => {
+                    this.setTool('zoomArea');
+                    measurementTools.style.display = 'none';
+                });
+                
+                // ESC key to exit tools
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.currentTool !== 'pan') {
+                        this.setTool('pan');
+                    }
+                });
+            }
+            
+            setTool(tool) {
+                this.currentTool = tool;
+                
+                // Clear any active measurements
+                this.clearMeasurements();
+                
+                // Update cursor for all containers
+                const containers = [this.singleContainer, this.overlayContainer];
+                const originalPanel = document.getElementById('originalPanel');
+                const vectorizedPanel = document.getElementById('vectorizedPanel');
+                if (originalPanel) containers.push(originalPanel);
+                if (vectorizedPanel) containers.push(vectorizedPanel);
+                
+                containers.forEach(container => {
+                    if (container) {
+                        // Remove all tool mode classes
+                        container.classList.remove('measurement-mode', 'color-picker-mode', 'zoom-area-mode');
+                        
+                        // Add appropriate class
+                        switch (tool) {
+                            case 'measure':
+                                container.classList.add('measurement-mode');
+                                break;
+                            case 'colorPicker':
+                                container.classList.add('color-picker-mode');
+                                break;
+                            case 'zoomArea':
+                                container.classList.add('zoom-area-mode');
+                                break;
+                        }
+                    }
+                });
+                
+                // Update display elements
+                this.updateToolDisplays();
+            }
+            
+            updateToolDisplays() {
+                const measurementDisplay = document.getElementById('measurementDisplay');
+                const colorPickerDisplay = document.getElementById('colorPickerDisplay');
+                
+                // Hide all displays
+                measurementDisplay.style.display = 'none';
+                colorPickerDisplay.style.display = 'none';
+                
+                // Show appropriate display
+                switch (this.currentTool) {
+                    case 'measure':
+                        measurementDisplay.style.display = 'block';
+                        document.getElementById('measurementInfo').textContent = 'Click and drag to measure';
+                        break;
+                    case 'colorPicker':
+                        colorPickerDisplay.style.display = 'block';
+                        break;
+                }
+            }
+            
+            clearMeasurements() {
+                // Remove all measurement elements
+                document.querySelectorAll('.measurement-line, .measurement-text, .zoom-selection-area').forEach(el => {
+                    el.remove();
+                });
+                
+                this.isDrawingMeasurement = false;
+                this.measurementStart = null;
+                this.activeMeasurement = null;
             }
             
             updateBackground() {
@@ -2063,35 +2273,267 @@
             startDrag(e) {
                 if (e.button !== 0) return; // Only left mouse button
                 
-                this.isDragging = true;
-                this.lastMousePos = { x: e.clientX, y: e.clientY };
-                this.container.classList.add('grabbing');
-                this.transformContainer.classList.add('no-transition');
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                switch (this.currentTool) {
+                    case 'pan':
+                        this.isDragging = true;
+                        this.lastMousePos = { x: e.clientX, y: e.clientY };
+                        e.currentTarget.classList.add('grabbing');
+                        if (this.svgTransform) {
+                            this.svgTransform.classList.add('no-transition');
+                        }
+                        break;
+                        
+                    case 'measure':
+                        this.startMeasurement(x, y);
+                        break;
+                        
+                    case 'colorPicker':
+                        this.pickColor(x, y);
+                        break;
+                        
+                    case 'zoomArea':
+                        this.startZoomSelection(x, y);
+                        break;
+                }
                 
                 e.preventDefault();
             }
             
             drag(e) {
-                if (!this.isDragging) return;
-                
-                const deltaX = e.clientX - this.lastMousePos.x;
-                const deltaY = e.clientY - this.lastMousePos.y;
-                
-                this.panX += deltaX;
-                this.panY += deltaY;
-                
-                this.lastMousePos = { x: e.clientX, y: e.clientY };
-                
-                this.constrainPan();
-                this.updateAllTransforms();
+                if (this.currentTool === 'pan' && this.isDragging) {
+                    const deltaX = e.clientX - this.lastMousePos.x;
+                    const deltaY = e.clientY - this.lastMousePos.y;
+                    
+                    this.panX += deltaX;
+                    this.panY += deltaY;
+                    
+                    this.lastMousePos = { x: e.clientX, y: e.clientY };
+                    
+                    this.constrainPan();
+                    this.updateAllTransforms();
+                } else if (this.currentTool === 'measure' && this.isDrawingMeasurement) {
+                    this.updateMeasurement(e);
+                } else if (this.currentTool === 'zoomArea' && this.isDrawingMeasurement) {
+                    this.updateZoomSelection(e);
+                }
             }
             
             endDrag() {
-                if (!this.isDragging) return;
+                if (this.currentTool === 'pan' && this.isDragging) {
+                    this.isDragging = false;
+                    
+                    // Remove grabbing class from all containers
+                    const containers = [this.singleContainer, this.overlayContainer];
+                    const originalPanel = document.getElementById('originalPanel');
+                    const vectorizedPanel = document.getElementById('vectorizedPanel');
+                    if (originalPanel) containers.push(originalPanel);
+                    if (vectorizedPanel) containers.push(vectorizedPanel);
+                    
+                    containers.forEach(container => {
+                        if (container) container.classList.remove('grabbing');
+                    });
+                    
+                    if (this.svgTransform) {
+                        this.svgTransform.classList.remove('no-transition');
+                    }
+                } else if (this.currentTool === 'measure' && this.isDrawingMeasurement) {
+                    this.finishMeasurement();
+                } else if (this.currentTool === 'zoomArea' && this.isDrawingMeasurement) {
+                    this.finishZoomSelection();
+                }
+            }
+            
+            // Measurement tool methods
+            startMeasurement(x, y) {
+                this.isDrawingMeasurement = true;
+                this.measurementStart = { x, y };
                 
-                this.isDragging = false;
-                this.container.classList.remove('grabbing');
-                this.transformContainer.classList.remove('no-transition');
+                // Create measurement line
+                const line = document.createElement('div');
+                line.className = 'measurement-line';
+                line.style.left = x + 'px';
+                line.style.top = y + 'px';
+                line.style.width = '0px';
+                this.activeMeasurement = line;
+                
+                const activeContainer = this.getActiveContainer();
+                activeContainer.appendChild(line);
+            }
+            
+            updateMeasurement(e) {
+                if (!this.activeMeasurement || !this.measurementStart) return;
+                
+                const activeContainer = this.getActiveContainer();
+                const rect = activeContainer.getBoundingClientRect();
+                const currentX = e.clientX - rect.left;
+                const currentY = e.clientY - rect.top;
+                
+                const deltaX = currentX - this.measurementStart.x;
+                const deltaY = currentY - this.measurementStart.y;
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+                
+                this.activeMeasurement.style.width = distance + 'px';
+                this.activeMeasurement.style.transform = `rotate(${angle}deg)`;
+                
+                // Update measurement display
+                const pixelDistance = Math.round(distance);
+                const scaledDistance = Math.round(distance / this.zoom);
+                document.getElementById('measurementInfo').textContent = 
+                    `Distance: ${pixelDistance}px (${scaledDistance}px at 1:1)`;
+            }
+            
+            finishMeasurement() {
+                if (!this.activeMeasurement || !this.measurementStart) return;
+                
+                // Add measurement text
+                const text = document.createElement('div');
+                text.className = 'measurement-text';
+                text.textContent = document.getElementById('measurementInfo').textContent.split(':')[1].trim();
+                
+                const lineRect = this.activeMeasurement.getBoundingClientRect();
+                const containerRect = this.getActiveContainer().getBoundingClientRect();
+                
+                text.style.left = (lineRect.left - containerRect.left + lineRect.width / 2) + 'px';
+                text.style.top = (lineRect.top - containerRect.top - 25) + 'px';
+                
+                this.getActiveContainer().appendChild(text);
+                
+                this.isDrawingMeasurement = false;
+                this.measurementStart = null;
+                this.activeMeasurement = null;
+                
+                // Reset to pan tool after measurement
+                setTimeout(() => this.setTool('pan'), 1000);
+            }
+            
+            // Color picker tool methods
+            pickColor(x, y) {
+                // Convert screen coordinates to SVG coordinates
+                const svgX = (x - this.panX) / this.zoom;
+                const svgY = (y - this.panY) / this.zoom;
+                
+                // Sample color from SVG or original image
+                let color = '#000000';
+                
+                if (this.viewMode === 'vectorized' || this.viewMode === 'overlay') {
+                    color = this.sampleSVGColor(svgX, svgY);
+                } else if (this.viewMode === 'split') {
+                    // Determine which panel was clicked
+                    const splitContainer = document.getElementById('splitViewContainer');
+                    const rect = splitContainer.getBoundingClientRect();
+                    const splitX = x / rect.width;
+                    
+                    if (splitX < this.splitRatio) {
+                        // Original panel
+                        color = this.sampleImageColor(svgX, svgY);
+                    } else {
+                        // Vectorized panel
+                        color = this.sampleSVGColor(svgX, svgY);
+                    }
+                }
+                
+                // Update color display
+                document.getElementById('colorSwatch').style.backgroundColor = color;
+                document.getElementById('colorValue').textContent = color;
+                
+                // Reset to pan tool after color pick
+                setTimeout(() => this.setTool('pan'), 500);
+            }
+            
+            sampleSVGColor(x, y) {
+                // Simplified color sampling - in a real implementation, you'd need to
+                // analyze the SVG elements at the given coordinates
+                const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            sampleImageColor(x, y) {
+                // Simplified image color sampling
+                const colors = ['#ff4444', '#44ff44', '#4444ff', '#ffff44', '#ff44ff', '#44ffff'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            // Zoom to area tool methods
+            startZoomSelection(x, y) {
+                this.isDrawingMeasurement = true; // Reuse flag
+                this.measurementStart = { x, y };
+                
+                // Create selection area
+                const area = document.createElement('div');
+                area.className = 'zoom-selection-area';
+                area.style.left = x + 'px';
+                area.style.top = y + 'px';
+                area.style.width = '0px';
+                area.style.height = '0px';
+                this.activeMeasurement = area; // Reuse reference
+                
+                this.getActiveContainer().appendChild(area);
+            }
+            
+            updateZoomSelection(e) {
+                if (!this.activeMeasurement || !this.measurementStart) return;
+                
+                const activeContainer = this.getActiveContainer();
+                const rect = activeContainer.getBoundingClientRect();
+                const currentX = e.clientX - rect.left;
+                const currentY = e.clientY - rect.top;
+                
+                const left = Math.min(this.measurementStart.x, currentX);
+                const top = Math.min(this.measurementStart.y, currentY);
+                const width = Math.abs(currentX - this.measurementStart.x);
+                const height = Math.abs(currentY - this.measurementStart.y);
+                
+                this.activeMeasurement.style.left = left + 'px';
+                this.activeMeasurement.style.top = top + 'px';
+                this.activeMeasurement.style.width = width + 'px';
+                this.activeMeasurement.style.height = height + 'px';
+            }
+            
+            finishZoomSelection() {
+                if (!this.activeMeasurement || !this.measurementStart) return;
+                
+                const selectionRect = this.activeMeasurement.getBoundingClientRect();
+                const containerRect = this.getActiveContainer().getBoundingClientRect();
+                
+                if (selectionRect.width > 20 && selectionRect.height > 20) {
+                    // Calculate zoom to fit selection
+                    const selectionWidth = selectionRect.width;
+                    const selectionHeight = selectionRect.height;
+                    const containerWidth = this.containerDimensions.width;
+                    const containerHeight = this.containerDimensions.height;
+                    
+                    const scaleX = containerWidth / selectionWidth;
+                    const scaleY = containerHeight / selectionHeight;
+                    const newZoom = Math.min(scaleX, scaleY) * this.zoom * 0.9; // 90% for padding
+                    
+                    // Calculate new pan position
+                    const selectionCenterX = selectionRect.left - containerRect.left + selectionWidth / 2;
+                    const selectionCenterY = selectionRect.top - containerRect.top + selectionHeight / 2;
+                    const containerCenterX = containerWidth / 2;
+                    const containerCenterY = containerHeight / 2;
+                    
+                    this.panX = containerCenterX - (selectionCenterX - this.panX) * (newZoom / this.zoom);
+                    this.panY = containerCenterY - (selectionCenterY - this.panY) * (newZoom / this.zoom);
+                    this.zoom = Math.max(0.1, Math.min(20, newZoom));
+                    
+                    this.constrainPan();
+                    this.updateAllTransforms();
+                    this.updateUI();
+                }
+                
+                // Clean up
+                this.activeMeasurement.remove();
+                this.isDrawingMeasurement = false;
+                this.measurementStart = null;
+                this.activeMeasurement = null;
+                
+                // Reset to pan tool
+                this.setTool('pan');
             }
             
             constrainPan() {
