@@ -76,6 +76,76 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
         }
         
+        /* Professional View Controls */
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.3;
+            z-index: 1;
+        }
+        
+        .rulers {
+            position: absolute;
+            background: linear-gradient(to right, #ddd 0%, #ddd 1px, transparent 1px);
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        .ruler-horizontal {
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .ruler-vertical {
+            top: 0;
+            left: 0;
+            width: 20px;
+            height: 100%;
+            background: #f8f9fa;
+            border-right: 1px solid #ddd;
+        }
+        
+        /* Background mode classes */
+        .bg-checkerboard {
+            background-image: 
+                linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+                linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
+                linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        
+        .bg-white { background-color: white !important; }
+        .bg-black { background-color: black !important; }
+        .bg-gray { background-color: #6b7280 !important; }
+        
+        /* Full screen mode */
+        .fullscreen-mode {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            background: white;
+        }
+        
+        /* Pixel perfect mode */
+        .pixel-perfect svg {
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+        
         #svgTransformContainer {
             transition: transform 0.2s ease-out;
         }
@@ -241,14 +311,74 @@
                         </button>
                     </div>
                     
-                    <!-- Overlay Controls (hidden by default) -->
-                    <div id="overlayControls" class="absolute top-4 right-4 z-10 bg-white shadow-lg rounded-lg p-3 border border-gray-200" style="display: none;">
-                        <div class="flex items-center gap-3">
-                            <label class="text-sm font-medium text-gray-700">Opacity:</label>
-                            <input type="range" id="overlayOpacity" min="0" max="100" value="50" class="slider w-24">
-                            <span id="overlayOpacityValue" class="text-sm font-medium text-indigo-600 w-8">50%</span>
+                    <!-- Dynamic Controls Panel (top-right) -->
+                    <div id="dynamicControls" class="absolute top-4 right-4 z-10 bg-white shadow-lg rounded-lg border border-gray-200" style="display: none;">
+                        <!-- Overlay Controls -->
+                        <div id="overlayControlsPanel" class="p-3" style="display: none;">
+                            <div class="flex items-center gap-3">
+                                <label class="text-sm font-medium text-gray-700">Opacity:</label>
+                                <input type="range" id="overlayOpacity" min="0" max="100" value="50" class="slider w-24">
+                                <span id="overlayOpacityValue" class="text-sm font-medium text-indigo-600 w-8">50%</span>
+                            </div>
+                        </div>
+                        
+                        <!-- View Controls -->
+                        <div id="viewControlsPanel" class="p-3">
+                            <div class="space-y-3">
+                                <!-- Background Controls -->
+                                <div class="flex items-center gap-3">
+                                    <label class="text-sm font-medium text-gray-700 w-16">Background:</label>
+                                    <select id="backgroundMode" class="text-sm border border-gray-300 rounded px-2 py-1">
+                                        <option value="checkerboard">Checkerboard</option>
+                                        <option value="white">White</option>
+                                        <option value="black">Black</option>
+                                        <option value="gray">Gray</option>
+                                        <option value="custom">Custom</option>
+                                    </select>
+                                    <input type="color" id="customBackground" value="#f8f9fa" class="w-8 h-8 border border-gray-300 rounded" style="display: none;">
+                                </div>
+                                
+                                <!-- Grid Controls -->
+                                <div class="flex items-center gap-3">
+                                    <label class="text-sm font-medium text-gray-700 w-16">Grid:</label>
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" id="gridEnabled" class="rounded border-gray-300">
+                                        <span class="text-sm text-gray-600">Show grid</span>
+                                    </label>
+                                    <select id="gridSize" class="text-sm border border-gray-300 rounded px-2 py-1" disabled>
+                                        <option value="10">10px</option>
+                                        <option value="20" selected>20px</option>
+                                        <option value="50">50px</option>
+                                        <option value="100">100px</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- Advanced View Options -->
+                                <div class="border-t border-gray-200 pt-3 mt-3">
+                                    <div class="space-y-2">
+                                        <label class="flex items-center gap-2">
+                                            <input type="checkbox" id="pixelPerfectMode" class="rounded border-gray-300">
+                                            <span class="text-sm text-gray-600">Pixel perfect</span>
+                                        </label>
+                                        <label class="flex items-center gap-2">
+                                            <input type="checkbox" id="showRulers" class="rounded border-gray-300">
+                                            <span class="text-sm text-gray-600">Show rulers</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                    
+                    <!-- View Controls Toggle -->
+                    <button id="viewControlsToggle" class="absolute top-16 right-4 z-10 p-2 bg-white shadow-lg rounded border border-gray-200 hover:bg-gray-50 transition-colors" title="View Controls">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                    </button>
+                    
+                    <!-- Full Screen Toggle -->
+                    <button id="fullScreenToggle" class="absolute top-28 right-4 z-10 p-2 bg-white shadow-lg rounded border border-gray-200 hover:bg-gray-50 transition-colors" title="Full Screen">
+                        <i data-lucide="maximize" class="w-4 h-4"></i>
+                    </button>
                     
                     <!-- Zoom Info Display -->
                     <div id="zoomInfo" class="absolute top-4 right-4 z-10 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm" style="display: none;">
@@ -1329,6 +1459,15 @@
                 this.splitRatio = 0.5; // For split view
                 this.overlayOpacity = 0.5; // For overlay view
                 
+                // Professional view controls
+                this.backgroundMode = 'checkerboard';
+                this.customBackgroundColor = '#f8f9fa';
+                this.gridEnabled = false;
+                this.gridSize = 20;
+                this.pixelPerfectMode = false;
+                this.showRulers = false;
+                this.isFullScreen = false;
+                
                 // Current content
                 this.svgContent = '';
                 this.originalImage = null;
@@ -1419,6 +1558,9 @@
                 
                 // Split view divider dragging
                 this.initializeSplitDivider();
+                
+                // Professional view controls
+                this.initializeViewControls();
             }
             
             addWheelListeners() {
@@ -1493,6 +1635,222 @@
                 });
             }
             
+            initializeViewControls() {
+                // View controls toggle
+                const viewControlsToggle = document.getElementById('viewControlsToggle');
+                const dynamicControls = document.getElementById('dynamicControls');
+                const viewControlsPanel = document.getElementById('viewControlsPanel');
+                
+                viewControlsToggle.addEventListener('click', () => {
+                    const isVisible = dynamicControls.style.display === 'block';
+                    dynamicControls.style.display = isVisible ? 'none' : 'block';
+                    
+                    if (!isVisible) {
+                        // Show appropriate panel
+                        viewControlsPanel.style.display = 'block';
+                        const overlayPanel = document.getElementById('overlayControlsPanel');
+                        if (this.viewMode === 'overlay') {
+                            overlayPanel.style.display = 'block';
+                        }
+                    }
+                });
+                
+                // Background controls
+                const backgroundMode = document.getElementById('backgroundMode');
+                const customBackground = document.getElementById('customBackground');
+                
+                backgroundMode.addEventListener('change', (e) => {
+                    this.backgroundMode = e.target.value;
+                    customBackground.style.display = e.target.value === 'custom' ? 'block' : 'none';
+                    this.updateBackground();
+                });
+                
+                customBackground.addEventListener('change', (e) => {
+                    this.customBackgroundColor = e.target.value;
+                    this.updateBackground();
+                });
+                
+                // Grid controls
+                const gridEnabled = document.getElementById('gridEnabled');
+                const gridSize = document.getElementById('gridSize');
+                
+                gridEnabled.addEventListener('change', (e) => {
+                    this.gridEnabled = e.target.checked;
+                    gridSize.disabled = !e.target.checked;
+                    this.updateGrid();
+                });
+                
+                gridSize.addEventListener('change', (e) => {
+                    this.gridSize = parseInt(e.target.value);
+                    this.updateGrid();
+                });
+                
+                // Advanced options
+                const pixelPerfectMode = document.getElementById('pixelPerfectMode');
+                const showRulers = document.getElementById('showRulers');
+                
+                pixelPerfectMode.addEventListener('change', (e) => {
+                    this.pixelPerfectMode = e.target.checked;
+                    this.updatePixelPerfectMode();
+                });
+                
+                showRulers.addEventListener('change', (e) => {
+                    this.showRulers = e.target.checked;
+                    this.updateRulers();
+                });
+                
+                // Full screen toggle
+                const fullScreenToggle = document.getElementById('fullScreenToggle');
+                fullScreenToggle.addEventListener('click', () => {
+                    this.toggleFullScreen();
+                });
+                
+                // ESC key to exit full screen
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.isFullScreen) {
+                        this.toggleFullScreen();
+                    }
+                });
+            }
+            
+            updateBackground() {
+                const containers = [this.singleContainer, this.overlayContainer];
+                const originalPanel = document.getElementById('originalPanel');
+                const vectorizedPanel = document.getElementById('vectorizedPanel');
+                if (originalPanel) containers.push(originalPanel);
+                if (vectorizedPanel) containers.push(vectorizedPanel);
+                
+                containers.forEach(container => {
+                    if (container) {
+                        // Remove all background classes
+                        container.classList.remove('bg-checkerboard', 'bg-white', 'bg-black', 'bg-gray');
+                        
+                        switch (this.backgroundMode) {
+                            case 'checkerboard':
+                                container.classList.add('bg-checkerboard');
+                                break;
+                            case 'white':
+                                container.classList.add('bg-white');
+                                break;
+                            case 'black':
+                                container.classList.add('bg-black');
+                                break;
+                            case 'gray':
+                                container.classList.add('bg-gray');
+                                break;
+                            case 'custom':
+                                container.style.backgroundColor = this.customBackgroundColor;
+                                break;
+                        }
+                    }
+                });
+            }
+            
+            updateGrid() {
+                const containers = [this.singleContainer, this.overlayContainer];
+                const originalPanel = document.getElementById('originalPanel');
+                const vectorizedPanel = document.getElementById('vectorizedPanel');
+                if (originalPanel) containers.push(originalPanel);
+                if (vectorizedPanel) containers.push(vectorizedPanel);
+                
+                containers.forEach(container => {
+                    if (container) {
+                        // Remove existing grid
+                        const existingGrid = container.querySelector('.grid-overlay');
+                        if (existingGrid) existingGrid.remove();
+                        
+                        if (this.gridEnabled) {
+                            const gridOverlay = document.createElement('div');
+                            gridOverlay.className = 'grid-overlay';
+                            gridOverlay.style.backgroundImage = `
+                                linear-gradient(to right, #000 1px, transparent 1px),
+                                linear-gradient(to bottom, #000 1px, transparent 1px)
+                            `;
+                            gridOverlay.style.backgroundSize = `${this.gridSize}px ${this.gridSize}px`;
+                            container.appendChild(gridOverlay);
+                        }
+                    }
+                });
+            }
+            
+            updatePixelPerfectMode() {
+                const containers = [this.singleContainer, this.overlayContainer];
+                const originalPanel = document.getElementById('originalPanel');
+                const vectorizedPanel = document.getElementById('vectorizedPanel');
+                if (originalPanel) containers.push(originalPanel);
+                if (vectorizedPanel) containers.push(vectorizedPanel);
+                
+                containers.forEach(container => {
+                    if (container) {
+                        if (this.pixelPerfectMode) {
+                            container.classList.add('pixel-perfect');
+                        } else {
+                            container.classList.remove('pixel-perfect');
+                        }
+                    }
+                });
+            }
+            
+            updateRulers() {
+                const containers = [this.singleContainer, this.overlayContainer];
+                const originalPanel = document.getElementById('originalPanel');
+                const vectorizedPanel = document.getElementById('vectorizedPanel');
+                if (originalPanel) containers.push(originalPanel);
+                if (vectorizedPanel) containers.push(vectorizedPanel);
+                
+                containers.forEach(container => {
+                    if (container) {
+                        // Remove existing rulers
+                        const existingRulers = container.querySelectorAll('.rulers');
+                        existingRulers.forEach(ruler => ruler.remove());
+                        
+                        if (this.showRulers) {
+                            // Horizontal ruler
+                            const hRuler = document.createElement('div');
+                            hRuler.className = 'rulers ruler-horizontal';
+                            container.appendChild(hRuler);
+                            
+                            // Vertical ruler
+                            const vRuler = document.createElement('div');
+                            vRuler.className = 'rulers ruler-vertical';
+                            container.appendChild(vRuler);
+                        }
+                    }
+                });
+            }
+            
+            toggleFullScreen() {
+                const resultsContainer = document.getElementById('resultsContainer');
+                const fullScreenIcon = document.querySelector('#fullScreenToggle i');
+                
+                if (!this.isFullScreen) {
+                    // Enter full screen
+                    resultsContainer.classList.add('fullscreen-mode');
+                    fullScreenIcon.setAttribute('data-lucide', 'minimize');
+                    this.isFullScreen = true;
+                    
+                    // Update container dimensions after full screen
+                    setTimeout(() => {
+                        this.updateContainerDimensions();
+                        this.fitToContainer();
+                    }, 100);
+                } else {
+                    // Exit full screen
+                    resultsContainer.classList.remove('fullscreen-mode');
+                    fullScreenIcon.setAttribute('data-lucide', 'maximize');
+                    this.isFullScreen = false;
+                    
+                    // Update container dimensions after exit
+                    setTimeout(() => {
+                        this.updateContainerDimensions();
+                        this.fitToContainer();
+                    }, 100);
+                }
+                
+                // Re-initialize lucide icons
+                lucide.createIcons();
+            }
+            
             setViewMode(mode) {
                 this.viewMode = mode;
                 
@@ -1507,9 +1865,19 @@
                 this.splitContainer.style.display = 'none';
                 this.overlayContainer.style.display = 'none';
                 
-                // Show/hide overlay controls
-                const overlayControls = document.getElementById('overlayControls');
-                overlayControls.style.display = mode === 'overlay' ? 'block' : 'none';
+                // Show/hide overlay controls in dynamic panel
+                const overlayControlsPanel = document.getElementById('overlayControlsPanel');
+                const dynamicControls = document.getElementById('dynamicControls');
+                
+                if (mode === 'overlay') {
+                    overlayControlsPanel.style.display = 'block';
+                    // Show dynamic controls if not already visible
+                    if (dynamicControls.style.display === 'none') {
+                        dynamicControls.style.display = 'block';
+                    }
+                } else {
+                    overlayControlsPanel.style.display = 'none';
+                }
                 
                 // Show appropriate container
                 switch (mode) {
