@@ -72,7 +72,7 @@ class ImageProcessor:
         )
     
     def _estimate_text_probability(self, gray: np.ndarray, edges: np.ndarray) -> float:
-        # Look for horizontal/vertical line patterns typical of text
+        # Enhanced text detection for logos like Frame 53
         kernel_h = np.ones((1, 5), np.uint8)
         kernel_v = np.ones((5, 1), np.uint8)
         
@@ -82,9 +82,30 @@ class ImageProcessor:
         h_density = np.sum(horizontal_lines > 0) / edges.size
         v_density = np.sum(vertical_lines > 0) / edges.size
         
-        # Text typically has both horizontal and vertical elements
-        text_score = min(h_density, v_density) * 10
-        return min(1.0, text_score)
+        # Look for text regions using connected components
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        text_like_regions = 0
+        total_regions = len(contours)
+        
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            if area > 20:  # Minimum area for text
+                x, y, w, h = cv2.boundingRect(contour)
+                aspect_ratio = w / h if h > 0 else 0
+                # Text characters typically have certain aspect ratios
+                if 0.1 < aspect_ratio < 5.0 and area < 2000:  # Not too large
+                    text_like_regions += 1
+        
+        # Enhanced text score considering character-like regions
+        base_score = min(h_density, v_density) * 10
+        region_score = (text_like_regions / max(1, total_regions)) * 5
+        
+        # For logos like Frame 53, text is often in bottom portion
+        bottom_half = edges[edges.shape[0]//2:, :]
+        bottom_text_density = np.sum(bottom_half > 0) / bottom_half.size
+        
+        total_score = base_score + region_score + bottom_text_density * 8
+        return min(1.0, total_score)
     
     def _estimate_geometric_probability(self, edges: np.ndarray) -> float:
         # Use HoughLines to detect straight lines
@@ -170,13 +191,64 @@ class ImageProcessor:
         return final_edges
     
     def segment_colors(self, image: np.ndarray, n_colors: int = 8) -> np.ndarray:
-        # Color quantization using simple k-means alternative
+        # VTracer-inspired hierarchical color clustering
         rgb_image = image[:, :, :3] if image.shape[2] == 4 else image
         h, w, c = rgb_image.shape
         
-        # Simple color quantization
-        quantized = self._quantize_colors(rgb_image, n_colors)
-        return quantized
+        # Use VTracer-style hierarchical clustering
+        clustered = self.hierarchical_color_clustering(rgb_image, n_colors)
+        return clustered
+    
+    def hierarchical_color_clustering(self, image: np.ndarray, n_colors: int = 8) -> np.ndarray:
+        """VTracer-inspired hierarchical clustering for better color separation"""
+        h, w, c = image.shape
+        
+        # Convert to LAB for perceptual clustering (VTracer approach)
+        lab_image = cv2.cvtColor((image * 255).astype(np.uint8), cv2.COLOR_RGB2LAB)
+        lab_pixels = lab_image.reshape(-1, 3).astype(np.float32)
+        
+        # Hierarchical clustering with stacking strategy
+        clusters = self._hierarchical_cluster_colors(lab_pixels, n_colors)
+        
+        # Create stacked representation (VTracer's compact approach)
+        quantized_lab = clusters.reshape(h, w, 3).astype(np.uint8)
+        quantized_rgb = cv2.cvtColor(quantized_lab, cv2.COLOR_LAB2RGB)
+        
+        return quantized_rgb.astype(np.float32) / 255.0
+    
+    def _hierarchical_cluster_colors(self, lab_pixels: np.ndarray, n_colors: int) -> np.ndarray:
+        """Implement VTracer-style hierarchical clustering"""
+        from scipy.cluster.hierarchy import linkage, fcluster
+        import numpy as np
+        
+        # Sample for performance (like VTracer's O(n) approach)
+        n_samples = min(10000, len(lab_pixels))
+        sample_indices = np.random.choice(len(lab_pixels), n_samples, replace=False)
+        sample_pixels = lab_pixels[sample_indices]
+        
+        # Hierarchical clustering
+        try:
+            linkage_matrix = linkage(sample_pixels, method='ward')
+            cluster_labels = fcluster(linkage_matrix, n_colors, criterion='maxclust')
+            
+            # Compute cluster centers
+            centers = np.zeros((n_colors, 3))
+            for i in range(1, n_colors + 1):
+                mask = cluster_labels == i
+                if np.any(mask):
+                    centers[i-1] = np.mean(sample_pixels[mask], axis=0)
+            
+            # Assign all pixels to nearest cluster center
+            distances = np.sqrt(((lab_pixels[:, np.newaxis, :] - centers[np.newaxis, :, :]) ** 2).sum(axis=2))
+            assignments = np.argmin(distances, axis=1)
+            
+            return centers[assignments]
+            
+        except ImportError:
+            # Fallback to k-means if scipy not available
+            criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 1.0)
+            _, labels, centers = cv2.kmeans(lab_pixels, n_colors, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+            return centers[labels.flatten()]
     
     def _extract_dominant_colors(self, pixels: np.ndarray, n_colors: int = 5) -> list:
         # Simple histogram-based dominant color extraction
@@ -190,6 +262,55 @@ class ImageProcessor:
         return unique_pixels[indices].tolist()
     
     def _quantize_colors(self, image: np.ndarray, n_colors: int) -> np.ndarray:
-        # Simple color quantization
-        quantized = np.round(image * (n_colors - 1)) / (n_colors - 1)
-        return quantized
+        # Use perceptual color quantization for better results
+        return self.perceptual_color_quantization(image, n_colors)
+    
+    def perceptual_color_quantization(self, image: np.ndarray, n_colors: int = 8) -> np.ndarray:
+        """Perceptual color quantization preserving important colors"""
+        rgb_image = image[:, :, :3] if image.shape[2] == 4 else image
+        h, w, c = rgb_image.shape
+        
+        # Convert to LAB color space for perceptual uniformity
+        lab_image = cv2.cvtColor((rgb_image * 255).astype(np.uint8), cv2.COLOR_RGB2LAB)
+        lab_pixels = lab_image.reshape(-1, 3).astype(np.float32)
+        
+        # Use k-means with LAB space
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 1.0)
+        _, labels, centers = cv2.kmeans(lab_pixels, n_colors, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+        
+        # Convert centers back to RGB
+        centers_lab = centers.reshape(-1, 1, 3).astype(np.uint8)
+        centers_rgb = cv2.cvtColor(centers_lab, cv2.COLOR_LAB2RGB).reshape(-1, 3)
+        
+        # Reconstruct quantized image
+        quantized_lab = centers[labels.flatten()]
+        quantized_lab = quantized_lab.reshape(h, w, 3).astype(np.uint8)
+        quantized_rgb = cv2.cvtColor(quantized_lab, cv2.COLOR_LAB2RGB)
+        
+        return quantized_rgb.astype(np.float32) / 255.0
+
+    def adaptive_color_quantization(self, image: np.ndarray, target_similarity: float = 0.95) -> np.ndarray:
+        """Adaptive color quantization that preserves visual fidelity"""
+        best_n_colors = 8
+        best_similarity = 0.0
+        best_quantized = None
+        
+        # Try different numbers of colors
+        for n_colors in range(4, 16):
+            quantized = self.perceptual_color_quantization(image, n_colors)
+            
+            # Estimate similarity (simplified)
+            mse = np.mean((image - quantized) ** 2)
+            similarity = 1.0 / (1.0 + mse * 100)
+            
+            if similarity > best_similarity:
+                best_similarity = similarity
+                best_quantized = quantized
+                best_n_colors = n_colors
+                
+            # Stop if we reach target similarity
+            if similarity >= target_similarity:
+                break
+        
+        print(f"Selected {best_n_colors} colors for similarity {best_similarity:.3f}")
+        return best_quantized

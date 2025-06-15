@@ -3,371 +3,283 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VectorCraft 2.0 - Vector Conversion</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>VectorCraft 2.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        .slider {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: #e5e7eb;
+            outline: none;
         }
-        .main-container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-            margin: 20px 0;
-        }
-        .header {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: white;
-            padding: 30px;
-            border-radius: 15px 15px 0 0;
-            text-align: center;
-        }
-        .upload-area {
-            border: 3px dashed #6366f1;
-            border-radius: 10px;
-            padding: 40px;
-            text-align: center;
-            transition: all 0.3s ease;
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #6366f1;
             cursor: pointer;
-            background: #f8fafc;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .upload-area {
+            transition: all 0.2s ease;
         }
         .upload-area:hover {
-            border-color: #4f46e5;
-            background: #f1f5f9;
+            border-color: #6366f1;
+            background-color: #f8fafc;
         }
-        .upload-area.dragover {
-            border-color: #10b981;
-            background: #ecfdf5;
-        }
-        .result-container {
-            display: none;
-            margin-top: 30px;
-        }
-        .comparison-view {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .image-panel {
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 15px;
-            background: white;
-        }
-        .image-panel h5 {
-            margin-bottom: 15px;
-            color: #374151;
-            border-bottom: 2px solid #f3f4f6;
-            padding-bottom: 10px;
-        }
-        .image-display {
-            max-width: 100%;
-            max-height: 400px;
-            object-fit: contain;
-            border: 1px solid #e5e7eb;
-            border-radius: 5px;
-        }
-        .svg-display {
-            max-width: 100%;
-            max-height: 400px;
-            border: 1px solid #e5e7eb;
-            border-radius: 5px;
-            background: white;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-        .stat-card {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #6366f1;
-        }
-        .stat-label {
-            color: #6b7280;
-            font-size: 0.875rem;
-            margin-top: 5px;
-        }
-        .progress-container {
-            display: none;
-            margin-top: 20px;
-        }
-        .demo-buttons {
-            margin-top: 20px;
-        }
-        .btn-custom {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-        .btn-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
-            color: white;
-        }
-        .loading-spinner {
-            display: none;
-            text-align: center;
-            margin: 20px 0;
-        }
-        @media (max-width: 768px) {
-            .comparison-view {
-                grid-template-columns: 1fr;
-            }
+        
+        #svgDisplay svg {
+            max-width: 100% !important;
+            max-height: 100% !important;
+            width: auto !important;
+            height: auto !important;
+            display: block !important;
+            margin: auto !important;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="main-container">
-            <!-- Header -->
-            <div class="header">
-                <h1><i class="fas fa-vector-square"></i> VectorCraft 2.0</h1>
-                <p class="mb-0">Professional VTracer Engine • 95%+ Similarity • Production Quality</p>
-            </div>
-
-            <!-- Main Content -->
-            <div class="p-4">
-                <!-- Upload Area -->
-                <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-                    <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
-                    <h4>Drop your image here or click to browse</h4>
-                    <p class="text-muted">Supported formats: PNG, JPG, GIF, BMP, TIFF (Max 16MB)</p>
-                    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">VectorCraft 2.0</h1>
+                    <p class="text-gray-600">Professional raster to vector conversion with advanced algorithms</p>
                 </div>
-
-                <!-- VectorCraft 2.0 - Optimized Configuration -->
-                <div class="row mt-4">
-                    <div class="col-md-8">
-                        <div class="alert alert-info">
-                            <i class="fas fa-rocket"></i> <strong>VectorCraft 2.0 Optimized:</strong> 
-                            Using adaptive VTracer with professional-grade quality (95%+ similarity)
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <label for="targetTime" class="form-label"><strong>Processing Time (seconds)</strong></label>
-                        <input type="number" class="form-control" id="targetTime" value="60" min="10" max="300">
-                    </div>
+                <div class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                    ✓ Hybrid Engine Active
                 </div>
-                <!-- Hidden fields for forced high-quality processing -->
-                <input type="hidden" id="vectorizerType" value="optimized">
-                <input type="hidden" id="strategy" value="vtracer_high_fidelity">
-
-                <!-- VTracer Parameters Panel -->
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <h5 class="mb-0 d-flex justify-content-between align-items-center">
-                            <button class="btn btn-link text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#vtracerParams">
-                                <i class="fas fa-sliders-h"></i> VTracer Parameters (Advanced)
-                            </button>
-                            <small class="text-muted" id="realtimeIndicator" style="display: none;">
-                                <i class="fas fa-eye"></i> Real-time Preview Active
-                            </small>
-                        </h5>
-                    </div>
-                    <div id="vtracerParams" class="collapse">
-                        <div class="card-body">
-                            <div class="row">
-                                <!-- Filter Speckle -->
-                                <div class="col-md-6 mb-3">
-                                    <label for="filterSpeckle" class="form-label">Filter Speckle (Cleaner)</label>
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2">0</span>
-                                        <input type="range" class="form-range flex-grow-1" id="filterSpeckle" 
-                                               min="0" max="50" value="4" step="1">
-                                        <span class="ms-2">50</span>
-                                        <span class="ms-2 text-muted" id="filterSpeckleValue">4</span>
-                                    </div>
-                                </div>
-                                
-                                <!-- Color Precision -->
-                                <div class="col-md-6 mb-3">
-                                    <label for="colorPrecision" class="form-label">Color Precision (More accurate)</label>
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2">1</span>
-                                        <input type="range" class="form-range flex-grow-1" id="colorPrecision" 
-                                               min="1" max="10" value="8" step="1">
-                                        <span class="ms-2">10</span>
-                                        <span class="ms-2 text-muted" id="colorPrecisionValue">8</span>
-                                    </div>
-                                </div>
-                                
-                                <!-- Gradient Step (Layer Difference) -->
-                                <div class="col-md-6 mb-3">
-                                    <label for="layerDifference" class="form-label">Gradient Step (Less layers)</label>
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2">1</span>
-                                        <input type="range" class="form-range flex-grow-1" id="layerDifference" 
-                                               min="1" max="50" value="8" step="1">
-                                        <span class="ms-2">50</span>
-                                        <span class="ms-2 text-muted" id="layerDifferenceValue">8</span>
-                                    </div>
-                                </div>
-                                
-                                <!-- Corner Threshold -->
-                                <div class="col-md-6 mb-3">
-                                    <label for="cornerThreshold" class="form-label">Corner Threshold (Smoother)</label>
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2">0</span>
-                                        <input type="range" class="form-range flex-grow-1" id="cornerThreshold" 
-                                               min="0" max="180" value="90" step="1">
-                                        <span class="ms-2">180</span>
-                                        <span class="ms-2 text-muted" id="cornerThresholdValue">90</span>
-                                    </div>
-                                </div>
-                                
-                                <!-- Segment Length -->
-                                <div class="col-md-6 mb-3">
-                                    <label for="lengthThreshold" class="form-label">Segment Length (More coarse)</label>
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2">0.5</span>
-                                        <input type="range" class="form-range flex-grow-1" id="lengthThreshold" 
-                                               min="0.5" max="20" value="1.0" step="0.1">
-                                        <span class="ms-2">20</span>
-                                        <span class="ms-2 text-muted" id="lengthThresholdValue">1.0</span>
-                                    </div>
-                                </div>
-                                
-                                <!-- Splice Threshold -->
-                                <div class="col-md-6 mb-3">
-                                    <label for="spliceThreshold" class="form-label">Splice Threshold (Less accurate)</label>
-                                    <div class="d-flex align-items-center">
-                                        <span class="me-2">0</span>
-                                        <input type="range" class="form-range flex-grow-1" id="spliceThreshold" 
-                                               min="0" max="100" value="20" step="1">
-                                        <span class="ms-2">100</span>
-                                        <span class="ms-2 text-muted" id="spliceThresholdValue">20</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Curve Fitting Mode -->
-                            <div class="row">
-                                <div class="col-12 mb-3">
-                                    <label class="form-label">Curve Fitting Mode</label>
-                                    <div class="btn-group w-100" role="group">
-                                        <input type="radio" class="btn-check" name="curveFitting" id="curveFittingPixel" value="pixel">
-                                        <label class="btn btn-outline-primary" for="curveFittingPixel">PIXEL</label>
-                                        
-                                        <input type="radio" class="btn-check" name="curveFitting" id="curveFittingPolygon" value="polygon">
-                                        <label class="btn btn-outline-primary" for="curveFittingPolygon">POLYGON</label>
-                                        
-                                        <input type="radio" class="btn-check" name="curveFitting" id="curveFittingSpline" value="spline" checked>
-                                        <label class="btn btn-outline-primary" for="curveFittingSpline">SPLINE</label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Reset to Defaults -->
-                            <div class="text-center">
-                                <button class="btn btn-outline-secondary" onclick="resetVTracerParams()">
-                                    <i class="fas fa-undo"></i> Reset to Defaults
-                                </button>
-                                <button class="btn btn-outline-info ms-2" onclick="loadOptimalPreset()">
-                                    <i class="fas fa-magic"></i> Load Optimal Preset
-                                </button>
-                            </div>
-                            
-                            <!-- Real-time Preview Info -->
-                            <div class="alert alert-info mt-3" style="display: none;" id="realtimeInfo">
-                                <i class="fas fa-info-circle"></i> 
-                                <strong>Real-time Preview Active:</strong> Adjust any parameter above to see instant SVG updates with 500ms debounce.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Demo Buttons -->
-                <div class="demo-buttons text-center">
-                    <button class="btn btn-custom me-2" onclick="createSamples()">
-                        <i class="fas fa-images"></i> Create Sample Images
-                    </button>
-                    <button class="btn btn-custom me-2" onclick="runBenchmark()">
-                        <i class="fas fa-chart-line"></i> Run Quick Benchmark
-                    </button>
-                    <button class="btn btn-custom" onclick="loadExample()">
-                        <i class="fas fa-play"></i> Load Example
-                    </button>
-                </div>
-
-                <!-- Progress Bar -->
-                <div class="progress-container" id="progressContainer">
-                    <div class="progress mb-3">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                             role="progressbar" style="width: 0%"></div>
-                    </div>
-                    <div class="loading-spinner">
-                        <i class="fas fa-cog fa-spin fa-2x text-primary"></i>
-                        <p class="mt-2">Processing your image...</p>
-                    </div>
-                </div>
-
-                <!-- Results -->
-                <div class="result-container" id="resultContainer">
-                    <!-- Statistics -->
-                    <div class="stats-grid" id="statsGrid"></div>
-
-                    <!-- Image Comparison -->
-                    <div class="comparison-view" id="comparisonView"></div>
-
-                    <!-- Download Button -->
-                    <div class="text-center mt-3">
-                        <button class="btn btn-success btn-lg" id="downloadBtn" onclick="downloadSVG()">
-                            <i class="fas fa-download"></i> Download SVG
-                        </button>
-                        <button class="btn btn-secondary btn-lg ms-2" onclick="resetInterface()">
-                            <i class="fas fa-redo"></i> Process Another
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Demo Results -->
-                <div id="demoResults" class="mt-4"></div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Upload Area -->
+        <div class="bg-white border border-gray-200 rounded-xl p-12 mb-8 text-center" id="uploadSection">
+            <div class="upload-area border-2 border-dashed border-gray-300 rounded-lg p-16 cursor-pointer transition-colors" 
+                 id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <div class="w-20 h-20 mx-auto mb-6 text-gray-400">
+                    <i data-lucide="upload-cloud" class="w-20 h-20"></i>
+                </div>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-3">Upload your image</h2>
+                <p class="text-gray-600 mb-4">Drag and drop or click to select an image file</p>
+                <p class="text-sm text-gray-500">PNG, JPG, GIF, BMP, TIFF • Max 16MB</p>
+                <input type="file" id="fileInput" accept="image/*" class="hidden">
+            </div>
+        </div>
+
+        <!-- Processing State -->
+        <div class="bg-white border border-gray-200 rounded-xl p-16 text-center" id="processingPanel" style="display: none;">
+            <div class="w-16 h-16 mx-auto mb-6 animate-spin text-indigo-600">
+                <i data-lucide="loader-2" class="w-16 h-16"></i>
+            </div>
+            <h2 class="text-2xl font-semibold text-gray-900 mb-3">Processing image</h2>
+            <p class="text-gray-600">Converting your image to vector format...</p>
+            <div class="mt-8 w-80 bg-gray-200 rounded-full h-3 mx-auto">
+                <div class="bg-indigo-600 h-3 rounded-full animate-pulse" style="width: 60%"></div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsContainer" class="bg-white border border-gray-200 rounded-xl overflow-hidden" style="display: none;">
+            <!-- Header Bar -->
+            <div class="bg-gray-50 border-b border-gray-200 px-8 py-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-8">
+                        <h2 class="text-2xl font-semibold text-gray-900">Vector Result</h2>
+                        <div class="flex items-center gap-6 text-gray-600">
+                            <span class="flex items-center gap-2">
+                                <i data-lucide="clock" class="w-5 h-5"></i>
+                                <span id="quickProcessingTime" class="font-medium">0.15s</span>
+                            </span>
+                            <span class="flex items-center gap-2">
+                                <i data-lucide="layers" class="w-5 h-5"></i>
+                                <span id="quickElements" class="font-medium">30 elements</span>
+                            </span>
+                            <span class="flex items-center gap-2">
+                                <i data-lucide="star" class="w-5 h-5"></i>
+                                <span id="quickQuality" class="font-medium">0.90 quality</span>
+                            </span>
+                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium" id="qualityBadge">Excellent</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="showOriginalToggle" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <span class="text-sm text-gray-700">Show Original</span>
+                        </label>
+                        
+                        <button id="controlsToggle" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                            <i data-lucide="sliders" class="w-4 h-4"></i>
+                            <span>Controls</span>
+                        </button>
+                        
+                        <button onclick="uploadNewImage()" 
+                                class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                            <i data-lucide="upload" class="w-4 h-4 mr-1"></i>
+                            New
+                        </button>
+                        
+                        <button onclick="downloadSVG()" 
+                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700">
+                            <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+                            Download SVG
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex">
+                <!-- Main Display Area -->
+                <div class="flex-1 relative bg-white" style="height: 80vh;">
+                    <img id="originalImage" class="absolute inset-0 w-full h-full object-contain p-12 opacity-0 transition-opacity duration-300">
+                    <div id="svgDisplay" class="absolute inset-0 w-full h-full flex items-center justify-center p-12 transition-opacity duration-300 overflow-hidden"></div>
+                    <div id="loadingOverlay" 
+                         class="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center" 
+                         style="display: none;">
+                        <div class="text-center">
+                            <div class="w-12 h-12 mx-auto mb-4 animate-spin text-indigo-600">
+                                <i data-lucide="loader-2" class="w-12 h-12"></i>
+                            </div>
+                            <p class="text-lg text-gray-600">Processing...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Controls Sidebar -->
+                <div id="controlsSidebar" class="w-96 bg-gray-50 border-l border-gray-200 p-8 overflow-y-auto" style="height: 80vh; display: none;">
+                    <div class="space-y-8">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-6">Adjust Parameters</h3>
+                        </div>
+                        
+                        <!-- Quality Control -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-4">Quality</label>
+                            <input type="range" id="filterSpeckle" min="1" max="10" value="4" class="w-full slider" oninput="updateParameterValue('filterSpeckle', this.value); updatePreview();">
+                            <div class="flex justify-between text-sm text-gray-500 mt-2">
+                                <span>Fast</span>
+                                <span id="filterSpeckleValue" class="font-medium text-indigo-600">4</span>
+                                <span>Best</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Detail Level -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-4">Detail Level</label>
+                            <input type="range" id="colorPrecision" min="1" max="16" value="8" class="w-full slider" oninput="updateParameterValue('colorPrecision', this.value); updatePreview();">
+                            <div class="flex justify-between text-sm text-gray-500 mt-2">
+                                <span>Simple</span>
+                                <span id="colorPrecisionValue" class="font-medium text-indigo-600">8</span>
+                                <span>Detailed</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Smoothness -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-4">Smoothness</label>
+                            <input type="range" id="cornerThreshold" min="0" max="180" value="90" class="w-full slider" oninput="updateParameterValue('cornerThreshold', this.value); updatePreview();">
+                            <div class="flex justify-between text-sm text-gray-500 mt-2">
+                                <span>Sharp</span>
+                                <span id="cornerThresholdValue" class="font-medium text-indigo-600">90</span>
+                                <span>Smooth</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Advanced Settings -->
+                        <details class="border-t border-gray-300 pt-6">
+                            <summary class="text-sm font-medium text-gray-700 cursor-pointer mb-4">Advanced Settings</summary>
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-3">Layer Difference</label>
+                                    <input type="range" id="layerDifference" min="1" max="50" value="8" class="w-full slider" oninput="updateParameterValue('layerDifference', this.value); updatePreview();">
+                                    <div class="flex justify-between text-sm text-gray-500 mt-2">
+                                        <span>1</span>
+                                        <span id="layerDifferenceValue" class="font-medium text-indigo-600">8</span>
+                                        <span>50</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-3">Length Threshold</label>
+                                    <input type="range" id="lengthThreshold" min="0.5" max="20" value="1.0" step="0.1" class="w-full slider" oninput="updateParameterValue('lengthThreshold', this.value); updatePreview();">
+                                    <div class="flex justify-between text-sm text-gray-500 mt-2">
+                                        <span>0.5</span>
+                                        <span id="lengthThresholdValue" class="font-medium text-indigo-600">1.0</span>
+                                        <span>20</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-3">Splice Threshold</label>
+                                    <input type="range" id="spliceThreshold" min="0" max="100" value="20" class="w-full slider" oninput="updateParameterValue('spliceThreshold', this.value); updatePreview();">
+                                    <div class="flex justify-between text-sm text-gray-500 mt-2">
+                                        <span>0</span>
+                                        <span id="spliceThresholdValue" class="font-medium text-indigo-600">20</span>
+                                        <span>100</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                        
+                        <!-- Quick Actions -->
+                        <div class="border-t border-gray-300 pt-6">
+                            <div class="grid grid-cols-2 gap-4">
+                                <button onclick="resetParameters()" class="px-4 py-3 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium">
+                                    Reset
+                                </button>
+                                <button onclick="setOptimalParameters()" class="px-4 py-3 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 font-medium">
+                                    Optimal
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden form fields -->
+    <input type="hidden" id="vectorizerType" value="optimized">
+    <input type="hidden" id="strategy" value="vtracer_high_fidelity">
+    <input type="hidden" id="targetTime" value="60">
+
     <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // State management
+        let currentImageFile = null;
         let currentDownloadUrl = null;
-        let processingStartTime = null;
 
         // File upload handling
         document.getElementById('fileInput').addEventListener('change', handleFileSelect);
         
-        // Drag and drop handling
+        // Drag and drop
         const uploadArea = document.getElementById('uploadArea');
         
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            uploadArea.classList.add('dragover');
+            uploadArea.classList.add('border-indigo-400', 'bg-indigo-50');
         });
         
         uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
+            uploadArea.classList.remove('border-indigo-400', 'bg-indigo-50');
         });
         
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            
+            uploadArea.classList.remove('border-indigo-400', 'bg-indigo-50');
             const files = e.dataTransfer.files;
             if (files.length > 0) {
                 document.getElementById('fileInput').files = files;
@@ -375,16 +287,30 @@
             }
         });
 
+        // Controls toggle
+        document.getElementById('controlsToggle').addEventListener('click', function() {
+            const sidebar = document.getElementById('controlsSidebar');
+            if (sidebar.style.display === 'none') {
+                sidebar.style.display = 'block';
+                this.innerHTML = '<i data-lucide="x" class="w-5 h-5"></i><span>Close</span>';
+            } else {
+                sidebar.style.display = 'none';
+                this.innerHTML = '<i data-lucide="sliders" class="w-5 h-5"></i><span>Controls</span>';
+            }
+            lucide.createIcons();
+        });
+
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (file) {
-                // Store file for real-time preview
                 currentImageFile = file;
                 processImage(file);
             }
         }
 
         function processImage(file) {
+            showProcessing();
+            
             const formData = new FormData();
             formData.append('file', file);
             formData.append('vectorizer', document.getElementById('vectorizerType').value);
@@ -392,17 +318,7 @@
             formData.append('strategy', document.getElementById('strategy').value);
             
             // Add VTracer parameters
-            formData.append('filter_speckle', document.getElementById('filterSpeckle').value);
-            formData.append('color_precision', document.getElementById('colorPrecision').value);
-            formData.append('layer_difference', document.getElementById('layerDifference').value);
-            formData.append('corner_threshold', document.getElementById('cornerThreshold').value);
-            formData.append('length_threshold', document.getElementById('lengthThreshold').value);
-            formData.append('splice_threshold', document.getElementById('spliceThreshold').value);
-            formData.append('curve_fitting', document.querySelector('input[name="curveFitting"]:checked').value);
-
-            // Show progress
-            showProgress();
-            processingStartTime = Date.now();
+            addVTracerParams(formData);
 
             fetch('/api/vectorize', {
                 method: 'POST',
@@ -410,103 +326,135 @@
             })
             .then(response => response.json())
             .then(data => {
-                hideProgress();
                 if (data.success) {
-                    displayResults(data);
+                    displayResults(data, file);
                 } else {
                     showError(data.error || 'Processing failed');
                 }
             })
             .catch(error => {
-                hideProgress();
+                console.error('Error:', error);
                 showError('Network error: ' + error.message);
             });
         }
 
-        function showProgress() {
-            document.getElementById('progressContainer').style.display = 'block';
-            document.getElementById('resultContainer').style.display = 'none';
-            
-            // Animate progress bar
-            let progress = 0;
-            const progressBar = document.querySelector('.progress-bar');
-            const interval = setInterval(() => {
-                progress += Math.random() * 10;
-                if (progress > 90) progress = 90;
-                progressBar.style.width = progress + '%';
-            }, 500);
-            
-            // Store interval to clear later
-            window.progressInterval = interval;
+        function addVTracerParams(formData) {
+            formData.append('filter_speckle', document.getElementById('filterSpeckle').value);
+            formData.append('color_precision', document.getElementById('colorPrecision').value);
+            formData.append('layer_difference', document.getElementById('layerDifference').value);
+            formData.append('corner_threshold', document.getElementById('cornerThreshold').value);
+            formData.append('length_threshold', document.getElementById('lengthThreshold').value);
+            formData.append('splice_threshold', document.getElementById('spliceThreshold').value);
+            formData.append('curve_fitting', 'spline');
         }
 
-        function hideProgress() {
-            if (window.progressInterval) {
-                clearInterval(window.progressInterval);
+        function showProcessing() {
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('processingPanel').style.display = 'block';
+            document.getElementById('resultsContainer').style.display = 'none';
+        }
+
+        function displayResults(data, file) {
+            // Hide processing and upload
+            document.getElementById('processingPanel').style.display = 'none';
+            document.getElementById('uploadSection').style.display = 'none';
+            document.getElementById('loadingOverlay').style.display = 'none';
+            
+            // Show results
+            document.getElementById('resultsContainer').style.display = 'block';
+            
+            // Display original image only once (not on parameter updates)
+            if (!document.getElementById('originalImage').src) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('originalImage').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
             }
-            document.querySelector('.progress-bar').style.width = '100%';
-            setTimeout(() => {
-                document.getElementById('progressContainer').style.display = 'none';
-            }, 500);
-        }
-
-        function displayResults(data) {
-            const totalTime = (Date.now() - processingStartTime) / 1000;
+            
+            // Display SVG result
+            const svgDisplay = document.getElementById('svgDisplay');
+            if (data.svg_content) {
+                svgDisplay.innerHTML = data.svg_content;
+                
+                // Ensure SVG scales properly
+                setTimeout(() => {
+                    const svg = svgDisplay.querySelector('svg');
+                    if (svg) {
+                        svg.removeAttribute('width');
+                        svg.removeAttribute('height');
+                        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                        
+                        if (!svg.getAttribute('viewBox')) {
+                            try {
+                                const bbox = svg.getBBox();
+                                if (bbox.width > 0 && bbox.height > 0) {
+                                    svg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+                                }
+                            } catch (e) {
+                                console.warn('Could not set viewBox:', e);
+                            }
+                        }
+                    }
+                }, 100);
+            }
             
             // Store download URL
             currentDownloadUrl = data.download_url;
             
-            // Show real-time preview indicator
-            document.getElementById('realtimeIndicator').style.display = 'block';
-            document.getElementById('realtimeInfo').style.display = 'block';
+            // Update stats and quality badge
+            updateQuickStats(data);
+            updateQualityBadge(data.quality_score || 0.8);
+            
+            // Initialize before/after toggle only once
+            if (!document.getElementById('showOriginalToggle').hasEventListener) {
+                initializeBeforeAfterToggle();
+                document.getElementById('showOriginalToggle').hasEventListener = true;
+            }
+        }
 
-            // Create statistics
-            const statsHTML = `
-                <div class="stat-card">
-                    <div class="stat-value">${data.processing_time.toFixed(2)}s</div>
-                    <div class="stat-label">Processing Time</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${data.quality_score.toFixed(3)}</div>
-                    <div class="stat-label">Quality Score</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${data.num_elements}</div>
-                    <div class="stat-label">SVG Elements</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${data.strategy_used}</div>
-                    <div class="stat-label">Strategy Used</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${data.content_type}</div>
-                    <div class="stat-label">Content Type</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">${data.metadata.image_size}</div>
-                    <div class="stat-label">Image Size</div>
-                </div>
-            `;
+        function updateQuickStats(data) {
+            document.getElementById('quickProcessingTime').textContent = `${data.processing_time.toFixed(2)}s`;
+            document.getElementById('quickElements').textContent = `${data.num_elements} elements`;
+            document.getElementById('quickQuality').textContent = `${data.quality_score.toFixed(2)} quality`;
+        }
+        
+        function initializeBeforeAfterToggle() {
+            const toggle = document.getElementById('showOriginalToggle');
+            const originalImage = document.getElementById('originalImage');
+            const svgDisplay = document.getElementById('svgDisplay');
+            
+            // Set initial state (show vector result)
+            originalImage.style.opacity = '0';
+            svgDisplay.style.opacity = '1';
+            toggle.checked = false;
+            
+            toggle.addEventListener('change', function() {
+                if (this.checked) {
+                    originalImage.style.opacity = '1';
+                    svgDisplay.style.opacity = '0';
+                } else {
+                    originalImage.style.opacity = '0';
+                    svgDisplay.style.opacity = '1';
+                }
+            });
+        }
 
-            // Create comparison view
-            const comparisonHTML = `
-                <div class="image-panel">
-                    <h5><i class="fas fa-image"></i> Original Image</h5>
-                    <img src="data:image/${data.original_ext};base64,${data.original_b64}" 
-                         class="image-display" alt="Original">
-                </div>
-                <div class="image-panel">
-                    <h5><i class="fas fa-vector-square"></i> Vectorized Result</h5>
-                    <div class="svg-display">${data.svg_content}</div>
-                </div>
-            `;
-
-            document.getElementById('statsGrid').innerHTML = statsHTML;
-            document.getElementById('comparisonView').innerHTML = comparisonHTML;
-            document.getElementById('resultContainer').style.display = 'block';
-
-            // Scroll to results
-            document.getElementById('resultContainer').scrollIntoView({ behavior: 'smooth' });
+        function updateQualityBadge(score) {
+            const badge = document.getElementById('qualityBadge');
+            if (score >= 0.9) {
+                badge.className = 'px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium';
+                badge.textContent = 'Excellent';
+            } else if (score >= 0.8) {
+                badge.className = 'px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium';
+                badge.textContent = 'High Quality';
+            } else if (score >= 0.7) {
+                badge.className = 'px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium';
+                badge.textContent = 'Good';
+            } else {
+                badge.className = 'px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium';
+                badge.textContent = 'Needs Tuning';
+            }
         }
 
         function downloadSVG() {
@@ -515,156 +463,90 @@
             }
         }
 
-        function resetInterface() {
-            document.getElementById('resultContainer').style.display = 'none';
-            document.getElementById('fileInput').value = '';
-            currentDownloadUrl = null;
-            currentImageFile = null;
-            document.getElementById('realtimeIndicator').style.display = 'none';
-            document.getElementById('realtimeInfo').style.display = 'none';
-        }
-
         function showError(message) {
+            document.getElementById('processingPanel').style.display = 'none';
             alert('Error: ' + message);
+            document.getElementById('uploadSection').style.display = 'block';
         }
 
-        // Demo functions
-        function createSamples() {
-            fetch('/api/demo/create_samples')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    displaySamples(data.samples);
-                } else {
-                    showError(data.error);
-                }
-            })
-            .catch(error => showError('Demo failed: ' + error.message));
+        function resetParameters() {
+            document.getElementById('filterSpeckle').value = 4;
+            document.getElementById('colorPrecision').value = 8;
+            document.getElementById('cornerThreshold').value = 90;
+            document.getElementById('layerDifference').value = 8;
+            document.getElementById('lengthThreshold').value = 1.0;
+            document.getElementById('spliceThreshold').value = 20;
         }
 
-        function runBenchmark() {
-            showProgress();
-            fetch('/api/demo/benchmark')
-            .then(response => response.json())
-            .then(data => {
-                hideProgress();
-                if (data.success) {
-                    displayBenchmark(data.results);
-                } else {
-                    showError(data.error);
-                }
-            })
-            .catch(error => {
-                hideProgress();
-                showError('Benchmark failed: ' + error.message);
-            });
-        }
-
-        function displaySamples(samples) {
-            let html = '<h4><i class="fas fa-images"></i> Sample Images Created</h4><div class="row">';
-            samples.forEach(sample => {
-                html += `
-                    <div class="col-md-4 mb-3">
-                        <div class="card">
-                            <img src="data:image/png;base64,${sample.b64}" class="card-img-top" style="height: 200px; object-fit: contain;">
-                            <div class="card-body">
-                                <h6 class="card-title">${sample.name}</h6>
-                                <p class="card-text">Size: ${sample.size}</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            html += '</div>';
-            document.getElementById('demoResults').innerHTML = html;
-        }
-
-        function displayBenchmark(results) {
-            let html = '<h4><i class="fas fa-chart-line"></i> Benchmark Results</h4><div class="table-responsive"><table class="table table-striped">';
-            html += '<thead><tr><th>Image</th><th>Time (s)</th><th>Strategy</th><th>Quality</th><th>Elements</th></tr></thead><tbody>';
-            results.forEach(result => {
-                html += `<tr>
-                    <td>${result.image}</td>
-                    <td>${result.time.toFixed(2)}</td>
-                    <td>${result.strategy}</td>
-                    <td>${result.quality.toFixed(3)}</td>
-                    <td>${result.elements}</td>
-                </tr>`;
-            });
-            html += '</tbody></table></div>';
-            document.getElementById('demoResults').innerHTML = html;
-        }
-
-        function loadExample() {
-            // Load a sample image for demonstration
-            fetch('/api/demo/create_samples')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.samples.length > 0) {
-                    // Convert base64 to file and process
-                    const sample = data.samples[0];
-                    const byteCharacters = atob(sample.b64);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) {
-                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const file = new File([byteArray], 'example.png', { type: 'image/png' });
-                    processImage(file);
-                }
-            });
-        }
-
-        // Real-time preview state
-        let currentImageFile = null;
-        let previewUpdateTimeout = null;
-        let isUpdatingPreview = false;
-
-        // VTracer parameter handling with real-time preview
-        function updateSliderValue(sliderId, valueId) {
-            const slider = document.getElementById(sliderId);
-            const valueDisplay = document.getElementById(valueId);
-            valueDisplay.textContent = slider.value;
+        function setOptimalParameters() {
+            document.getElementById('filterSpeckle').value = 6;
+            document.getElementById('colorPrecision').value = 10;
+            document.getElementById('cornerThreshold').value = 60;
+            document.getElementById('layerDifference').value = 12;
+            document.getElementById('lengthThreshold').value = 0.8;
+            document.getElementById('spliceThreshold').value = 15;
             
-            // Trigger real-time preview update
-            schedulePreviewUpdate();
+            // Update display values
+            document.getElementById('filterSpeckleValue').textContent = 6;
+            document.getElementById('colorPrecisionValue').textContent = 10;
+            document.getElementById('cornerThresholdValue').textContent = 60;
+            document.getElementById('layerDifferenceValue').textContent = 12;
+            document.getElementById('lengthThresholdValue').textContent = 0.8;
+            document.getElementById('spliceThresholdValue').textContent = 15;
+            
+            // Trigger update if image is loaded
+            if (currentImageFile) {
+                updatePreview();
+            }
         }
 
-        function schedulePreviewUpdate() {
-            // Skip if no image is loaded or currently updating
-            if (!currentImageFile || isUpdatingPreview) return;
+        function uploadNewImage() {
+            // Reset to upload state
+            document.getElementById('resultsContainer').style.display = 'none';
+            document.getElementById('processingPanel').style.display = 'none';
+            document.getElementById('uploadSection').style.display = 'block';
             
-            // Clear existing timeout
-            if (previewUpdateTimeout) {
-                clearTimeout(previewUpdateTimeout);
+            // Reset file input
+            document.getElementById('fileInput').value = '';
+            currentImageFile = null;
+            currentDownloadUrl = null;
+        }
+
+        function updateParameterValue(paramName, value) {
+            // Update the display value
+            document.getElementById(paramName + 'Value').textContent = value;
+        }
+
+        let updateTimeout = null;
+        let isProcessing = false;
+        
+        function updatePreview() {
+            if (!currentImageFile || isProcessing) return;
+            
+            // Show loading overlay only if results are visible
+            if (document.getElementById('resultsContainer').style.display === 'block') {
+                document.getElementById('loadingOverlay').style.display = 'flex';
             }
             
-            // Schedule update with debounce
-            previewUpdateTimeout = setTimeout(() => {
-                updatePreview();
-            }, 500); // 500ms debounce
+            // Debounce updates to avoid too many requests
+            clearTimeout(updateTimeout);
+            updateTimeout = setTimeout(() => {
+                if (!isProcessing) {
+                    isProcessing = true;
+                    processImageUpdate(currentImageFile);
+                }
+            }, 800);
         }
 
-        function updatePreview() {
-            if (!currentImageFile || isUpdatingPreview) return;
-            
-            isUpdatingPreview = true;
-            showPreviewLoading();
-            
+        function processImageUpdate(file) {
             const formData = new FormData();
-            formData.append('file', currentImageFile);
+            formData.append('file', file);
             formData.append('vectorizer', document.getElementById('vectorizerType').value);
             formData.append('target_time', document.getElementById('targetTime').value);
             formData.append('strategy', document.getElementById('strategy').value);
             
-            // Add current VTracer parameters
-            formData.append('filter_speckle', document.getElementById('filterSpeckle').value);
-            formData.append('color_precision', document.getElementById('colorPrecision').value);
-            formData.append('layer_difference', document.getElementById('layerDifference').value);
-            formData.append('corner_threshold', document.getElementById('cornerThreshold').value);
-            formData.append('length_threshold', document.getElementById('lengthThreshold').value);
-            formData.append('splice_threshold', document.getElementById('spliceThreshold').value);
-            formData.append('curve_fitting', document.querySelector('input[name="curveFitting"]:checked').value);
+            // Add VTracer parameters
+            addVTracerParams(formData);
 
             fetch('/api/vectorize', {
                 method: 'POST',
@@ -672,199 +554,20 @@
             })
             .then(response => response.json())
             .then(data => {
-                hidePreviewLoading();
-                isUpdatingPreview = false;
+                isProcessing = false;
                 if (data.success) {
-                    updatePreviewDisplay(data);
+                    displayResults(data, file);
                 } else {
-                    console.error('Preview update failed:', data.error);
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    console.error('Update failed:', data.error);
                 }
             })
             .catch(error => {
-                hidePreviewLoading();
-                isUpdatingPreview = false;
-                console.error('Preview update error:', error);
+                isProcessing = false;
+                document.getElementById('loadingOverlay').style.display = 'none';
+                console.error('Update error:', error);
             });
         }
-
-        function showPreviewLoading() {
-            const svgPanel = document.querySelector('.image-panel:last-child .svg-display');
-            if (svgPanel) {
-                svgPanel.style.opacity = '0.5';
-                svgPanel.style.position = 'relative';
-                
-                // Add loading overlay
-                const loadingOverlay = document.createElement('div');
-                loadingOverlay.id = 'preview-loading';
-                loadingOverlay.style.cssText = `
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    z-index: 1000;
-                    color: #6366f1;
-                `;
-                loadingOverlay.innerHTML = '<i class="fas fa-spinner fa-spin fa-2x"></i>';
-                svgPanel.appendChild(loadingOverlay);
-            }
-        }
-
-        function hidePreviewLoading() {
-            const svgPanel = document.querySelector('.image-panel:last-child .svg-display');
-            const loadingOverlay = document.getElementById('preview-loading');
-            
-            if (svgPanel) {
-                svgPanel.style.opacity = '1';
-            }
-            if (loadingOverlay) {
-                loadingOverlay.remove();
-            }
-        }
-
-        function updatePreviewDisplay(data) {
-            // Update SVG display
-            const svgDisplay = document.querySelector('.image-panel:last-child .svg-display');
-            if (svgDisplay) {
-                svgDisplay.innerHTML = data.svg_content;
-            }
-            
-            // Update statistics
-            updatePreviewStats(data);
-            
-            // Update download URL
-            currentDownloadUrl = data.download_url;
-        }
-
-        function updatePreviewStats(data) {
-            const statsGrid = document.getElementById('statsGrid');
-            if (statsGrid) {
-                const parameterInfo = getParameterSummary();
-                const statsHTML = `
-                    <div class="stat-card">
-                        <div class="stat-value">${data.processing_time.toFixed(2)}s</div>
-                        <div class="stat-label">Processing Time</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">${data.quality_score.toFixed(3)}</div>
-                        <div class="stat-label">Quality Score</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">${data.num_elements}</div>
-                        <div class="stat-label">SVG Elements</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">${data.svg_content.length}</div>
-                        <div class="stat-label">SVG Size (chars)</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">${parameterInfo}</div>
-                        <div class="stat-label">Active Preset</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">${data.metadata.image_size}</div>
-                        <div class="stat-label">Image Size</div>
-                    </div>
-                `;
-                statsGrid.innerHTML = statsHTML;
-            }
-        }
-
-        function getParameterSummary() {
-            const precision = document.getElementById('colorPrecision').value;
-            const speckle = document.getElementById('filterSpeckle').value;
-            return `P${precision}/S${speckle}`;
-        }
-
-        // Initialize slider value displays and add event listeners
-        function initializeSliders() {
-            const sliders = [
-                ['filterSpeckle', 'filterSpeckleValue'],
-                ['colorPrecision', 'colorPrecisionValue'],
-                ['layerDifference', 'layerDifferenceValue'],
-                ['cornerThreshold', 'cornerThresholdValue'],
-                ['lengthThreshold', 'lengthThresholdValue'],
-                ['spliceThreshold', 'spliceThresholdValue']
-            ];
-
-            sliders.forEach(([sliderId, valueId]) => {
-                const slider = document.getElementById(sliderId);
-                const valueDisplay = document.getElementById(valueId);
-                
-                // Set initial value
-                valueDisplay.textContent = slider.value;
-                
-                // Add event listener with real-time preview
-                slider.addEventListener('input', () => updateSliderValue(sliderId, valueId));
-            });
-            
-            // Add event listeners to radio buttons
-            document.querySelectorAll('input[name="curveFitting"]').forEach(radio => {
-                radio.addEventListener('change', schedulePreviewUpdate);
-            });
-        }
-
-        function resetVTracerParams() {
-            // Reset to VTracer default values
-            document.getElementById('filterSpeckle').value = 4;
-            document.getElementById('colorPrecision').value = 8;
-            document.getElementById('layerDifference').value = 8;
-            document.getElementById('cornerThreshold').value = 90;
-            document.getElementById('lengthThreshold').value = 1.0;
-            document.getElementById('spliceThreshold').value = 20;
-            document.getElementById('curveFittingSpline').checked = true;
-            
-            // Update displays
-            initializeSliders();
-            
-            // Trigger real-time preview update
-            schedulePreviewUpdate();
-        }
-
-        function loadOptimalPreset() {
-            // Load optimized preset based on the screenshot values
-            document.getElementById('filterSpeckle').value = 17;  // From screenshot
-            document.getElementById('colorPrecision').value = 7;   // From screenshot  
-            document.getElementById('layerDifference').value = 16; // From screenshot
-            document.getElementById('cornerThreshold').value = 26; // From screenshot
-            document.getElementById('lengthThreshold').value = 6.5; // From screenshot
-            document.getElementById('spliceThreshold').value = 0;   // From screenshot
-            document.getElementById('curveFittingSpline').checked = true; // From screenshot
-            
-            // Update displays
-            initializeSliders();
-            
-            // Trigger real-time preview update
-            schedulePreviewUpdate();
-            
-            // Show notification
-            const alert = document.createElement('div');
-            alert.className = 'alert alert-success alert-dismissible fade show mt-2';
-            alert.innerHTML = `
-                <strong>Optimal Preset Loaded!</strong> Using VTracer web interface settings for best quality.
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            document.getElementById('vtracerParams').querySelector('.card-body').prepend(alert);
-            
-            // Auto-hide alert after 3 seconds
-            setTimeout(() => {
-                if (alert.parentNode) {
-                    alert.remove();
-                }
-            }, 3000);
-        }
-
-        // Initialize sliders on page load
-        document.addEventListener('DOMContentLoaded', initializeSliders);
-
-        // Health check on page load
-        fetch('/health')
-        .then(response => response.json())
-        .then(data => {
-            console.log('VectorCraft 2.0 Web Interface Ready:', data);
-        })
-        .catch(error => {
-            console.error('Health check failed:', error);
-        });
     </script>
 </body>
 </html>

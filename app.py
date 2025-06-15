@@ -53,13 +53,13 @@ def vectorize_image():
         if not allowed_file(file.filename):
             return jsonify({'error': 'Invalid file type. Supported: PNG, JPG, GIF, BMP, TIFF'}), 400
         
-        # FORCE OPTIMIZED VTRACER - Remove old approaches
+        # Use optimized vectorization approach
         vectorizer_type = 'optimized'  # Always use optimized
         target_time = float(request.form.get('target_time', 60))
-        strategy = 'vtracer_high_fidelity'  # FORCE high-quality VTracer only
+        strategy = 'vtracer_high_fidelity'  # Use VTracer for maximum quality
         
-        # Extract VTracer parameters from form
-        vtracer_params = {
+        # Extract vectorization parameters from form
+        vectorization_params = {
             'filter_speckle': int(request.form.get('filter_speckle', 4)),
             'color_precision': int(request.form.get('color_precision', 8)),
             'layer_difference': int(request.form.get('layer_difference', 8)),
@@ -69,7 +69,7 @@ def vectorize_image():
             'curve_fitting': request.form.get('curve_fitting', 'spline')
         }
         
-        print(f"🎛️ VTracer parameters: {vtracer_params}")
+        print(f"🎛️ Vectorization parameters: {vectorization_params}")
         
         # Save uploaded file
         filename = secure_filename(file.filename)
@@ -77,41 +77,48 @@ def vectorize_image():
         input_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{unique_id}_{filename}")
         file.save(input_path)
         
-        # ALWAYS use OptimizedVectorizer with VTracer
+        # Use OptimizedVectorizer with advanced algorithms
         vectorizer = optimized_vectorizer
         
-        # Set custom VTracer parameters if provided
+        # Set custom VTracer parameters 
         if hasattr(vectorizer, 'real_vtracer') and vectorizer.real_vtracer.available:
-            vectorizer.real_vtracer.set_custom_parameters(vtracer_params)
+            vectorizer.real_vtracer.set_custom_parameters(vectorization_params)
+            print(f"🎛️ Set VTracer parameters: {vectorization_params}")
         
-        # FORCE vtracer_high_fidelity strategy - no fallbacks
+        # Use high-fidelity strategy for best quality
         if hasattr(vectorizer, 'adaptive_optimizer'):
-            # Override strategy selection to ALWAYS use VTracer
+            # Override strategy selection for high quality results
             original_optimize = vectorizer.adaptive_optimizer.optimize_strategy_selection
-            vectorizer.adaptive_optimizer.optimize_strategy_selection = lambda metadata, elapsed: 'vtracer_high_fidelity'
+            vectorizer.adaptive_optimizer.optimize_strategy_selection = lambda metadata, elapsed: strategy
         
-        print(f"🎯 WEB INTERFACE: Forcing vtracer_high_fidelity strategy for {filename}")
+        print(f"🎯 WEB INTERFACE: Using {strategy} strategy for {filename}")
         
         # Vectorize image
         start_time = time.time()
         result = vectorizer.vectorize(input_path, target_time=target_time)
         processing_time = time.time() - start_time
         
-        # Restore original strategy selection (VTracer forced)
+        # Restore original strategy selection
         if hasattr(vectorizer, 'adaptive_optimizer'):
             vectorizer.adaptive_optimizer.optimize_strategy_selection = original_optimize
         
-        # Clear custom parameters for next request
+        # Clear custom VTracer parameters for next request
         if hasattr(vectorizer, 'real_vtracer') and vectorizer.real_vtracer.available:
             vectorizer.real_vtracer.custom_params = None
         
         # Save SVG result
         svg_filename = f"{unique_id}_result.svg"
         svg_path = os.path.join(app.config['RESULTS_FOLDER'], svg_filename)
-        result.svg_builder.save(svg_path)
         
-        # Get SVG content for preview
-        svg_content = result.svg_builder.get_svg_string()
+        # Handle different result types from vectorization
+        if hasattr(result, 'svg_builder') and result.svg_builder:
+            result.svg_builder.save(svg_path)
+            svg_content = result.svg_builder.get_svg_string()
+        else:
+            # Handle direct SVG result
+            with open(svg_path, 'w') as f:
+                f.write(result.get_svg_string())
+            svg_content = result.get_svg_string()
         
         # Convert SVG to base64 for embedding
         svg_b64 = base64.b64encode(svg_content.encode()).decode()

@@ -66,7 +66,7 @@ def test_vectorcraft_processing(image_path: str, server_url: str = "http://local
             data = {
                 'vectorizer': 'optimized',
                 'target_time': '60',
-                'strategy': 'hybrid_comprehensive'
+                'strategy': 'vtracer_high_fidelity'
             }
             
             logger.info("🔄 Processing image with VectorCraft...")
@@ -103,36 +103,64 @@ def save_svg_result(svg_content: str, output_path: str):
         f.write(svg_content)
     logger.info(f"💾 SVG saved to: {output_path}")
 
-def calculate_basic_similarity(original_path: str, svg_content: str):
-    """Calculate basic similarity metrics"""
+def calculate_basic_similarity(target_image_path: str, svg_content: str) -> float:
+    """Calculate comprehensive similarity between target image and SVG output"""
     logger.info("🔍 Calculating similarity metrics...")
     
-    # For now, we'll use some heuristic-based similarity
-    # In a full implementation, we'd render the SVG and compare
+    try:
+        from vectorcraft.utils.similarity_calculator import SimilarityCalculator
+        
+        calculator = SimilarityCalculator()
+        
+        # Try comprehensive similarity calculation first
+        try:
+            similarity = calculator.calculate_comprehensive_similarity(svg_content, target_image_path)
+            if similarity > 0:
+                logger.info(f"📊 Comprehensive similarity: {similarity:.3f}")
+                return similarity
+        except Exception as e:
+            logger.warning(f"Comprehensive similarity calculation failed: {e}")
+        
+        # Fallback to heuristic estimation
+        svg_elements = svg_content.count('<rect') + svg_content.count('<path') + svg_content.count('<circle')
+        svg_size = len(svg_content)
+        
+        # Analyze target image characteristics
+        target_image = cv2.imread(target_image_path)
+        if target_image is not None:
+            unique_colors = len(np.unique(target_image.reshape(-1, target_image.shape[2]), axis=0))
+            gray = cv2.cvtColor(target_image, cv2.COLOR_BGR2GRAY)
+            edges = cv2.Canny(gray, 50, 150)
+            edge_density = np.sum(edges > 0) / edges.size
+        else:
+            unique_colors = 10
+            edge_density = 0.01
+        
+        target_characteristics = {
+            'unique_colors': unique_colors,
+            'edge_density': edge_density
+        }
+        
+        similarity = calculator.estimate_heuristic_similarity(svg_content, svg_elements, svg_size, target_characteristics)
+        logger.info(f"📊 Heuristic similarity: {similarity:.3f}")
+        
+        logger.info(f"   SVG elements: {svg_elements}")
+        logger.info(f"   SVG size: {svg_size} characters")
+        
+        return similarity
     
-    # Load original
-    original = cv2.imread(original_path)
-    height, width = original.shape[:2]
-    
-    # Basic metrics based on SVG content
-    svg_length = len(svg_content)
-    element_count = svg_content.count('<path') + svg_content.count('<circle') + svg_content.count('<rect')
-    
-    # Heuristic similarity based on complexity
-    # More elements generally means better detail capture
-    complexity_score = min(1.0, element_count / 20.0)  # Normalize assuming 20 elements is "good"
-    
-    # SVG size relative to image size
-    size_efficiency = min(1.0, svg_length / (width * height * 0.01))  # Heuristic
-    
-    # Combine metrics (this is simplified)
-    estimated_similarity = (complexity_score * 0.7 + size_efficiency * 0.3)
-    
-    logger.info(f"📊 Estimated similarity: {estimated_similarity:.3f}")
-    logger.info(f"   SVG elements: {element_count}")
-    logger.info(f"   SVG size: {svg_length} characters")
-    
-    return estimated_similarity
+    except Exception as e:
+        logger.error(f"Similarity calculation failed: {e}")
+        
+        # Ultra-basic fallback
+        svg_elements = svg_content.count('<rect') + svg_content.count('<path') + svg_content.count('<circle')
+        
+        if svg_elements == 0:
+            return 0.0
+        elif svg_elements < 5:
+            return svg_elements / 5.0 * 0.5
+        else:
+            return min(0.8, svg_elements / 15.0)
 
 def suggest_improvements(similarity_score: float, vectorcraft_result: dict, image_analysis: dict):
     """Suggest improvements based on results"""
@@ -282,7 +310,7 @@ def save_improvement_session(image_path: str, results: dict, improvements: list,
     session_file = f"improvement_results/session_{int(time.time())}.json"
     
     with open(session_file, 'w') as f:
-        json.dump(session_data, f, indent=2)
+        json.dump(session_data, f, indent=2, default=str)
     
     logger.info(f"💾 Improvement session saved to: {session_file}")
     
@@ -338,7 +366,7 @@ def update_claude_md(session_data):
 
 def main():
     """Main improvement pipeline execution"""
-    target_image = "/Users/ankish/Downloads/Frame 53.png"
+    target_image = "/Users/ankish/Downloads/Frame 54.png"
     
     logger.info("🚀 Starting VectorCraft 2.0 Improvement Pipeline")
     logger.info(f"🎯 Target: 95% similarity for {target_image}")
@@ -363,6 +391,49 @@ def main():
         logger.info("\n🔍 STEP 4: Calculating similarity...")
         similarity = calculate_basic_similarity(target_image, vectorcraft_result['svg_content'])
         vectorcraft_result['estimated_similarity'] = similarity
+        
+        # Step 4.5: Compare with real VTracer
+        logger.info("\n🔍 STEP 4.5: Testing real VTracer for comparison...")
+        try:
+            import vtracer
+            import tempfile
+            
+            with tempfile.NamedTemporaryFile(suffix='.svg', delete=False) as tmp_output:
+                tmp_output_path = tmp_output.name
+            
+            try:
+                vtracer.convert_image_to_svg_py(
+                    target_image,
+                    tmp_output_path,
+                    color_precision=6,
+                    layer_difference=16,
+                    mode='spline',
+                    filter_speckle=4,
+                    colormode='color',
+                    hierarchical='stacked'
+                )
+                
+                with open(tmp_output_path, 'r') as f:
+                    vtracer_svg = f.read()
+                
+                vtracer_similarity = calculate_basic_similarity(target_image, vtracer_svg)
+                logger.info(f"🏆 Real VTracer similarity: {vtracer_similarity:.3f}")
+                logger.info(f"📊 Our result: {similarity:.3f}")
+                logger.info(f"📈 Improvement potential: {vtracer_similarity - similarity:.3f}")
+                
+                # Save VTracer result for comparison
+                with open('improvement_results/vtracer_comparison.svg', 'w') as f:
+                    f.write(vtracer_svg)
+                logger.info("💾 VTracer result saved to: improvement_results/vtracer_comparison.svg")
+                
+            finally:
+                try:
+                    os.unlink(tmp_output_path)
+                except:
+                    pass
+                    
+        except Exception as e:
+            logger.warning(f"VTracer comparison failed: {e}")
         
         # Step 5: Sequential thinking for improvements
         logger.info("\n🧠 STEP 5: Sequential thinking analysis...")

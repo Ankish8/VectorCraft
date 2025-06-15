@@ -4,6 +4,7 @@ import torch.optim as optim
 import numpy as np
 from typing import List, Tuple, Optional, Dict
 import cv2
+import torch.nn.functional as F
 
 class BezierCurve(nn.Module):
     def __init__(self, control_points: List[Tuple[float, float]]):
@@ -136,38 +137,121 @@ class DifferentiableOptimizer:
         return best_paths
     
     def _create_perceptual_loss(self) -> nn.Module:
-        """Create perceptual loss function"""
-        class PerceptualLoss(nn.Module):
+        """Create advanced perceptual loss function for higher similarity"""
+        class AdvancedPerceptualLoss(nn.Module):
             def __init__(self):
                 super().__init__()
                 self.mse = nn.MSELoss()
+                self.l1 = nn.L1Loss()
                 
             def forward(self, rendered: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-                # Simple MSE loss with edge enhancement
+                # Multi-scale perceptual loss
+                total_loss = 0.0
+                
+                # Original scale
                 mse_loss = self.mse(rendered, target)
+                l1_loss = self.l1(rendered, target)
+                total_loss += 0.7 * mse_loss + 0.3 * l1_loss
                 
-                # Edge preservation loss
-                rendered_edges = self._compute_edges(rendered)
-                target_edges = self._compute_edges(target)
+                # Edge preservation with proper Sobel filtering
+                rendered_edges = self._compute_edges_proper(rendered)
+                target_edges = self._compute_edges_proper(target)
                 edge_loss = self.mse(rendered_edges, target_edges)
+                total_loss += 0.8 * edge_loss
                 
-                return mse_loss + 0.5 * edge_loss
+                # Color distribution loss
+                color_loss = self._color_distribution_loss(rendered, target)
+                total_loss += 0.4 * color_loss
+                
+                # Structural similarity component
+                structural_loss = self._structural_similarity_loss(rendered, target)
+                total_loss += 0.6 * structural_loss
+                
+                return total_loss
             
-            def _compute_edges(self, image: torch.Tensor) -> torch.Tensor:
-                """Compute edge map using Sobel filters"""
-                gray = torch.mean(image, dim=-1, keepdim=True)
+            def _compute_edges_proper(self, image: torch.Tensor) -> torch.Tensor:
+                """Compute edge map using proper Sobel filters"""
+                # Convert to grayscale
+                if len(image.shape) == 3 and image.shape[-1] == 3:
+                    gray = torch.mean(image, dim=-1, keepdim=True)
+                else:
+                    gray = image
+                
+                # Ensure proper dimensions for conv2d: [batch, channel, height, width]
+                if len(gray.shape) == 3:
+                    gray = gray.permute(2, 0, 1).unsqueeze(0)  # [1, 1, H, W]
                 
                 # Sobel kernels
                 sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], 
-                                     dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+                                     dtype=torch.float32, device=gray.device).unsqueeze(0).unsqueeze(0)
                 sobel_y = torch.tensor([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], 
-                                     dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+                                     dtype=torch.float32, device=gray.device).unsqueeze(0).unsqueeze(0)
                 
-                # Apply convolution (simplified)
-                edges = torch.abs(gray) * 0.1  # Placeholder - proper edge detection would use conv2d
-                return edges
+                # Apply convolution with padding
+                edge_x = F.conv2d(gray, sobel_x, padding=1)
+                edge_y = F.conv2d(gray, sobel_y, padding=1)
+                
+                # Compute edge magnitude
+                edges = torch.sqrt(edge_x**2 + edge_y**2)
+                
+                # Return in original format
+                return edges.squeeze(0).permute(1, 2, 0)
+            
+            def _color_distribution_loss(self, rendered: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+                """Loss based on color distribution similarity"""
+                # Compute color histograms (simplified)
+                rendered_mean = torch.mean(rendered, dim=(0, 1))
+                target_mean = torch.mean(target, dim=(0, 1))
+                
+                rendered_std = torch.std(rendered, dim=(0, 1))
+                target_std = torch.std(target, dim=(0, 1))
+                
+                mean_loss = self.mse(rendered_mean, target_mean)
+                std_loss = self.mse(rendered_std, target_std)
+                
+                return mean_loss + std_loss
+            
+            def _structural_similarity_loss(self, rendered: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+                """Simplified structural similarity loss"""
+                # Compute local means using average pooling
+                kernel_size = 11
+                padding = kernel_size // 2
+                
+                # Ensure proper dimensions
+                if len(rendered.shape) == 3:
+                    rendered_batch = rendered.permute(2, 0, 1).unsqueeze(0)  # [1, C, H, W]
+                    target_batch = target.permute(2, 0, 1).unsqueeze(0)
+                else:
+                    rendered_batch = rendered.unsqueeze(0).unsqueeze(0)
+                    target_batch = target.unsqueeze(0).unsqueeze(0)
+                
+                # Local means
+                mu1 = F.avg_pool2d(rendered_batch, kernel_size, stride=1, padding=padding)
+                mu2 = F.avg_pool2d(target_batch, kernel_size, stride=1, padding=padding)
+                
+                # Local variances and covariance
+                mu1_sq = mu1 * mu1
+                mu2_sq = mu2 * mu2
+                mu1_mu2 = mu1 * mu2
+                
+                sigma1_sq = F.avg_pool2d(rendered_batch * rendered_batch, kernel_size, stride=1, padding=padding) - mu1_sq
+                sigma2_sq = F.avg_pool2d(target_batch * target_batch, kernel_size, stride=1, padding=padding) - mu2_sq
+                sigma12 = F.avg_pool2d(rendered_batch * target_batch, kernel_size, stride=1, padding=padding) - mu1_mu2
+                
+                # SSIM constants
+                C1 = 0.01 ** 2
+                C2 = 0.03 ** 2
+                
+                # SSIM formula
+                numerator = (2 * mu1_mu2 + C1) * (2 * sigma12 + C2)
+                denominator = (mu1_sq + mu2_sq + C1) * (sigma1_sq + sigma2_sq + C2)
+                
+                ssim_map = numerator / (denominator + 1e-8)
+                ssim_loss = 1.0 - torch.mean(ssim_map)
+                
+                return ssim_loss
         
-        return PerceptualLoss()
+        return AdvancedPerceptualLoss()
     
     def _extract_paths(self, vector_model: VectorPath) -> List[List[Tuple[float, float]]]:
         """Extract current path coordinates from model"""
