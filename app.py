@@ -53,10 +53,10 @@ def vectorize_image():
         if not allowed_file(file.filename):
             return jsonify({'error': 'Invalid file type. Supported: PNG, JPG, GIF, BMP, TIFF'}), 400
         
-        # Get parameters
-        vectorizer_type = request.form.get('vectorizer', 'standard')
+        # FORCE OPTIMIZED VTRACER - Remove old approaches
+        vectorizer_type = 'optimized'  # Always use optimized
         target_time = float(request.form.get('target_time', 60))
-        strategy = request.form.get('strategy', 'auto')
+        strategy = 'vtracer_high_fidelity'  # FORCE high-quality VTracer only
         
         # Save uploaded file
         filename = secure_filename(file.filename)
@@ -64,25 +64,25 @@ def vectorize_image():
         input_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{unique_id}_{filename}")
         file.save(input_path)
         
-        # Select vectorizer
-        if vectorizer_type == 'optimized':
-            vectorizer = optimized_vectorizer
-        else:
-            vectorizer = standard_vectorizer
+        # ALWAYS use OptimizedVectorizer with VTracer
+        vectorizer = optimized_vectorizer
         
-        # Override strategy selection if specified
-        if strategy != 'auto':
-            original_select = vectorizer._select_strategy
-            vectorizer._select_strategy = lambda *args: strategy
+        # FORCE vtracer_high_fidelity strategy - no fallbacks
+        if hasattr(vectorizer, 'adaptive_optimizer'):
+            # Override strategy selection to ALWAYS use VTracer
+            original_optimize = vectorizer.adaptive_optimizer.optimize_strategy_selection
+            vectorizer.adaptive_optimizer.optimize_strategy_selection = lambda metadata, elapsed: 'vtracer_high_fidelity'
+        
+        print(f"🎯 WEB INTERFACE: Forcing vtracer_high_fidelity strategy for {filename}")
         
         # Vectorize image
         start_time = time.time()
         result = vectorizer.vectorize(input_path, target_time=target_time)
         processing_time = time.time() - start_time
         
-        # Restore original strategy selection
-        if strategy != 'auto':
-            vectorizer._select_strategy = original_select
+        # Restore original strategy selection (VTracer forced)
+        if hasattr(vectorizer, 'adaptive_optimizer'):
+            vectorizer.adaptive_optimizer.optimize_strategy_selection = original_optimize
         
         # Save SVG result
         svg_filename = f"{unique_id}_result.svg"

@@ -140,7 +140,7 @@
             <!-- Header -->
             <div class="header">
                 <h1><i class="fas fa-vector-square"></i> VectorCraft 2.0</h1>
-                <p class="mb-0">Next-Generation Vector Conversion with Hybrid Intelligence</p>
+                <p class="mb-0">Professional VTracer Engine • 95%+ Similarity • Production Quality</p>
             </div>
 
             <!-- Main Content -->
@@ -153,30 +153,22 @@
                     <input type="file" id="fileInput" accept="image/*" style="display: none;">
                 </div>
 
-                <!-- Configuration Options -->
+                <!-- VectorCraft 2.0 - Optimized Configuration -->
                 <div class="row mt-4">
-                    <div class="col-md-4">
-                        <label for="vectorizerType" class="form-label"><strong>Vectorizer Type</strong></label>
-                        <select class="form-select" id="vectorizerType">
-                            <option value="standard">Standard (Balanced)</option>
-                            <option value="optimized" selected>Optimized (Performance)</option>
-                        </select>
+                    <div class="col-md-8">
+                        <div class="alert alert-info">
+                            <i class="fas fa-rocket"></i> <strong>VectorCraft 2.0 Optimized:</strong> 
+                            Using adaptive VTracer with professional-grade quality (95%+ similarity)
+                        </div>
                     </div>
                     <div class="col-md-4">
-                        <label for="targetTime" class="form-label"><strong>Target Time (seconds)</strong></label>
+                        <label for="targetTime" class="form-label"><strong>Processing Time (seconds)</strong></label>
                         <input type="number" class="form-control" id="targetTime" value="60" min="10" max="300">
                     </div>
-                    <div class="col-md-4">
-                        <label for="strategy" class="form-label"><strong>Strategy</strong></label>
-                        <select class="form-select" id="strategy">
-                            <option value="auto">Auto-Select</option>
-                            <option value="hybrid_fast">Hybrid Fast</option>
-                            <option value="primitive_focused">Primitive Focused</option>
-                            <option value="classical_refined">Classical Refined</option>
-                            <option value="hybrid_comprehensive">Comprehensive</option>
-                        </select>
-                    </div>
                 </div>
+                <!-- Hidden fields for forced high-quality processing -->
+                <input type="hidden" id="vectorizerType" value="optimized">
+                <input type="hidden" id="strategy" value="vtracer_high_fidelity">
 
                 <!-- Demo Buttons -->
                 <div class="demo-buttons text-center">

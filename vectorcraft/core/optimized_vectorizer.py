@@ -72,6 +72,14 @@ class OptimizedVectorizer(HybridVectorizer):
             print(f"Warning: Processing took {processing_time:.2f}s (target: {target_time:.2f}s)")
             self.profiler.print_stats()
         
+        # Handle both SVGBuilder and RawSVGResult
+        if hasattr(result, 'element_count'):
+            # RawSVGResult
+            num_elements = result.element_count
+        else:
+            # SVGBuilder
+            num_elements = len(result.elements)
+        
         return VectorizationResult(
             svg_builder=result,
             processing_time=processing_time,
@@ -80,7 +88,7 @@ class OptimizedVectorizer(HybridVectorizer):
             metadata={
                 'content_type': self._classify_content(metadata),
                 'image_metadata': metadata,
-                'num_elements': len(result.elements),
+                'num_elements': num_elements,
                 'performance_stats': self.profiler.get_stats()
             }
         )
@@ -187,6 +195,9 @@ class OptimizedVectorizer(HybridVectorizer):
             return self._optimized_primitive_focused(image, edge_map, quantized_image, metadata)
         elif strategy == 'classical_refined':
             return self._optimized_classical_refined(image, edge_map, quantized_image, metadata)
+        elif strategy == 'vtracer_high_fidelity':
+            print("🎯 OptimizedVectorizer calling _vtracer_high_fidelity_strategy")
+            return self._vtracer_high_fidelity_strategy(image, edge_map, quantized_image, metadata)
         else:
             return self._optimized_hybrid_comprehensive(
                 image, edge_map, quantized_image, metadata, remaining_time
@@ -201,10 +212,10 @@ class OptimizedVectorizer(HybridVectorizer):
                 return cached_edges
         
         # Check if we have parallel edge detection results
-        if hasattr(self, '_edge_cache') and 'canny' in self._edge_cache:
-            edge_map = self._edge_cache['canny']
+        if hasattr(self, '_edge_cache') and 'enhanced' in self._edge_cache:
+            edge_map = self._edge_cache['enhanced']
         else:
-            edge_map = self.image_processor.create_edge_map(image, method='canny')
+            edge_map = self.image_processor.create_edge_map(image, method='enhanced')
         
         if self.cache_manager:
             self.cache_manager.put(cache_key, edge_map)
@@ -247,10 +258,8 @@ class OptimizedVectorizer(HybridVectorizer):
         """Optimized primitive detection strategy"""
         
         h, w = image.shape[:2]
-        svg_builder = self.image_processor.__class__.__bases__[0].__new__(
-            self.image_processor.__class__.__bases__[0], w, h  # Create SVGBuilder
-        )
-        svg_builder.__init__(w, h)
+        from ..core.svg_builder import SVGBuilder
+        svg_builder = SVGBuilder(w, h)
         
         # Parallel primitive detection
         if self.enable_parallel:
