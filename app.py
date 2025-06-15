@@ -58,6 +58,19 @@ def vectorize_image():
         target_time = float(request.form.get('target_time', 60))
         strategy = 'vtracer_high_fidelity'  # FORCE high-quality VTracer only
         
+        # Extract VTracer parameters from form
+        vtracer_params = {
+            'filter_speckle': int(request.form.get('filter_speckle', 4)),
+            'color_precision': int(request.form.get('color_precision', 8)),
+            'layer_difference': int(request.form.get('layer_difference', 8)),
+            'corner_threshold': int(request.form.get('corner_threshold', 90)),
+            'length_threshold': float(request.form.get('length_threshold', 1.0)),
+            'splice_threshold': int(request.form.get('splice_threshold', 20)),
+            'curve_fitting': request.form.get('curve_fitting', 'spline')
+        }
+        
+        print(f"🎛️ VTracer parameters: {vtracer_params}")
+        
         # Save uploaded file
         filename = secure_filename(file.filename)
         unique_id = str(uuid.uuid4())
@@ -66,6 +79,10 @@ def vectorize_image():
         
         # ALWAYS use OptimizedVectorizer with VTracer
         vectorizer = optimized_vectorizer
+        
+        # Set custom VTracer parameters if provided
+        if hasattr(vectorizer, 'real_vtracer') and vectorizer.real_vtracer.available:
+            vectorizer.real_vtracer.set_custom_parameters(vtracer_params)
         
         # FORCE vtracer_high_fidelity strategy - no fallbacks
         if hasattr(vectorizer, 'adaptive_optimizer'):
@@ -83,6 +100,10 @@ def vectorize_image():
         # Restore original strategy selection (VTracer forced)
         if hasattr(vectorizer, 'adaptive_optimizer'):
             vectorizer.adaptive_optimizer.optimize_strategy_selection = original_optimize
+        
+        # Clear custom parameters for next request
+        if hasattr(vectorizer, 'real_vtracer') and vectorizer.real_vtracer.available:
+            vectorizer.real_vtracer.custom_params = None
         
         # Save SVG result
         svg_filename = f"{unique_id}_result.svg"

@@ -170,6 +170,130 @@
                 <input type="hidden" id="vectorizerType" value="optimized">
                 <input type="hidden" id="strategy" value="vtracer_high_fidelity">
 
+                <!-- VTracer Parameters Panel -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0 d-flex justify-content-between align-items-center">
+                            <button class="btn btn-link text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#vtracerParams">
+                                <i class="fas fa-sliders-h"></i> VTracer Parameters (Advanced)
+                            </button>
+                            <small class="text-muted" id="realtimeIndicator" style="display: none;">
+                                <i class="fas fa-eye"></i> Real-time Preview Active
+                            </small>
+                        </h5>
+                    </div>
+                    <div id="vtracerParams" class="collapse">
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Filter Speckle -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="filterSpeckle" class="form-label">Filter Speckle (Cleaner)</label>
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">0</span>
+                                        <input type="range" class="form-range flex-grow-1" id="filterSpeckle" 
+                                               min="0" max="50" value="4" step="1">
+                                        <span class="ms-2">50</span>
+                                        <span class="ms-2 text-muted" id="filterSpeckleValue">4</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Color Precision -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="colorPrecision" class="form-label">Color Precision (More accurate)</label>
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">1</span>
+                                        <input type="range" class="form-range flex-grow-1" id="colorPrecision" 
+                                               min="1" max="10" value="8" step="1">
+                                        <span class="ms-2">10</span>
+                                        <span class="ms-2 text-muted" id="colorPrecisionValue">8</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Gradient Step (Layer Difference) -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="layerDifference" class="form-label">Gradient Step (Less layers)</label>
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">1</span>
+                                        <input type="range" class="form-range flex-grow-1" id="layerDifference" 
+                                               min="1" max="50" value="8" step="1">
+                                        <span class="ms-2">50</span>
+                                        <span class="ms-2 text-muted" id="layerDifferenceValue">8</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Corner Threshold -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="cornerThreshold" class="form-label">Corner Threshold (Smoother)</label>
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">0</span>
+                                        <input type="range" class="form-range flex-grow-1" id="cornerThreshold" 
+                                               min="0" max="180" value="90" step="1">
+                                        <span class="ms-2">180</span>
+                                        <span class="ms-2 text-muted" id="cornerThresholdValue">90</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Segment Length -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="lengthThreshold" class="form-label">Segment Length (More coarse)</label>
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">0.5</span>
+                                        <input type="range" class="form-range flex-grow-1" id="lengthThreshold" 
+                                               min="0.5" max="20" value="1.0" step="0.1">
+                                        <span class="ms-2">20</span>
+                                        <span class="ms-2 text-muted" id="lengthThresholdValue">1.0</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Splice Threshold -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="spliceThreshold" class="form-label">Splice Threshold (Less accurate)</label>
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">0</span>
+                                        <input type="range" class="form-range flex-grow-1" id="spliceThreshold" 
+                                               min="0" max="100" value="20" step="1">
+                                        <span class="ms-2">100</span>
+                                        <span class="ms-2 text-muted" id="spliceThresholdValue">20</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Curve Fitting Mode -->
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">Curve Fitting Mode</label>
+                                    <div class="btn-group w-100" role="group">
+                                        <input type="radio" class="btn-check" name="curveFitting" id="curveFittingPixel" value="pixel">
+                                        <label class="btn btn-outline-primary" for="curveFittingPixel">PIXEL</label>
+                                        
+                                        <input type="radio" class="btn-check" name="curveFitting" id="curveFittingPolygon" value="polygon">
+                                        <label class="btn btn-outline-primary" for="curveFittingPolygon">POLYGON</label>
+                                        
+                                        <input type="radio" class="btn-check" name="curveFitting" id="curveFittingSpline" value="spline" checked>
+                                        <label class="btn btn-outline-primary" for="curveFittingSpline">SPLINE</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Reset to Defaults -->
+                            <div class="text-center">
+                                <button class="btn btn-outline-secondary" onclick="resetVTracerParams()">
+                                    <i class="fas fa-undo"></i> Reset to Defaults
+                                </button>
+                                <button class="btn btn-outline-info ms-2" onclick="loadOptimalPreset()">
+                                    <i class="fas fa-magic"></i> Load Optimal Preset
+                                </button>
+                            </div>
+                            
+                            <!-- Real-time Preview Info -->
+                            <div class="alert alert-info mt-3" style="display: none;" id="realtimeInfo">
+                                <i class="fas fa-info-circle"></i> 
+                                <strong>Real-time Preview Active:</strong> Adjust any parameter above to see instant SVG updates with 500ms debounce.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Demo Buttons -->
                 <div class="demo-buttons text-center">
                     <button class="btn btn-custom me-2" onclick="createSamples()">
@@ -254,6 +378,8 @@
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (file) {
+                // Store file for real-time preview
+                currentImageFile = file;
                 processImage(file);
             }
         }
@@ -264,6 +390,15 @@
             formData.append('vectorizer', document.getElementById('vectorizerType').value);
             formData.append('target_time', document.getElementById('targetTime').value);
             formData.append('strategy', document.getElementById('strategy').value);
+            
+            // Add VTracer parameters
+            formData.append('filter_speckle', document.getElementById('filterSpeckle').value);
+            formData.append('color_precision', document.getElementById('colorPrecision').value);
+            formData.append('layer_difference', document.getElementById('layerDifference').value);
+            formData.append('corner_threshold', document.getElementById('cornerThreshold').value);
+            formData.append('length_threshold', document.getElementById('lengthThreshold').value);
+            formData.append('splice_threshold', document.getElementById('spliceThreshold').value);
+            formData.append('curve_fitting', document.querySelector('input[name="curveFitting"]:checked').value);
 
             // Show progress
             showProgress();
@@ -320,6 +455,10 @@
             
             // Store download URL
             currentDownloadUrl = data.download_url;
+            
+            // Show real-time preview indicator
+            document.getElementById('realtimeIndicator').style.display = 'block';
+            document.getElementById('realtimeInfo').style.display = 'block';
 
             // Create statistics
             const statsHTML = `
@@ -380,6 +519,9 @@
             document.getElementById('resultContainer').style.display = 'none';
             document.getElementById('fileInput').value = '';
             currentDownloadUrl = null;
+            currentImageFile = null;
+            document.getElementById('realtimeIndicator').style.display = 'none';
+            document.getElementById('realtimeInfo').style.display = 'none';
         }
 
         function showError(message) {
@@ -472,6 +614,247 @@
                 }
             });
         }
+
+        // Real-time preview state
+        let currentImageFile = null;
+        let previewUpdateTimeout = null;
+        let isUpdatingPreview = false;
+
+        // VTracer parameter handling with real-time preview
+        function updateSliderValue(sliderId, valueId) {
+            const slider = document.getElementById(sliderId);
+            const valueDisplay = document.getElementById(valueId);
+            valueDisplay.textContent = slider.value;
+            
+            // Trigger real-time preview update
+            schedulePreviewUpdate();
+        }
+
+        function schedulePreviewUpdate() {
+            // Skip if no image is loaded or currently updating
+            if (!currentImageFile || isUpdatingPreview) return;
+            
+            // Clear existing timeout
+            if (previewUpdateTimeout) {
+                clearTimeout(previewUpdateTimeout);
+            }
+            
+            // Schedule update with debounce
+            previewUpdateTimeout = setTimeout(() => {
+                updatePreview();
+            }, 500); // 500ms debounce
+        }
+
+        function updatePreview() {
+            if (!currentImageFile || isUpdatingPreview) return;
+            
+            isUpdatingPreview = true;
+            showPreviewLoading();
+            
+            const formData = new FormData();
+            formData.append('file', currentImageFile);
+            formData.append('vectorizer', document.getElementById('vectorizerType').value);
+            formData.append('target_time', document.getElementById('targetTime').value);
+            formData.append('strategy', document.getElementById('strategy').value);
+            
+            // Add current VTracer parameters
+            formData.append('filter_speckle', document.getElementById('filterSpeckle').value);
+            formData.append('color_precision', document.getElementById('colorPrecision').value);
+            formData.append('layer_difference', document.getElementById('layerDifference').value);
+            formData.append('corner_threshold', document.getElementById('cornerThreshold').value);
+            formData.append('length_threshold', document.getElementById('lengthThreshold').value);
+            formData.append('splice_threshold', document.getElementById('spliceThreshold').value);
+            formData.append('curve_fitting', document.querySelector('input[name="curveFitting"]:checked').value);
+
+            fetch('/api/vectorize', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hidePreviewLoading();
+                isUpdatingPreview = false;
+                if (data.success) {
+                    updatePreviewDisplay(data);
+                } else {
+                    console.error('Preview update failed:', data.error);
+                }
+            })
+            .catch(error => {
+                hidePreviewLoading();
+                isUpdatingPreview = false;
+                console.error('Preview update error:', error);
+            });
+        }
+
+        function showPreviewLoading() {
+            const svgPanel = document.querySelector('.image-panel:last-child .svg-display');
+            if (svgPanel) {
+                svgPanel.style.opacity = '0.5';
+                svgPanel.style.position = 'relative';
+                
+                // Add loading overlay
+                const loadingOverlay = document.createElement('div');
+                loadingOverlay.id = 'preview-loading';
+                loadingOverlay.style.cssText = `
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    z-index: 1000;
+                    color: #6366f1;
+                `;
+                loadingOverlay.innerHTML = '<i class="fas fa-spinner fa-spin fa-2x"></i>';
+                svgPanel.appendChild(loadingOverlay);
+            }
+        }
+
+        function hidePreviewLoading() {
+            const svgPanel = document.querySelector('.image-panel:last-child .svg-display');
+            const loadingOverlay = document.getElementById('preview-loading');
+            
+            if (svgPanel) {
+                svgPanel.style.opacity = '1';
+            }
+            if (loadingOverlay) {
+                loadingOverlay.remove();
+            }
+        }
+
+        function updatePreviewDisplay(data) {
+            // Update SVG display
+            const svgDisplay = document.querySelector('.image-panel:last-child .svg-display');
+            if (svgDisplay) {
+                svgDisplay.innerHTML = data.svg_content;
+            }
+            
+            // Update statistics
+            updatePreviewStats(data);
+            
+            // Update download URL
+            currentDownloadUrl = data.download_url;
+        }
+
+        function updatePreviewStats(data) {
+            const statsGrid = document.getElementById('statsGrid');
+            if (statsGrid) {
+                const parameterInfo = getParameterSummary();
+                const statsHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${data.processing_time.toFixed(2)}s</div>
+                        <div class="stat-label">Processing Time</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.quality_score.toFixed(3)}</div>
+                        <div class="stat-label">Quality Score</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.num_elements}</div>
+                        <div class="stat-label">SVG Elements</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.svg_content.length}</div>
+                        <div class="stat-label">SVG Size (chars)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${parameterInfo}</div>
+                        <div class="stat-label">Active Preset</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.metadata.image_size}</div>
+                        <div class="stat-label">Image Size</div>
+                    </div>
+                `;
+                statsGrid.innerHTML = statsHTML;
+            }
+        }
+
+        function getParameterSummary() {
+            const precision = document.getElementById('colorPrecision').value;
+            const speckle = document.getElementById('filterSpeckle').value;
+            return `P${precision}/S${speckle}`;
+        }
+
+        // Initialize slider value displays and add event listeners
+        function initializeSliders() {
+            const sliders = [
+                ['filterSpeckle', 'filterSpeckleValue'],
+                ['colorPrecision', 'colorPrecisionValue'],
+                ['layerDifference', 'layerDifferenceValue'],
+                ['cornerThreshold', 'cornerThresholdValue'],
+                ['lengthThreshold', 'lengthThresholdValue'],
+                ['spliceThreshold', 'spliceThresholdValue']
+            ];
+
+            sliders.forEach(([sliderId, valueId]) => {
+                const slider = document.getElementById(sliderId);
+                const valueDisplay = document.getElementById(valueId);
+                
+                // Set initial value
+                valueDisplay.textContent = slider.value;
+                
+                // Add event listener with real-time preview
+                slider.addEventListener('input', () => updateSliderValue(sliderId, valueId));
+            });
+            
+            // Add event listeners to radio buttons
+            document.querySelectorAll('input[name="curveFitting"]').forEach(radio => {
+                radio.addEventListener('change', schedulePreviewUpdate);
+            });
+        }
+
+        function resetVTracerParams() {
+            // Reset to VTracer default values
+            document.getElementById('filterSpeckle').value = 4;
+            document.getElementById('colorPrecision').value = 8;
+            document.getElementById('layerDifference').value = 8;
+            document.getElementById('cornerThreshold').value = 90;
+            document.getElementById('lengthThreshold').value = 1.0;
+            document.getElementById('spliceThreshold').value = 20;
+            document.getElementById('curveFittingSpline').checked = true;
+            
+            // Update displays
+            initializeSliders();
+            
+            // Trigger real-time preview update
+            schedulePreviewUpdate();
+        }
+
+        function loadOptimalPreset() {
+            // Load optimized preset based on the screenshot values
+            document.getElementById('filterSpeckle').value = 17;  // From screenshot
+            document.getElementById('colorPrecision').value = 7;   // From screenshot  
+            document.getElementById('layerDifference').value = 16; // From screenshot
+            document.getElementById('cornerThreshold').value = 26; // From screenshot
+            document.getElementById('lengthThreshold').value = 6.5; // From screenshot
+            document.getElementById('spliceThreshold').value = 0;   // From screenshot
+            document.getElementById('curveFittingSpline').checked = true; // From screenshot
+            
+            // Update displays
+            initializeSliders();
+            
+            // Trigger real-time preview update
+            schedulePreviewUpdate();
+            
+            // Show notification
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show mt-2';
+            alert.innerHTML = `
+                <strong>Optimal Preset Loaded!</strong> Using VTracer web interface settings for best quality.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.getElementById('vtracerParams').querySelector('.card-body').prepend(alert);
+            
+            // Auto-hide alert after 3 seconds
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 3000);
+        }
+
+        // Initialize sliders on page load
+        document.addEventListener('DOMContentLoaded', initializeSliders);
 
         // Health check on page load
         fetch('/health')

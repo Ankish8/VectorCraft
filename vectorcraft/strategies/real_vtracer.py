@@ -42,10 +42,16 @@ class RealVTracerStrategy:
             self.vtracer = vtracer
             self.available = True
             self.return_raw_svg = True  # Flag to return raw VTracer SVG
+            self.custom_params = None  # Store custom VTracer parameters
         except ImportError:
             self.vtracer = None
             self.available = False
             print("VTracer not available - install with: pip install vtracer")
+    
+    def set_custom_parameters(self, params: dict):
+        """Set custom VTracer parameters"""
+        self.custom_params = params
+        print(f"🎛️ Custom VTracer parameters set: {params}")
     
     def vectorize(self, image: np.ndarray, quantized_image: np.ndarray = None, edge_map: np.ndarray = None) -> SVGBuilder:
         """Use real VTracer for vectorization"""
@@ -193,6 +199,34 @@ class RealVTracerStrategy:
     
     def _get_adaptive_parameters(self, image: np.ndarray) -> Dict[str, Any]:
         """Analyze image and return optimal VTracer parameters"""
+        
+        # If custom parameters are set, use them directly
+        if self.custom_params:
+            print("🎛️ Using CUSTOM VTracer parameters from web interface")
+            
+            # Map curve fitting mode to VTracer parameters
+            curve_mode_map = {
+                'pixel': {'mode': 'pixel', 'hierarchical': 'stacked'},
+                'polygon': {'mode': 'polygon', 'hierarchical': 'stacked'}, 
+                'spline': {'mode': 'spline', 'hierarchical': 'stacked'}
+            }
+            
+            curve_mode = curve_mode_map.get(self.custom_params.get('curve_fitting', 'spline'))
+            
+            return {
+                'colormode': 'color',
+                'hierarchical': curve_mode['hierarchical'],
+                'mode': curve_mode['mode'],
+                'filter_speckle': self.custom_params['filter_speckle'],
+                'color_precision': self.custom_params['color_precision'],
+                'layer_difference': self.custom_params['layer_difference'],
+                'corner_threshold': self.custom_params['corner_threshold'],
+                'length_threshold': self.custom_params['length_threshold'],
+                'max_iterations': 20,  # Keep high for quality
+                'splice_threshold': self.custom_params['splice_threshold']
+            }
+        
+        # Fall back to adaptive analysis
         h, w = image.shape[:2]
         
         # Convert to PIL for analysis
