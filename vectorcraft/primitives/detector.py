@@ -129,7 +129,7 @@ class PrimitiveDetector:
         rectangles = []
         for contour in contours:
             area = cv2.contourArea(contour)
-            if area < 50:  # Lower minimum area for small rectangles
+            if area < 200:  # Increased minimum area to reduce noise
                 continue
                 
             # Try multiple epsilon values for better approximation
@@ -137,8 +137,8 @@ class PrimitiveDetector:
                 epsilon = epsilon_factor * cv2.arcLength(contour, True)
                 approx = cv2.approxPolyDP(contour, epsilon, True)
                 
-                # Check if it's rectangular (3-6 corners, allowing for slight variations)
-                if 3 <= len(approx) <= 6:
+                # Check if it's rectangular (4-5 corners for better accuracy)
+                if 4 <= len(approx) <= 5:
                     # Get rotated rectangle
                     rect = cv2.minAreaRect(contour)
                     (center_x, center_y), (width, height), angle = rect
@@ -150,7 +150,7 @@ class PrimitiveDetector:
                     # Calculate confidence based on how well it fits a rectangle
                     confidence = self._calculate_rect_confidence_enhanced(contour, rect, len(approx))
                     
-                    if confidence > 0.3:  # Lower threshold for subtle rectangles
+                    if confidence > 0.5:  # Higher threshold for better quality rectangles
                         x = center_x - width / 2
                         y = center_y - height / 2
                         
@@ -160,7 +160,7 @@ class PrimitiveDetector:
         return self._filter_duplicate_rectangles(rectangles)
     
     def _calculate_rect_confidence_enhanced(self, contour: np.ndarray, rect: Tuple, num_corners: int) -> float:
-        """Enhanced rectangle confidence calculation"""
+        """Enhanced rectangle confidence calculation with angle validation"""
         # Get the four corner points of the rectangle
         box = cv2.boxPoints(rect)
         box = np.int0(box)
@@ -184,12 +184,47 @@ class PrimitiveDetector:
         perimeter_ratio = min(contour_perimeter, rect_perimeter) / max(contour_perimeter, rect_perimeter)
         
         # Bonus for having close to 4 corners
-        corner_bonus = 1.0 if num_corners == 4 else (0.8 if num_corners in [3, 5] else 0.6)
+        corner_bonus = 1.0 if num_corners == 4 else (0.8 if num_corners == 5 else 0.6)
         
-        # Combine ratios with corner bonus
-        confidence = (area_ratio * 0.4 + perimeter_ratio * 0.4 + corner_bonus * 0.2)
+        # Angle regularity check - rectangles should have ~90° corners
+        angle_regularity = self._calculate_angle_regularity(box)
+        
+        # Aspect ratio reasonableness (not too thin)
+        (_, _), (width, height), _ = rect
+        aspect_ratio = max(width, height) / max(min(width, height), 1)
+        aspect_penalty = 1.0 if aspect_ratio <= 10 else (0.8 if aspect_ratio <= 20 else 0.5)
+        
+        # Enhanced confidence formula with geometric validation
+        confidence = (area_ratio * 0.3 + perimeter_ratio * 0.3 + 
+                     corner_bonus * 0.2 + angle_regularity * 0.15 + aspect_penalty * 0.05)
         
         return confidence
+    
+    def _calculate_angle_regularity(self, box: np.ndarray) -> float:
+        """Calculate how regular the angles are (closer to 90° = better)"""
+        angles = []
+        for i in range(4):
+            p1 = box[i]
+            p2 = box[(i + 1) % 4]
+            p3 = box[(i + 2) % 4]
+            
+            # Calculate vectors
+            v1 = p1 - p2
+            v2 = p3 - p2
+            
+            # Calculate angle between vectors
+            cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2) + 1e-8)
+            cos_angle = np.clip(cos_angle, -1, 1)
+            angle = np.arccos(cos_angle) * 180 / np.pi
+            angles.append(angle)
+        
+        # Check how close angles are to 90°
+        angle_deviations = [abs(angle - 90) for angle in angles]
+        avg_deviation = np.mean(angle_deviations)
+        
+        # Convert to regularity score (lower deviation = higher score)
+        regularity = max(0, 1.0 - avg_deviation / 45.0)  # 45° max deviation
+        return regularity
     
     def _filter_duplicate_rectangles(self, rectangles: List[Rectangle]) -> List[Rectangle]:
         """Filter out duplicate/overlapping rectangles"""
