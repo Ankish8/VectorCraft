@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - VectorCraft</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .btn-primary {
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        
+        .login-form {
+            transition: all 0.3s ease;
+        }
+        
+        .login-form:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">VectorCraft</h1>
+                    <p class="text-gray-600">Transform images into crisp, scalable vectors instantly</p>
+                </div>
+                <div class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                    🔐 Authentication Required
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-md mx-auto mt-16 px-4">
+        <!-- Login Card -->
+        <div class="login-form bg-white border border-gray-200 rounded-xl p-8 mb-8">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 mx-auto mb-6 text-indigo-600">
+                    <i data-lucide="lock" class="w-20 h-20"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">Welcome Back</h2>
+                <p class="text-gray-600">Sign in to access VectorCraft</p>
+            </div>
+
+            <!-- Error Messages -->
+            {% if error %}
+            <div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+                <div class="flex items-center">
+                    <i data-lucide="alert-circle" class="w-5 h-5 mr-2"></i>
+                    <span>{{ error }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Login Form -->
+            <form method="POST" class="space-y-6">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+                        Username
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="user" class="w-5 h-5 text-gray-400"></i>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username" 
+                            required 
+                            class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                            placeholder="Enter your username"
+                            value="{{ request.form.username if request.form.username else '' }}"
+                        >
+                    </div>
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                        Password
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="key" class="w-5 h-5 text-gray-400"></i>
+                        </div>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            required 
+                            class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                            placeholder="Enter your password"
+                        >
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input 
+                            id="remember_me" 
+                            name="remember_me" 
+                            type="checkbox" 
+                            class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        >
+                        <label for="remember_me" class="ml-2 block text-sm text-gray-700">
+                            Remember me
+                        </label>
+                    </div>
+                </div>
+
+                <button 
+                    type="submit" 
+                    class="btn-primary w-full flex justify-center items-center px-4 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                    <i data-lucide="log-in" class="w-5 h-5 mr-2"></i>
+                    Sign In
+                </button>
+            </form>
+        </div>
+
+        <!-- Demo Credentials -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+            <h3 class="text-sm font-medium text-blue-900 mb-2">
+                <i data-lucide="info" class="w-4 h-4 inline mr-1"></i>
+                Demo Credentials
+            </h3>
+            <div class="text-sm text-blue-800 space-y-1">
+                <p><strong>Admin:</strong> admin / admin123</p>
+                <p><strong>Demo:</strong> demo / demo123</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 text-sm text-gray-500">
+            <p>© 2024 VectorCraft. Professional vector conversion made simple.</p>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Auto-focus on username field
+        document.getElementById('username').focus();
+
+        // Form validation feedback
+        const form = document.querySelector('form');
+        const submitButton = form.querySelector('button[type="submit"]');
+        
+        form.addEventListener('submit', function(e) {
+            submitButton.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 mr-2 animate-spin"></i>Signing In...';
+            submitButton.disabled = true;
+        });
+
+        // Quick login buttons for demo credentials
+        function quickLogin(username, password) {
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+            document.getElementById('username').focus();
+        }
+
+        // Add click handlers for demo credentials
+        document.addEventListener('DOMContentLoaded', function() {
+            const demoSection = document.querySelector('.bg-blue-50');
+            const adminP = demoSection.querySelector('p:first-of-type');
+            const demoP = demoSection.querySelector('p:last-of-type');
+            
+            adminP.style.cursor = 'pointer';
+            demoP.style.cursor = 'pointer';
+            
+            adminP.addEventListener('click', () => quickLogin('admin', 'admin123'));
+            demoP.addEventListener('click', () => quickLogin('demo', 'demo123'));
+            
+            // Add hover effect
+            adminP.addEventListener('mouseenter', () => adminP.style.backgroundColor = 'rgba(59, 130, 246, 0.1)');
+            adminP.addEventListener('mouseleave', () => adminP.style.backgroundColor = 'transparent');
+            demoP.addEventListener('mouseenter', () => demoP.style.backgroundColor = 'rgba(59, 130, 246, 0.1)');
+            demoP.addEventListener('mouseleave', () => demoP.style.backgroundColor = 'transparent');
+        });
+    </script>
+</body>
+</html>

@@ -62,15 +62,8 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/')
-def index():
-    """Main page - redirect to dashboard if authenticated"""
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
-
-@app.route('/app')
 @login_required
-def vectorcraft_app():
+def index():
     """Main VectorCraft application interface"""
     return render_template('index.html')
 
@@ -96,11 +89,11 @@ def login():
             login_user(user, remember=remember)
             session['login_success'] = True
             
-            # Redirect to next page or dashboard
+            # Redirect to next page or main app
             next_page = request.args.get('next')
             if next_page and next_page.startswith('/'):
                 return redirect(next_page)
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('index'))
         else:
             flash('Invalid username or password.', 'error')
             return render_template('login.html', error='Invalid username or password.')
@@ -544,19 +537,6 @@ def download_result(filename):
             return "File not found", 404
     except Exception as e:
         return f"Download error: {str(e)}", 500
-
-@app.route('/results/<filename>')
-@login_required
-def view_result(filename):
-    """View SVG result file for preview"""
-    try:
-        file_path = os.path.join(app.config['RESULTS_FOLDER'], filename)
-        if os.path.exists(file_path):
-            return send_file(file_path, mimetype='image/svg+xml')
-        else:
-            return "File not found", 404
-    except Exception as e:
-        return f"View error: {str(e)}", 500
 
 @app.route('/health')
 def health_check():

@@ -545,19 +545,6 @@ def download_result(filename):
     except Exception as e:
         return f"Download error: {str(e)}", 500
 
-@app.route('/results/<filename>')
-@login_required
-def view_result(filename):
-    """View SVG result file for preview"""
-    try:
-        file_path = os.path.join(app.config['RESULTS_FOLDER'], filename)
-        if os.path.exists(file_path):
-            return send_file(file_path, mimetype='image/svg+xml')
-        else:
-            return "File not found", 404
-    except Exception as e:
-        return f"View error: {str(e)}", 500
-
 @app.route('/health')
 def health_check():
     """Health check endpoint"""

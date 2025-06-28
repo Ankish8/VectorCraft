@@ -126,8 +126,28 @@
                     <h1 class="text-2xl font-bold text-gray-900">VectorCraft</h1>
                     <p class="text-gray-600">Transform images into crisp, scalable vectors instantly</p>
                 </div>
-                <div class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                    ✓ Advanced Engine Ready
+                <div class="flex items-center gap-4">
+                    <div class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                        ✓ Advanced Engine Ready
+                    </div>
+                    {% if current_user.is_authenticated %}
+                    <div class="flex items-center gap-2 text-sm text-gray-600">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                        <span>{{ current_user.username }}</span>
+                    </div>
+                    <a href="{{ url_for('dashboard') }}" 
+                       class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                       title="View dashboard">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4 mr-1"></i>
+                        Dashboard
+                    </a>
+                    <a href="{{ url_for('logout') }}" 
+                       class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                       title="Sign out">
+                        <i data-lucide="log-out" class="w-4 h-4 mr-1"></i>
+                        Sign Out
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - VectorCraft</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">VectorCraft</h1>
+                    <p class="text-gray-600">Transform images into crisp, scalable vectors instantly</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                        ✓ Advanced Engine Ready
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-gray-600">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                        <span>{{ current_user.username }}</span>
+                    </div>
+                    <a href="{{ url_for('logout') }}" 
+                       class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                       title="Sign out">
+                        <i data-lucide="log-out" class="w-4 h-4 mr-1"></i>
+                        Sign Out
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Welcome Section -->
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold text-gray-900 mb-2">Welcome back, {{ current_user.username }}!</h2>
+            <p class="text-gray-600">Ready to create some amazing vectors?</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="card-hover bg-white border border-gray-200 rounded-xl p-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                        <i data-lucide="image" class="w-6 h-6 text-indigo-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Uploads</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ stats.total_uploads }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-hover bg-white border border-gray-200 rounded-xl p-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i data-lucide="clock" class="w-6 h-6 text-green-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Avg Processing</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ stats.avg_processing_time }}s</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-hover bg-white border border-gray-200 rounded-xl p-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i data-lucide="hard-drive" class="w-6 h-6 text-purple-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Data Processed</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ (stats.total_file_size / 1024 / 1024) | round(1) }}MB</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white border border-gray-200 rounded-xl p-8 mb-8">
+            <h3 class="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <a href="{{ url_for('vectorcraft_app') }}" 
+                   class="btn-primary flex items-center justify-center px-6 py-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all">
+                    <i data-lucide="arrow-right" class="w-6 h-6 mr-3"></i>
+                    <div class="text-left">
+                        <div class="font-medium">Open VectorCraft</div>
+                        <div class="text-sm opacity-90">Go to the conversion workspace</div>
+                    </div>
+                </a>
+
+                <button onclick="downloadAllSVGs()" 
+                        class="flex items-center justify-center px-6 py-4 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all">
+                    <i data-lucide="download" class="w-6 h-6 mr-3"></i>
+                    <div class="text-left">
+                        <div class="font-medium">Download All SVGs</div>
+                        <div class="text-sm text-gray-500">Bulk download your vectors</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Upload History -->
+        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div class="bg-gray-50 border-b border-gray-200 px-8 py-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-semibold text-gray-900">Recent Uploads</h3>
+                    <div class="text-sm text-gray-500">
+                        Showing {{ uploads|length }} of {{ stats.total_uploads }} uploads
+                    </div>
+                </div>
+            </div>
+
+            {% if uploads %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Image
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Date
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Strategy
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Processing Time
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for upload in uploads %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="image" class="w-5 h-5 text-gray-400"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {{ upload.original_filename }}
+                                        </div>
+                                        <div class="text-sm text-gray-500">
+                                            {{ (upload.file_size / 1024) | round(1) }} KB
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ upload.upload_date[:16] if upload.upload_date else 'Unknown' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                    {{ upload.strategy_used or 'Standard' }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ upload.processing_time | round(2) }}s
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                {% if upload.svg_filename %}
+                                <a href="{{ url_for('download_result', filename=upload.svg_filename) }}" 
+                                   class="text-indigo-600 hover:text-indigo-900 mr-3"
+                                   title="Download SVG">
+                                    <i data-lucide="download" class="w-4 h-4 inline"></i>
+                                </a>
+                                {% endif %}
+                                <button onclick="viewUpload('{{ upload.id }}')" 
+                                        class="text-gray-600 hover:text-gray-900"
+                                        title="View details">
+                                    <i data-lucide="eye" class="w-4 h-4 inline"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-16">
+                <div class="w-20 h-20 mx-auto mb-6 text-gray-300">
+                    <i data-lucide="image" class="w-20 h-20"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No uploads yet</h3>
+                <p class="text-gray-500 mb-6">Start by uploading your first image to convert to a vector.</p>
+                <a href="{{ url_for('vectorcraft_app') }}" 
+                   class="btn-primary inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    <i data-lucide="arrow-right" class="w-5 h-5 mr-2"></i>
+                    Open VectorCraft
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Download all SVGs function
+        function downloadAllSVGs() {
+            const downloadLinks = document.querySelectorAll('a[href*="/download/"]');
+            if (downloadLinks.length === 0) {
+                alert('No SVG files available to download.');
+                return;
+            }
+            
+            let downloadCount = 0;
+            downloadLinks.forEach((link, index) => {
+                setTimeout(() => {
+                    link.click();
+                    downloadCount++;
+                    if (downloadCount === downloadLinks.length) {
+                        showSuccessMessage(`Started downloading ${downloadCount} SVG files!`);
+                    }
+                }, index * 500); // Stagger downloads by 500ms
+            });
+        }
+
+        function viewUpload(uploadId) {
+            // Find the upload row and get SVG filename
+            const uploadRow = document.querySelector(`button[onclick="viewUpload('${uploadId}')"]`).closest('tr');
+            const cells = uploadRow.querySelectorAll('td');
+            const downloadLink = uploadRow.querySelector('a[href*="/download/"]');
+            
+            if (!downloadLink) {
+                alert('No SVG file available for this upload.');
+                return;
+            }
+            
+            // Extract SVG filename from download URL
+            const svgFilename = downloadLink.href.split('/download/')[1];
+            
+            // Extract upload details
+            const filename = cells[0].querySelector('.text-sm.font-medium').textContent;
+            const fileSize = cells[0].querySelector('.text-sm.text-gray-500').textContent;
+            const date = cells[1].textContent.trim();
+            const strategy = cells[2].textContent.trim();
+            const processingTime = cells[3].textContent.trim();
+            
+            // Create modal with SVG preview
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                    <div class="flex justify-between items-center p-6 border-b">
+                        <h3 class="text-lg font-semibold text-gray-900">SVG Preview</h3>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                            <i data-lucide="x" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="flex-1 overflow-auto">
+                        <div class="p-6">
+                            <!-- SVG Preview Area -->
+                            <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 mb-6 min-h-[400px] flex items-center justify-center">
+                                <div class="text-center">
+                                    <div class="w-8 h-8 mx-auto mb-4 animate-spin text-indigo-600">
+                                        <i data-lucide="loader-2" class="w-8 h-8"></i>
+                                    </div>
+                                    <p class="text-gray-500">Loading SVG preview...</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Upload Details -->
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div><strong>Filename:</strong> ${filename}</div>
+                                <div><strong>File Size:</strong> ${fileSize}</div>
+                                <div><strong>Upload Date:</strong> ${date}</div>
+                                <div><strong>Strategy:</strong> ${strategy}</div>
+                                <div><strong>Processing Time:</strong> ${processingTime}</div>
+                                <div><strong>Upload ID:</strong> ${uploadId}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t p-4 flex justify-end space-x-3">
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                            Close
+                        </button>
+                        <a href="${downloadLink.href}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                            <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+                            Download SVG
+                        </a>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            lucide.createIcons();
+            
+            // Load and display the SVG
+            fetch('/results/' + svgFilename)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('SVG file not found');
+                    }
+                    return response.text();
+                })
+                .then(svgContent => {
+                    const previewArea = modal.querySelector('.bg-gray-50');
+                    previewArea.innerHTML = `
+                        <div class="w-full h-full flex items-center justify-center">
+                            <div class="max-w-full max-h-full overflow-auto p-4" style="max-height: 400px;">
+                                ${svgContent}
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Style the SVG for better preview
+                    const svg = previewArea.querySelector('svg');
+                    if (svg) {
+                        svg.style.maxWidth = '100%';
+                        svg.style.maxHeight = '100%';
+                        svg.style.width = 'auto';
+                        svg.style.height = 'auto';
+                    }
+                })
+                .catch(error => {
+                    const previewArea = modal.querySelector('.bg-gray-50');
+                    previewArea.innerHTML = `
+                        <div class="text-center text-red-500">
+                            <i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-4"></i>
+                            <p>Failed to load SVG preview</p>
+                            <p class="text-sm mt-2">${error.message}</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                });
+            
+            // Close on background click
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+
+        // Success message for login
+        {% if session.get('login_success') %}
+        showSuccessMessage('Welcome back! You are now signed in.');
+        {% endif %}
+
+        function showSuccessMessage(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow-lg z-50 max-w-md';
+            successDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i data-lucide="check-circle" class="w-5 h-5 mr-2 flex-shrink-0"></i>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-green-500 hover:text-green-700">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(successDiv);
+            lucide.createIcons();
+            
+            // Auto-remove after 4 seconds
+            setTimeout(() => {
+                if (successDiv.parentNode) {
+                    successDiv.remove();
+                }
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
