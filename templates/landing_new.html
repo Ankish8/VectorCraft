@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VectorCraft - Convert Raster Images Into Vector Images</title>
+    <meta name="description" content="Convert JPG, PNG, GIF Files into PDF, SVG, EPS Vectors in just a click. Professional vector conversion tool with AI-powered algorithms.">
+    <meta property="og:title" content="VectorCraft - Professional Vector Conversion">
+    <meta property="og:description" content="Convert JPG, PNG, GIF Files into PDF, SVG, EPS Vectors in just a click">
+    <meta property="twitter:title" content="VectorCraft - Professional Vector Conversion">
+    <meta property="twitter:description" content="Convert JPG, PNG, GIF Files into PDF, SVG, EPS Vectors in just a click">
+    <meta name="keywords" content="vector conversion, raster to vector, SVG conversion, EPS vectors, image vectorization, vector graphics">
+    <meta name="author" content="VectorCraft">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/motion@11.11.17/dist/motion.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5046e6',
+                        secondary: '#9E7AFF',
+                        accent: '#FE8BBB'
+                    },
+                    animation: {
+                        'gradient': 'gradient 8s ease infinite',
+                        'shimmer': 'shimmer 2s ease-in-out infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate'
+                    },
+                    keyframes: {
+                        'gradient': {
+                            '0%, 100%': { 'background-position': '0% 50%' },
+                            '50%': { 'background-position': '100% 50%' }
+                        },
+                        'shimmer': {
+                            '0%': { transform: 'translateX(-100%)' },
+                            '100%': { transform: 'translateX(100%)' }
+                        },
+                        'float': {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-20px)' }
+                        },
+                        'glow': {
+                            '0%': { 'box-shadow': '0 0 20px rgba(80, 70, 230, 0.3)' },
+                            '100%': { 'box-shadow': '0 0 40px rgba(80, 70, 230, 0.6)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-text {
+            background: linear-gradient(135deg, #5046e6, #9E7AFF, #FE8BBB);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient 3s ease infinite;
+        }
+        
+        .magic-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .magic-card:hover {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: rgba(80, 70, 230, 0.3);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, 
+                rgba(80, 70, 230, 0.05) 0%, 
+                rgba(158, 122, 255, 0.03) 50%, 
+                rgba(254, 139, 187, 0.05) 100%);
+        }
+        
+        .shimmer-button {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .shimmer-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        /* Aurora Text Animation */
+        .aurora-text {
+            background: linear-gradient(135deg, #FF0080, #7928CA, #0070F3, #38bdf8, #FF0080);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: aurora 8s ease infinite;
+        }
+        
+        @keyframes aurora {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+        
+        /* Line Shadow Text Animation */
+        .line-shadow-text {
+            position: relative;
+            z-index: 0;
+            display: inline-flex;
+        }
+        
+        .line-shadow-text::after {
+            content: attr(data-text);
+            position: absolute;
+            left: 0.04em;
+            top: 0.04em;
+            background: linear-gradient(45deg, transparent 45%, #666666 45%, #666666 55%, transparent 0);
+            background-size: 0.06em 0.06em;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            z-index: -10;
+            animation: line-shadow 1.5s linear infinite;
+        }
+        
+        @keyframes line-shadow {
+            0% {
+                background-position: 0% 0%;
+            }
+            100% {
+                background-position: 100% 100%;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 overflow-x-hidden">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-lg border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl font-bold gradient-text">VectorCraft</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-8">
+                        <a href="#features" class="text-gray-600 hover:text-gray-900 transition-colors duration-200">Features</a>
+                        <a href="#use-cases" class="text-gray-600 hover:text-gray-900 transition-colors duration-200">Use Cases</a>
+                        <a href="#testimonials" class="text-gray-600 hover:text-gray-900 transition-colors duration-200">Testimonials</a>
+                        <a href="/login" class="text-gray-600 hover:text-gray-900 transition-colors duration-200">Login</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button class="text-gray-600 hover:text-gray-900">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 hero-gradient">
+        <div class="absolute inset-0 bg-grid-pattern opacity-10"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <!-- Hero Badge -->
+            <div class="inline-flex items-center px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-sm text-primary mb-8 animate-float">
+                <span class="font-semibold">PRICE DROP</span>
+                <span class="mx-2">•</span>
+                <span>From $295 - <strong class="text-gray-900">$49 Only</strong></span>
+            </div>
+            
+            <!-- Main Headline -->
+            <div class="max-w-4xl mx-auto mb-8">
+                <h1 class="text-5xl md:text-7xl font-bold leading-tight mb-6">
+                    Convert <span class="aurora-text">Raster Images</span><br>
+                    Into <span class="aurora-text">Vector Images</span>
+                </h1>
+                <p class="text-xl md:text-2xl text-gray-700 leading-relaxed max-w-3xl mx-auto">
+                    Convert JPG, PNG, GIF Files into PDF, SVG, EPS Vectors in just a click with our <span class="line-shadow-text italic font-semibold" data-text="AI">AI</span> <span class="line-shadow-text italic font-semibold" data-text="powered">powered</span> professional-grade vector conversion tool.
+                </p>
+            </div>
+            
+            <!-- CTA Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+                <a href="/buy" class="shimmer-button bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-lg text-lg font-semibold transform hover:scale-105 transition-all duration-200 animate-glow">
+                    BUY NOW - $49
+                </a>
+                <a href="#testimonials" class="border border-gray-300 hover:border-primary text-gray-700 hover:text-primary px-8 py-4 rounded-lg text-lg font-semibold transform hover:scale-105 transition-all duration-200">
+                    Social Proof
+                </a>
+            </div>
+            
+            <!-- Countdown Timer Placeholder -->
+            <div class="text-center text-gray-600">
+                <p class="mb-4">Limited Time Offer Ends Soon</p>
+                <div class="flex justify-center space-x-4">
+                    <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                        <div class="text-2xl font-bold text-gray-900">00</div>
+                        <div class="text-sm text-gray-600">Days</div>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                        <div class="text-2xl font-bold text-gray-900">00</div>
+                        <div class="text-sm text-gray-600">Hrs</div>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                        <div class="text-2xl font-bold text-gray-900">00</div>
+                        <div class="text-sm text-gray-600">Min</div>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                        <div class="text-2xl font-bold text-gray-900">00</div>
+                        <div class="text-sm text-gray-600">Sec</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Video Section -->
+    <section class="py-20 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="relative rounded-2xl overflow-hidden magic-card">
+                <div class="aspect-video bg-gray-100 flex items-center justify-center">
+                    <button class="w-20 h-20 bg-primary rounded-full flex items-center justify-center hover:scale-110 transition-transform duration-200">
+                        <svg class="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold mb-6">
+                    What all you get with <span class="gradient-text">VectorCraft</span>
+                </h2>
+                <p class="text-xl text-gray-600">If you Purchase it Now</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Feature 1 -->
+                <div class="magic-card rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-gray-900">Fully Automatic Vectorization</h3>
+                    <p class="text-gray-600 text-sm">AI-powered automatic conversion with intelligent edge detection</p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="magic-card rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-gray-900">Supports up to 64 colors</h3>
+                    <p class="text-gray-600 text-sm">Advanced color palette extraction and management</p>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="magic-card rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-gray-900">Better Line-tracing Optimization</h3>
+                    <p class="text-gray-600 text-sm">Advanced algorithms for precise line detection and tracing</p>
+                </div>
+                
+                <!-- Feature 4 -->
+                <div class="magic-card rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-gray-900">Segmentation Editing Capabilities</h3>
+                    <p class="text-gray-600 text-sm">Edit and fine-tune your vector results within the app</p>
+                </div>
+                
+                <!-- Feature 5 -->
+                <div class="magic-card rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-gray-900">Download Output in SVG, EPS, PDF</h3>
+                    <p class="text-gray-600 text-sm">Multiple professional formats for any use case</p>
+                </div>
+                
+                <!-- Feature 6 -->
+                <div class="magic-card rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-gray-900">Manual Color Selection Palette</h3>
+                    <p class="text-gray-600 text-sm">Full control over color selection and customization</p>
+                </div>
+                
+                <!-- Feature 7 -->
+                <div class="magic-card rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-gray-900">Edit the Result Within the App</h3>
+                    <p class="text-gray-600 text-sm">Built-in editing tools for perfect results</p>
+                </div>
+                
+                <!-- Feature 8 -->
+                <div class="magic-card rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2 text-gray-900">Sub Pixel Precision</h3>
+                    <p class="text-gray-600 text-sm">Ultra-precise vectorization for perfect results</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Use Cases Section -->
+    <section id="use-cases" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold mb-6">
+                    <span class="gradient-text">VectorCraft</span> is widely used in different professions
+                </h2>
+                <p class="text-xl text-gray-600">Some of those professions are:</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Use Case 1 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <div class="aspect-video bg-gray-100"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-center text-gray-900">Screen Printers</h3>
+                    </div>
+                </div>
+                
+                <!-- Use Case 2 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <div class="aspect-video bg-gray-100"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-center text-gray-900">Merchandise Printers</h3>
+                    </div>
+                </div>
+                
+                <!-- Use Case 3 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <div class="aspect-video bg-gray-100"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-center text-gray-900">Embroidery</h3>
+                    </div>
+                </div>
+                
+                <!-- Use Case 4 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <div class="aspect-video bg-gray-100"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-center text-gray-900">Large Printers</h3>
+                    </div>
+                </div>
+                
+                <!-- Use Case 5 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <div class="aspect-video bg-gray-100"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-center text-gray-900">Digital Marketers</h3>
+                    </div>
+                </div>
+                
+                <!-- Use Case 6 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <div class="aspect-video bg-gray-100"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-center text-gray-900">Photographers</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <p class="text-lg text-gray-600 mb-4">Don't take our word, Have a look at</p>
+                <h2 class="text-4xl md:text-5xl font-bold">
+                    what <span class="gradient-text">our users have to say</span> about VectorCraft
+                </h2>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Testimonial 1 -->
+                <div class="magic-card rounded-xl p-6">
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold mb-4 text-gray-900">
+                            "<span class="gradient-text">Excellent software</span> for vectorizing images, lets you <span class="gradient-text">fine tune</span> how your result will be."
+                        </h4>
+                        <p class="text-gray-600 text-sm">
+                            I like that it's a very simple software to use, it has an automatic mode for simple pictures and a more advanced one if you need to pick parameters for the output.
+                        </p>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gray-300 rounded-full mr-4"></div>
+                        <div>
+                            <div class="font-semibold text-gray-900">Michael Johnson</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Testimonial 2 -->
+                <div class="magic-card rounded-xl p-6">
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold mb-4 text-gray-900">
+                            "Great software for creating vectors before using them on <span class="gradient-text">our laser engraver</span>"
+                        </h4>
+                        <p class="text-gray-600 text-sm">
+                            Simple and easy to use with an intuitive interface. We use it for both standard graphic design but also with our laser engraver and cutter.
+                        </p>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gray-300 rounded-full mr-4"></div>
+                        <div>
+                            <div class="font-semibold text-gray-900">Jennifer Smith</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Testimonial 3 -->
+                <div class="magic-card rounded-xl p-6">
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold mb-4 text-gray-900">
+                            "VectorCraft is a MUST for any <span class="gradient-text">Creative House!!!</span>."
+                        </h4>
+                        <p class="text-gray-600 text-sm">
+                            It has a really fast processing speed. The results are excellent, vectorize with a quality that surprises me. It has numerous export formats.
+                        </p>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gray-300 rounded-full mr-4"></div>
+                        <div>
+                            <div class="font-semibold text-gray-900">David Wilson</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Testimonial 4 -->
+                <div class="magic-card rounded-xl p-6">
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold mb-4 text-gray-900">
+                            <span class="gradient-text">"Simply the best"</span>
+                        </h4>
+                        <p class="text-gray-600 text-sm">
+                            I love the vectors I have obtained with this software. I am impressed by the small number of nodes that it generates and this is extremely important for me.
+                        </p>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gray-300 rounded-full mr-4"></div>
+                        <div>
+                            <div class="font-semibold text-gray-900">Sarah Brown</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Testimonial 5 -->
+                <div class="magic-card rounded-xl p-6">
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold mb-4 text-gray-900">
+                            "A totally essential tool for <span class="gradient-text">screen printing</span>"
+                        </h4>
+                        <p class="text-gray-600 text-sm">
+                            I like that it's a very simple software to use, it has an automatic mode for simple pictures and a more advanced one if you need to pick parameters.
+                        </p>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gray-300 rounded-full mr-4"></div>
+                        <div>
+                            <div class="font-semibold text-gray-900">James Taylor</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Testimonial 6 -->
+                <div class="magic-card rounded-xl p-6">
+                    <div class="mb-6">
+                        <h4 class="text-lg font-semibold mb-4 text-gray-900">
+                            "Convert an <span class="gradient-text">image to vector graphics</span> in seconds, Amazing!"
+                        </h4>
+                        <p class="text-gray-600 text-sm">
+                            I love the vectors I have obtained with this software. It supports a large number of export formats, especially the SVG and AI.
+                        </p>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gray-300 rounded-full mr-4"></div>
+                        <div>
+                            <div class="font-semibold text-gray-900">Emily Davis</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing/CTA Section -->
+    <section class="py-20 bg-gray-50 hero-gradient">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="magic-card rounded-2xl p-8 md:p-12">
+                <div class="flex items-center justify-center mb-6">
+                    <div class="w-8 h-8 bg-primary rounded mr-4"></div>
+                    <div>
+                        <div class="text-lg font-semibold text-gray-900">LIFETIME LICENSE</div>
+                        <div class="text-sm text-gray-600">Very Limited Time Offer</div>
+                    </div>
+                    <div class="ml-auto">
+                        <div class="bg-red-500 text-white px-3 py-1 rounded text-sm font-bold">86% OFF</div>
+                        <div class="text-xs text-gray-600 mt-1">Flat $256 OFF</div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="text-xl text-gray-600 line-through">Only one payment of $295</div>
+                    <div class="text-3xl md:text-4xl font-bold gradient-text">Only one payment of $49</div>
+                </div>
+                
+                <a href="/buy" class="shimmer-button bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-lg text-xl font-semibold transform hover:scale-105 transition-all duration-200 inline-block mb-6 animate-glow">
+                    GET ACCESS TO VECTORCRAFT NOW
+                </a>
+                
+                <p class="text-sm text-gray-600">
+                    30 Day No Question Asked<br>Money Back Guarantee
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="py-20 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <p class="text-lg text-gray-600 mb-4">Have any doubts</p>
+                <h2 class="text-4xl md:text-5xl font-bold text-gray-900">
+                    Have a look at our <span class="gradient-text">Frequently Asked Questions</span>
+                </h2>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- FAQ 1 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <button class="w-full p-6 text-left focus:outline-none" onclick="toggleFAQ(this)">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-semibold">
+                                <span class="gradient-text">Does VectorCraft work with Windows and Mac (OSX)?</span>
+                            </h3>
+                            <svg class="w-6 h-6 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </button>
+                    <div class="hidden px-6 pb-6">
+                        <p class="text-gray-600">
+                            Yes, VectorCraft is fully compatible with both Windows and Mac operating systems. The software has been designed to run smoothly on Windows 10 and 11, as well as macOS 10.14 (Mojave) and newer versions.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- FAQ 2 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <button class="w-full p-6 text-left focus:outline-none" onclick="toggleFAQ(this)">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-semibold">
+                                <span class="gradient-text">Why Use Vector Images?</span>
+                            </h3>
+                            <svg class="w-6 h-6 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </button>
+                    <div class="hidden px-6 pb-6">
+                        <p class="text-gray-600">
+                            Vector images are scalable graphics that maintain quality at any size, unlike raster images which become pixelated when enlarged. This makes vector images ideal for printing in various sizes, from business cards to large banners, without any loss in quality.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- FAQ 3 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <button class="w-full p-6 text-left focus:outline-none" onclick="toggleFAQ(this)">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-semibold">
+                                <span class="gradient-text">Do I get free updates and support?</span>
+                            </h3>
+                            <svg class="w-6 h-6 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </button>
+                    <div class="hidden px-6 pb-6">
+                        <p class="text-gray-600">
+                            Absolutely! Your one-time purchase comes with lifetime updates to the software and unlimited access to our customer support team. Whenever we release new features or improvements, you'll get them at no additional cost.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- FAQ 4 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <button class="w-full p-6 text-left focus:outline-none" onclick="toggleFAQ(this)">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-semibold">
+                                <span class="gradient-text">What File Formats Are Supported?</span>
+                            </h3>
+                            <svg class="w-6 h-6 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </button>
+                    <div class="hidden px-6 pb-6">
+                        <p class="text-gray-600">
+                            VectorCraft supports a wide range of file formats. For input, you can use JPG, PNG, GIF, BMP, and TIFF. For output, VectorCraft provides industry-standard vector formats including SVG, EPS, PDF, and AI compatible files, giving you maximum flexibility for your projects.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- FAQ 5 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <button class="w-full p-6 text-left focus:outline-none" onclick="toggleFAQ(this)">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-semibold">
+                                <span class="gradient-text">Do I have to pay any other fees?</span>
+                            </h3>
+                            <svg class="w-6 h-6 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </button>
+                    <div class="hidden px-6 pb-6">
+                        <p class="text-gray-600">
+                            No, there are absolutely no hidden fees or subscription costs. Your one-time payment of $49 gives you lifetime access to VectorCraft with all future updates included. This is a limited-time offer, as the regular price is $295.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="mb-6">
+                <span class="text-3xl font-bold gradient-text">VectorCraft</span>
+            </div>
+            <div class="text-gray-600">
+                <p class="mb-2">VectorCraft ©2025 - All Rights Reserved</p>
+                <p>Contact: <a href="mailto:support@thevectorcraft.com" class="text-primary hover:text-primary/80">support@thevectorcraft.com</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // FAQ Toggle Function
+        function toggleFAQ(button) {
+            const content = button.nextElementSibling;
+            const icon = button.querySelector('svg');
+            
+            content.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+        }
+        
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+        
+        // Countdown Timer (simple example)
+        function updateCountdown() {
+            // This is a placeholder - you can implement actual countdown logic
+            const days = document.querySelector('.countdown-days');
+            const hours = document.querySelector('.countdown-hours');
+            const minutes = document.querySelector('.countdown-minutes');
+            const seconds = document.querySelector('.countdown-seconds');
+            
+            // Example countdown to July 25, 2025
+            const deadline = new Date('2025-07-25 00:00:00').getTime();
+            const now = new Date().getTime();
+            const timeLeft = deadline - now;
+            
+            if (timeLeft > 0) {
+                const d = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+                const h = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                
+                document.querySelectorAll('.countdown-days').forEach(el => el.textContent = d.toString().padStart(2, '0'));
+                document.querySelectorAll('.countdown-hours').forEach(el => el.textContent = h.toString().padStart(2, '0'));
+                document.querySelectorAll('.countdown-minutes').forEach(el => el.textContent = m.toString().padStart(2, '0'));
+                document.querySelectorAll('.countdown-seconds').forEach(el => el.textContent = s.toString().padStart(2, '0'));
+            }
+        }
+        
+        // Update countdown every second
+        setInterval(updateCountdown, 1000);
+        updateCountdown(); // Initial call
+    </script>
+</body>
+</html>
