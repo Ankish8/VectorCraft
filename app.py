@@ -665,13 +665,27 @@ def capture_paypal_order():
         # Create user account
         try:
             print("🔍 DEBUG: Creating user account...")
+            print(f"🔍 DEBUG: Username: {username}")
+            print(f"🔍 DEBUG: Email: {email}")
+            print(f"🔍 DEBUG: Password length: {len(password)}")
+            
+            # Check if user already exists
+            existing_user = db.get_user_by_email(email)
+            if existing_user:
+                print(f"❌ DEBUG: User with email {email} already exists: {existing_user}")
+                return jsonify({'error': f'User with email {email} already exists'}), 400
+            
             user_id = db.create_user(username, email, password)
             print(f"🔍 DEBUG: User creation result: {user_id}")
+            print(f"🔍 DEBUG: User creation result type: {type(user_id)}")
+            
             if not user_id:
-                print("❌ DEBUG: User creation returned False")
-                return jsonify({'error': 'Failed to create user account'}), 500
+                print("❌ DEBUG: User creation returned None/False")
+                return jsonify({'error': 'Failed to create user account - database returned None'}), 500
         except Exception as e:
             print(f"❌ DEBUG: User creation exception: {str(e)}")
+            import traceback
+            print(f"❌ DEBUG: Full traceback: {traceback.format_exc()}")
             return jsonify({'error': f'User creation failed: {str(e)}'}), 500
         
         # Prepare order details
@@ -705,6 +719,8 @@ def capture_paypal_order():
         )
         print(f"🔍 DEBUG: Admin notification result: {admin_result}")
         
+        print("🔍 DEBUG: Payment completed successfully")
+        
         # Clear session
         session.pop('pending_order', None)
         print("🔍 DEBUG: Session cleared")
@@ -722,6 +738,9 @@ def capture_paypal_order():
         print(f"❌ PayPal capture error: {e}")
         import traceback
         print(f"❌ Full traceback: {traceback.format_exc()}")
+        
+        print("🔍 DEBUG: Error handling completed")
+        
         return jsonify({'error': str(e)}), 500
 
 @app.route('/payment/success')
@@ -808,6 +827,7 @@ def clear_session():
         'authenticated': current_user.is_authenticated,
         'redirect_to': '/'
     })
+
 
 @app.route('/health')
 def health_check():

@@ -78,19 +78,23 @@ class Database:
         return password_hash, salt
     
     def create_user(self, username, email, password):
-        """Create a new user"""
+        """Create a new user and return user ID"""
         password_hash, salt = self.hash_password(password)
         
         try:
             with sqlite3.connect(self.db_path) as conn:
-                conn.execute('''
+                cursor = conn.execute('''
                     INSERT INTO users (username, email, password_hash, salt)
                     VALUES (?, ?, ?, ?)
                 ''', (username, email, password_hash, salt))
                 conn.commit()
-                return True
-        except sqlite3.IntegrityError:
-            return False
+                return cursor.lastrowid
+        except sqlite3.IntegrityError as e:
+            print(f"❌ Database IntegrityError: {e}")
+            return None
+        except Exception as e:
+            print(f"❌ Database Error: {e}")
+            return None
     
     def verify_password(self, password, stored_hash, salt):
         """Verify password against stored hash"""
@@ -118,6 +122,16 @@ class Database:
             cursor = conn.execute('''
                 SELECT * FROM users WHERE username = ? AND is_active = 1
             ''', (username,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+    
+    def get_user_by_email(self, email):
+        """Get user by email"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute('''
+                SELECT * FROM users WHERE email = ? AND is_active = 1
+            ''', (email,))
             row = cursor.fetchone()
             return dict(row) if row else None
     
