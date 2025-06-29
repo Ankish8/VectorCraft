@@ -7,6 +7,10 @@ Flask web application for high-quality image to vector conversion
 import os
 import time
 import uuid
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 from flask import Flask, render_template, request, jsonify, send_file, url_for, redirect, flash, session
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
@@ -16,6 +20,8 @@ from PIL import Image
 
 from vectorcraft import HybridVectorizer, OptimizedVectorizer
 from database import db
+from services.email_service import email_service
+from services.paypal_service import paypal_service
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'vectorcraft-2024-secret-key-auth'
@@ -63,10 +69,10 @@ def allowed_file(filename):
 
 @app.route('/')
 def index():
-    """Main page - redirect to dashboard if authenticated"""
+    """Main page - show landing page if not authenticated"""
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+    return render_template('landing.html')
 
 @app.route('/app')
 @login_required
@@ -79,6 +85,11 @@ def login():
     """Login page"""
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
+    
+    # Check for message parameter
+    message = request.args.get('message')
+    if message == 'credentials_sent':
+        flash('Login credentials have been sent to your email. Please check your inbox.', 'info')
     
     if request.method == 'POST':
         username = request.form.get('username')
@@ -108,12 +119,12 @@ def login():
     return render_template('login.html')
 
 @app.route('/logout')
-@login_required
 def logout():
     """Logout user"""
     logout_user()
+    session.clear()  # Clear all session data
     flash('You have been signed out successfully.', 'info')
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))  # Redirect to landing page
 
 @app.route('/dashboard')
 @login_required
@@ -558,6 +569,211 @@ def view_result(filename):
     except Exception as e:
         return f"View error: {str(e)}", 500
 
+@app.route('/buy')
+def buy_now():
+    """Buy now page"""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return render_template('buy.html')
+
+@app.route('/api/create-paypal-order', methods=['POST'])
+def create_paypal_order():
+    """Create PayPal order for VectorCraft purchase"""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        amount = data.get('amount', 49.00)
+        
+        if not email:
+            return jsonify({'error': 'Email is required'}), 400
+        
+        # Create PayPal order
+        order_result = paypal_service.create_order(amount=amount, customer_email=email)
+        
+        if not order_result or not order_result.get('success'):
+            return jsonify({'error': 'Failed to create PayPal order'}), 500
+        
+        # Store order info in session for later processing
+        session['pending_order'] = {
+            'email': email,
+            'amount': amount,
+            'paypal_order_id': order_result['order_id'],
+            'created_at': time.time()
+        }
+        
+        return jsonify({
+            'success': True,
+            'order_id': order_result['order_id'],
+            'approval_url': order_result['approval_url']
+        })
+        
+    except Exception as e:
+        print(f"❌ PayPal order creation error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/capture-paypal-order', methods=['POST'])
+def capture_paypal_order():
+    """Capture PayPal payment and create user account"""
+    try:
+        data = request.get_json()
+        order_id = data.get('order_id')
+        
+        if not order_id:
+            return jsonify({'error': 'Order ID is required'}), 400
+        
+        # Get pending order from session
+        pending_order = session.get('pending_order')
+        if not pending_order or pending_order['paypal_order_id'] != order_id:
+            return jsonify({'error': 'Invalid order session'}), 400
+        
+        # Capture PayPal payment
+        capture_result = paypal_service.capture_order(order_id)
+        
+        if not capture_result or not capture_result.get('success'):
+            return jsonify({'error': 'Failed to capture PayPal payment'}), 500
+        
+        # Use email from capture result if available, otherwise from session
+        email = capture_result.get('payer_email') or pending_order['email']
+        amount = capture_result.get('amount', pending_order['amount'])
+        
+        # Generate username and password
+        import random
+        import secrets
+        import string
+        username = f"user_{random.randint(10000, 99999)}"
+        password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+        
+        # Create user account
+        try:
+            user_id = db.create_user(username, email, password)
+            if not user_id:
+                return jsonify({'error': 'Failed to create user account'}), 500
+        except Exception as e:
+            return jsonify({'error': f'User creation failed: {str(e)}'}), 500
+        
+        # Prepare order details
+        order_details = {
+            'amount': amount,
+            'order_id': order_id,
+            'payment_id': capture_result.get('payment_id'),
+            'transaction_id': capture_result.get('transaction_id'),
+            'username': username,
+            'payer_email': email
+        }
+        
+        # Send emails
+        email_service.send_purchase_confirmation(email, order_details)
+        email_sent = email_service.send_credentials_email(email, username, password, order_details)
+        
+        if not email_sent:
+            print(f"⚠️  Failed to send email to {email} - but user account created successfully")
+        
+        # Send admin notification
+        email_service.send_admin_notification(
+            "New PayPal Purchase",
+            f"New customer: {email} (username: {username})\nAmount: ${amount:.2f}\nPayPal Order: {order_id}\nTransaction: {capture_result.get('transaction_id')}"
+        )
+        
+        # Clear session
+        session.pop('pending_order', None)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Payment completed successfully',
+            'username': username,
+            'email_sent': email_sent,
+            'order_id': order_id
+        })
+        
+    except Exception as e:
+        print(f"❌ PayPal capture error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/payment/success')
+def payment_success():
+    """PayPal payment success redirect"""
+    return render_template('payment_success.html')
+
+@app.route('/payment/cancel')
+def payment_cancel():
+    """PayPal payment cancel redirect"""
+    return render_template('payment_cancel.html')
+
+@app.route('/api/create-order', methods=['POST'])
+def create_order_legacy():
+    """Legacy order creation endpoint for testing/simulation"""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        username = data.get('username', '')
+        amount = data.get('amount', 49.00)
+        simulate = data.get('simulate', True)  # Default to simulation for legacy
+        
+        if not email:
+            return jsonify({'error': 'Email is required'}), 400
+        
+        # Generate username if not provided
+        if not username:
+            import random
+            username = f"user_{random.randint(10000, 99999)}"
+        
+        # Generate secure password
+        import secrets
+        import string
+        password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+        
+        # Create user account
+        try:
+            user_id = db.create_user(username, email, password)
+            if not user_id:
+                return jsonify({'error': 'Failed to create user account'}), 500
+        except Exception as e:
+            return jsonify({'error': f'User creation failed: {str(e)}'}), 500
+        
+        # Send credentials email
+        order_details = {
+            'amount': amount,
+            'order_id': f"SIM_{int(time.time())}_{user_id}",
+            'username': username
+        }
+        
+        # Send purchase confirmation
+        email_service.send_purchase_confirmation(email, order_details)
+        
+        # Send credentials email
+        email_sent = email_service.send_credentials_email(email, username, password, order_details)
+        
+        if not email_sent:
+            print(f"⚠️  Failed to send email to {email} - but user account created successfully")
+        
+        # Send admin notification
+        email_service.send_admin_notification(
+            "New Simulated Purchase",
+            f"New customer: {email} (username: {username})\nAmount: ${amount:.2f}"
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': 'Order created successfully',
+            'username': username,
+            'email_sent': True
+        })
+        
+    except Exception as e:
+        print(f"❌ Order creation error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/clear-session')
+def clear_session():
+    """Clear session for testing"""
+    logout_user()
+    session.clear()
+    return jsonify({
+        'message': 'Session cleared',
+        'authenticated': current_user.is_authenticated,
+        'redirect_to': '/'
+    })
+
 @app.route('/health')
 def health_check():
     """Health check endpoint"""
@@ -566,6 +782,7 @@ def health_check():
         'version': '1.0.0',
         'name': 'VectorCraft',
         'authentication': 'enabled',
+        'authenticated': current_user.is_authenticated,
         'vectorizers': ['standard', 'advanced'],
         'supported_formats': list(ALLOWED_EXTENSIONS)
     })

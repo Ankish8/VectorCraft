@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy VectorCraft - Professional Vector Conversion</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+            color: white;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .tagline {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .purchase-card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .purchase-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .purchase-header h1 {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .price {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .price-details {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group small {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .order-summary {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .order-summary h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 5px 0;
+        }
+
+        .summary-item.total {
+            border-top: 2px solid #e0e0e0;
+            padding-top: 15px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #333;
+        }
+
+        .paypal-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .paypal-button {
+            background: #0070ba;
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            width: 100%;
+        }
+
+        .paypal-button:hover {
+            background: #005ea6;
+        }
+
+        .simulate-button {
+            background: #28a745;
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .simulate-button:hover {
+            background: #218838;
+        }
+
+        .security-info {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #28a745;
+        }
+
+        .security-info h4 {
+            color: #155724;
+            margin-bottom: 8px;
+        }
+
+        .security-info p {
+            color: #155724;
+            font-size: 14px;
+        }
+
+        .terms {
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .terms a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .terms a:hover {
+            text-decoration: underline;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-link a {
+            color: white;
+            text-decoration: none;
+            opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+
+        .back-link a:hover {
+            opacity: 1;
+        }
+
+        .features-preview {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .features-preview h3 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .feature-list {
+            list-style: none;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            color: #555;
+        }
+
+        .feature-list li:before {
+            content: "✓";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f5c6cb;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c3e6cb;
+            display: none;
+        }
+
+        .success.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .purchase-card {
+                padding: 25px;
+            }
+
+            .purchase-header h1 {
+                font-size: 2rem;
+            }
+
+            .price {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">VectorCraft</div>
+            <div class="tagline">Professional Vector Conversion Tool</div>
+        </header>
+
+        <div class="features-preview">
+            <h3>What You Get</h3>
+            <ul class="feature-list">
+                <li>Lifetime access to VectorCraft</li>
+                <li>AI-powered vector conversion</li>
+                <li>Custom color palette extraction</li>
+                <li>Multiple vectorization strategies</li>
+                <li>Professional SVG output</li>
+                <li>No monthly fees or subscriptions</li>
+            </ul>
+        </div>
+
+        <div class="purchase-card">
+            <div class="purchase-header">
+                <h1>Get VectorCraft</h1>
+                <div class="price">$49</div>
+                <div class="price-details">One-time payment • Lifetime access</div>
+            </div>
+
+            <div class="error" id="error-message"></div>
+            <div class="success" id="success-message"></div>
+
+            <form id="purchase-form">
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" required>
+                    <small>Your login credentials will be sent to this email</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="username">Preferred Username (Optional)</label>
+                    <input type="text" id="username" name="username" placeholder="Leave blank to auto-generate">
+                    <small>If empty, we'll generate a username for you</small>
+                </div>
+
+                <div class="order-summary">
+                    <h3>Order Summary</h3>
+                    <div class="summary-item">
+                        <span>VectorCraft Lifetime Access</span>
+                        <span>$49.00</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Processing Fee</span>
+                        <span>$0.00</span>
+                    </div>
+                    <div class="summary-item total">
+                        <span>Total</span>
+                        <span>$49.00</span>
+                    </div>
+                </div>
+
+                <div class="security-info">
+                    <h4>🔒 Secure Payment</h4>
+                    <p>Your payment is processed securely through PayPal. We never store your payment information.</p>
+                </div>
+
+                <div class="paypal-section">
+                    <!-- PayPal Button Container -->
+                    <div id="paypal-button-container"></div>
+                    
+                    <!-- Demo/Test Button -->
+                    <button type="button" class="simulate-button" onclick="simulatePayment()">
+                        Simulate Payment (Demo)
+                    </button>
+                </div>
+
+                <div class="loading" id="loading">
+                    <p>Processing your order...</p>
+                </div>
+            </form>
+
+            <div class="terms">
+                By purchasing, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+                <br>
+                You will receive login credentials via email within 5 minutes.
+            </div>
+        </div>
+
+        <div class="back-link">
+            <a href="/">&larr; Back to Home</a>
+        </div>
+    </div>
+
+    <script>
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('active');
+            
+            const successDiv = document.getElementById('success-message');
+            successDiv.classList.remove('active');
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success-message');
+            successDiv.textContent = message;
+            successDiv.classList.add('active');
+            
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.classList.remove('active');
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('active', show);
+        }
+
+        // PayPal integration will be initialized after the SDK loads
+
+        function simulatePayment() {
+            const email = document.getElementById('email').value;
+            const username = document.getElementById('username').value;
+
+            if (!email) {
+                showError('Please enter your email address');
+                return;
+            }
+
+            if (!email.includes('@') || !email.includes('.')) {
+                showError('Please enter a valid email address');
+                return;
+            }
+
+            showLoading(true);
+
+            // Simulate payment processing
+            fetch('/api/create-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    username: username,
+                    amount: 49.00,
+                    simulate: true
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                showLoading(false);
+                if (data.success) {
+                    showSuccess('Order created successfully! Check your email for login credentials.');
+                    
+                    // Redirect to login page after 3 seconds
+                    setTimeout(() => {
+                        window.location.href = '/login?message=credentials_sent';
+                    }, 3000);
+                } else {
+                    showError(data.error || 'Failed to process order');
+                }
+            })
+            .catch(error => {
+                showLoading(false);
+                showError('Network error. Please try again.');
+                console.error('Error:', error);
+            });
+        }
+
+        // Form validation
+        document.getElementById('email').addEventListener('blur', function() {
+            const email = this.value;
+            if (email && (!email.includes('@') || !email.includes('.'))) {
+                showError('Please enter a valid email address');
+            } else {
+                document.getElementById('error-message').classList.remove('active');
+            }
+        });
+
+        // PayPal integration
+        function initializePayPal() {
+            paypal.Buttons({
+                createOrder: function(data, actions) {
+                    const email = document.getElementById('email').value;
+                    const username = document.getElementById('username').value;
+                    
+                    console.log('PayPal createOrder called with email:', email);
+                    
+                    if (!email) {
+                        showError('Please enter your email address');
+                        return Promise.reject(new Error('Email required'));
+                    }
+
+                    if (!email.includes('@') || !email.includes('.')) {
+                        showError('Please enter a valid email address');
+                        return Promise.reject(new Error('Invalid email'));
+                    }
+
+                    console.log('Creating PayPal order...');
+                    showLoading(true);
+
+                    // Create order via our backend
+                    return fetch('/api/create-paypal-order', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            username: username,
+                            amount: 49.00
+                        })
+                    })
+                    .then(response => {
+                        console.log('Backend response status:', response.status);
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Backend response data:', data);
+                        showLoading(false);
+                        
+                        if (data.success && data.order_id) {
+                            console.log('Order created successfully:', data.order_id);
+                            return data.order_id;
+                        } else {
+                            throw new Error(data.error || 'Failed to create order');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('PayPal createOrder error:', error);
+                        showLoading(false);
+                        showError(`Order creation failed: ${error.message}`);
+                        throw error;
+                    });
+                },
+                onApprove: function(data, actions) {
+                    showLoading(true);
+                    
+                    // Capture payment via our backend
+                    return fetch('/api/capture-paypal-order', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            order_id: data.orderID
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        showLoading(false);
+                        if (data.success) {
+                            showSuccess('Payment successful! Check your email for login credentials.');
+                            
+                            // Redirect to login page after 3 seconds
+                            setTimeout(() => {
+                                window.location.href = '/login?message=credentials_sent';
+                            }, 3000);
+                        } else {
+                            showError(data.error || 'Payment capture failed');
+                        }
+                    })
+                    .catch(error => {
+                        showLoading(false);
+                        showError('Payment processing failed. Please try again.');
+                        console.error('Error:', error);
+                    });
+                },
+                onError: function(err) {
+                    showError('PayPal error occurred. Please try again.');
+                    console.error('PayPal error:', err);
+                },
+                onCancel: function(data) {
+                    showError('Payment was cancelled. You can try again when ready.');
+                },
+                style: {
+                    color: 'blue',
+                    shape: 'rect',
+                    label: 'pay',
+                    height: 50
+                }
+            }).render('#paypal-button-container');
+        }
+
+        // Load PayPal SDK and initialize
+        window.addEventListener('load', function() {
+            // Check if PayPal SDK is available
+            if (typeof paypal !== 'undefined') {
+                initializePayPal();
+            } else {
+                console.log('PayPal SDK not loaded, PayPal buttons will not be available');
+            }
+        });
+    </script>
+
+    <!-- PayPal SDK -->
+    <script src="https://www.paypal.com/sdk/js?client-id=AaP7ze1T3e9feTbJpQaC3T0t7959uuEIotIoirAP6yPjXWbH5ZtRfW9AVcevJ9WUELOtDISd0JpueXAg&currency=USD"></script>
+</body>
+</html>

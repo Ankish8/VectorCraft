@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful - VectorCraft</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 3rem;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            color: #10b981;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            color: #1f2937;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+
+        .message {
+            color: #6b7280;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .next-steps {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .next-steps h3 {
+            color: #374151;
+            margin-bottom: 1rem;
+        }
+
+        .next-steps ol {
+            color: #6b7280;
+            padding-left: 1.5rem;
+        }
+
+        .next-steps li {
+            margin-bottom: 0.5rem;
+        }
+
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+        }
+
+        .processing {
+            color: #f59e0b;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">✅</div>
+        <h1>Payment Successful!</h1>
+        <p class="message">Thank you for purchasing VectorCraft Professional. Your payment has been processed successfully.</p>
+        
+        <div class="next-steps">
+            <h3>What happens next:</h3>
+            <ol>
+                <li>We're creating your account and processing your order</li>
+                <li>You'll receive login credentials via email within a few minutes</li>
+                <li>Use those credentials to access VectorCraft</li>
+                <li>Start converting images to high-quality vectors immediately!</li>
+            </ol>
+        </div>
+
+        <a href="/login?message=credentials_sent" class="button">Go to Login Page</a>
+        
+        <p class="processing">
+            💌 Processing your order and sending credentials...
+        </p>
+    </div>
+
+    <script>
+        // Auto-process the payment capture
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        
+        if (token) {
+            // Capture the PayPal payment
+            fetch('/api/capture-paypal-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    order_id: token
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Payment captured successfully:', data);
+                    // Update the page to show success
+                    document.querySelector('.processing').innerHTML = '✅ Order complete! Check your email for login credentials.';
+                } else {
+                    console.error('Payment capture failed:', data);
+                    document.querySelector('.processing').innerHTML = '⚠️ There was an issue processing your payment. Please contact support.';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.querySelector('.processing').innerHTML = '⚠️ There was an issue processing your payment. Please contact support.';
+            });
+        }
+    </script>
+</body>
+</html>
