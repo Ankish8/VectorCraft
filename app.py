@@ -8,6 +8,7 @@ import os
 import time
 import uuid
 import logging
+import secrets
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -26,7 +27,8 @@ from services.email_service import email_service
 from services.paypal_service import paypal_service
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'vectorcraft-2024-secret-key-auth'
+# Use environment variable for secret key, generate secure fallback
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['RESULTS_FOLDER'] = 'results'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
@@ -80,8 +82,51 @@ def load_user(user_id):
         return User(user_data)
     return None
 
+# Security headers for production
+@app.after_request
+def add_security_headers(response):
+    """Add security headers to all responses"""
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    
+    # Add HTTPS security headers in production
+    if os.getenv('FLASK_ENV') == 'production':
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    
+    return response
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Global error handlers
+@app.errorhandler(404)
+def not_found(error):
+    """Handle 404 errors"""
+    app.logger.warning(f"404 error: {request.url}")
+    return render_template('error.html', 
+                         code=404, 
+                         message="The page you're looking for doesn't exist.",
+                         title="Page Not Found"), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle 500 errors"""
+    app.logger.error(f"500 error: {error}")
+    return render_template('error.html', 
+                         code=500, 
+                         message="An internal server error occurred. Please try again later.",
+                         title="Server Error"), 500
+
+@app.errorhandler(413)
+def too_large(error):
+    """Handle file too large errors"""
+    app.logger.warning(f"File too large error: {error}")
+    return render_template('error.html',
+                         code=413,
+                         message="The file you uploaded is too large. Maximum size is 16MB.",
+                         title="File Too Large"), 413
 
 @app.route('/')
 def index():
@@ -856,15 +901,24 @@ def health_check():
     })
 
 if __name__ == '__main__':
+    # Determine debug mode based on environment
+    debug_mode = os.getenv('FLASK_ENV') != 'production'
+    env_name = os.getenv('FLASK_ENV', 'development')
+    
     print("🚀 Starting VectorCraft - Professional Vector Conversion with Authentication...")
     print("📊 Initializing advanced vectorization engines...")
     print("🔐 Authentication system enabled")
+    print(f"🌍 Environment: {env_name}")
+    print(f"🔧 Debug mode: {'ON' if debug_mode else 'OFF'}")
     print("✅ Ready!")
     print("\n🌐 Access VectorCraft at: http://localhost:8080")
     print("🔧 API endpoint: http://localhost:8080/api/vectorize")
     print("📋 Health check: http://localhost:8080/health")
-    print("🔑 Login with demo credentials: admin/admin123 or demo/demo123")
+    
+    if debug_mode:
+        print("🔑 Login with demo credentials: admin/admin123 or demo/demo123")
+    
     print("\n💡 Convert any image to a crisp, scalable vector!")
     print(" Press Ctrl+C to stop the server")
     
-    app.run(debug=True, host='0.0.0.0', port=8080)
+    app.run(debug=debug_mode, host='0.0.0.0', port=8080)
