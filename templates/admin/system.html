@@ -90,7 +90,7 @@
                             <p class="text-muted mb-2">${result.status.toUpperCase()}</p>
                             ${result.response_time ? `<small class="text-muted">Response: ${result.response_time}ms</small>` : ''}
                             ${result.error_message ? `<small class="text-danger d-block mt-2">${result.error_message}</small>` : ''}
-                            <small class="text-muted d-block mt-2">Checked: ${new Date(result.checked_at).toLocaleTimeString()}</small>
+                            <small class="text-muted d-block mt-2">Checked: ${new Date(result.checked_at).toLocaleTimeString('en-IN', {timeZone: 'Asia/Kolkata'})}</small>
                         </div>
                     </div>
                 </div>

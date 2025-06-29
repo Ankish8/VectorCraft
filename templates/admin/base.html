@@ -246,7 +246,7 @@
         
         // Format timestamp
         function formatTimestamp(timestamp) {
-            return new Date(timestamp).toLocaleString();
+            return new Date(timestamp).toLocaleString('en-IN', {timeZone: 'Asia/Kolkata'});
         }
         
         // Format currency

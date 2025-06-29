@@ -249,7 +249,7 @@
         console.log('Refreshing dashboard data...');
         
         // Update timestamp
-        document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+        document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('en-IN', {timeZone: 'Asia/Kolkata'});
         
         // Refresh health status
         refreshHealthStatus();
