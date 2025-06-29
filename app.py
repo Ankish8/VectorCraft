@@ -615,26 +615,44 @@ def create_paypal_order():
 def capture_paypal_order():
     """Capture PayPal payment and create user account"""
     try:
+        print("🔍 DEBUG: Starting PayPal capture process")
         data = request.get_json()
         order_id = data.get('order_id')
+        print(f"🔍 DEBUG: Order ID: {order_id}")
         
         if not order_id:
+            print("❌ DEBUG: No order ID provided")
             return jsonify({'error': 'Order ID is required'}), 400
         
         # Get pending order from session
         pending_order = session.get('pending_order')
+        print(f"🔍 DEBUG: Pending order: {pending_order}")
         if not pending_order or pending_order['paypal_order_id'] != order_id:
+            print("❌ DEBUG: Invalid order session")
             return jsonify({'error': 'Invalid order session'}), 400
         
         # Capture PayPal payment
+        print("🔍 DEBUG: Capturing PayPal payment...")
         capture_result = paypal_service.capture_order(order_id)
+        print(f"🔍 DEBUG: Capture result: {capture_result}")
         
         if not capture_result or not capture_result.get('success'):
+            print("❌ DEBUG: PayPal capture failed")
             return jsonify({'error': 'Failed to capture PayPal payment'}), 500
         
         # Use email from capture result if available, otherwise from session
-        email = capture_result.get('payer_email') or pending_order['email']
+        paypal_email = capture_result.get('payer_email') or pending_order['email']
         amount = capture_result.get('amount', pending_order['amount'])
+        
+        # SANDBOX TESTING: Override PayPal sandbox email with real email for testing
+        if paypal_email and '@business.example.com' in paypal_email:
+            email = 'ankish08@gmail.com'  # Use real email for sandbox testing
+            print(f"🔍 DEBUG: PayPal sandbox email detected ({paypal_email}), overriding with real email: {email}")
+        else:
+            email = paypal_email
+            print(f"🔍 DEBUG: Using PayPal email: {email}")
+        
+        print(f"🔍 DEBUG: Final email: {email}, amount: {amount}")
         
         # Generate username and password
         import random
@@ -642,13 +660,18 @@ def capture_paypal_order():
         import string
         username = f"user_{random.randint(10000, 99999)}"
         password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+        print(f"🔍 DEBUG: Generated credentials - username: {username}, password: {password}")
         
         # Create user account
         try:
+            print("🔍 DEBUG: Creating user account...")
             user_id = db.create_user(username, email, password)
+            print(f"🔍 DEBUG: User creation result: {user_id}")
             if not user_id:
+                print("❌ DEBUG: User creation returned False")
                 return jsonify({'error': 'Failed to create user account'}), 500
         except Exception as e:
+            print(f"❌ DEBUG: User creation exception: {str(e)}")
             return jsonify({'error': f'User creation failed: {str(e)}'}), 500
         
         # Prepare order details
@@ -660,33 +683,45 @@ def capture_paypal_order():
             'username': username,
             'payer_email': email
         }
+        print(f"🔍 DEBUG: Order details: {order_details}")
         
         # Send emails
-        email_service.send_purchase_confirmation(email, order_details)
+        print("🔍 DEBUG: Sending purchase confirmation email...")
+        confirm_result = email_service.send_purchase_confirmation(email, order_details)
+        print(f"🔍 DEBUG: Purchase confirmation result: {confirm_result}")
+        
+        print("🔍 DEBUG: Sending credentials email...")
         email_sent = email_service.send_credentials_email(email, username, password, order_details)
+        print(f"🔍 DEBUG: Credentials email result: {email_sent}")
         
         if not email_sent:
             print(f"⚠️  Failed to send email to {email} - but user account created successfully")
         
         # Send admin notification
-        email_service.send_admin_notification(
+        print("🔍 DEBUG: Sending admin notification...")
+        admin_result = email_service.send_admin_notification(
             "New PayPal Purchase",
             f"New customer: {email} (username: {username})\nAmount: ${amount:.2f}\nPayPal Order: {order_id}\nTransaction: {capture_result.get('transaction_id')}"
         )
+        print(f"🔍 DEBUG: Admin notification result: {admin_result}")
         
         # Clear session
         session.pop('pending_order', None)
+        print("🔍 DEBUG: Session cleared")
         
         return jsonify({
             'success': True,
             'message': 'Payment completed successfully',
             'username': username,
             'email_sent': email_sent,
-            'order_id': order_id
+            'order_id': order_id,
+            'debug_email': email  # Add debug info
         })
         
     except Exception as e:
         print(f"❌ PayPal capture error: {e}")
+        import traceback
+        print(f"❌ Full traceback: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/payment/success')
