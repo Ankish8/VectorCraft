@@ -36,7 +36,7 @@ RUN pip install --no-cache-dir flask-login
 COPY . .
 
 # Create necessary directories
-RUN mkdir -p uploads results output static/images
+RUN mkdir -p uploads results output static/images data
 RUN chown -R vectorcraft:vectorcraft /app
 
 # Switch to non-root user

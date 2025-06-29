@@ -1,19 +1,42 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+    import torch.nn.functional as F
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+    # Create dummy classes for when torch is not available
+    class nn:
+        class Module:
+            def __init__(self): pass
+        class Parameter:
+            def __init__(self, data): self.data = data
+        class ModuleList:
+            def __init__(self): self.modules = []
+            def append(self, module): self.modules.append(module)
+        class MSELoss:
+            def __init__(self): pass
+        class L1Loss:
+            def __init__(self): pass
+
 import numpy as np
 from typing import List, Tuple, Optional, Dict
 import cv2
-import torch.nn.functional as F
 
-class BezierCurve(nn.Module):
+class BezierCurve:
     def __init__(self, control_points: List[Tuple[float, float]]):
+        if not TORCH_AVAILABLE:
+            self.control_points = control_points
+            return
         super().__init__()
         points_tensor = torch.tensor(control_points, dtype=torch.float32, requires_grad=True)
         self.control_points = nn.Parameter(points_tensor)
         
-    def forward(self, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, t):
         """Evaluate Bezier curve at parameter t"""
+        if not TORCH_AVAILABLE:
+            return np.array(self.control_points)
         n = len(self.control_points) - 1
         result = torch.zeros_like(t.unsqueeze(-1).expand(-1, 2))
         
@@ -36,9 +59,13 @@ class BezierCurve(nn.Module):
             result = result * (n - i) // (i + 1)
         return float(result)
 
-class VectorPath(nn.Module):
+class VectorPath:
     def __init__(self, initial_paths: List[List[Tuple[float, float]]], 
                  colors: List[Tuple[float, float, float]]):
+        if not TORCH_AVAILABLE:
+            self.curves = initial_paths
+            self.colors = colors
+            return
         super().__init__()
         
         self.curves = nn.ModuleList()
@@ -69,8 +96,10 @@ class VectorPath(nn.Module):
         else:
             return path[:4]  # Take first 4 points
     
-    def render(self, width: int, height: int, samples_per_curve: int = 100) -> torch.Tensor:
+    def render(self, width: int, height: int, samples_per_curve: int = 100):
         """Render vector paths to raster image"""
+        if not TORCH_AVAILABLE:
+            return np.zeros((height, width, 3))
         image = torch.zeros((height, width, 3), dtype=torch.float32)
         
         for curve, color in zip(self.curves, self.colors):
@@ -90,11 +119,16 @@ class DifferentiableOptimizer:
     def __init__(self, learning_rate: float = 0.01, max_iterations: int = 100):
         self.learning_rate = learning_rate
         self.max_iterations = max_iterations
+        self.available = TORCH_AVAILABLE
         
     def optimize_paths(self, target_image: np.ndarray, 
                       initial_paths: List[List[Tuple[float, float]]],
                       colors: List[Tuple[float, float, float]]) -> List[List[Tuple[float, float]]]:
         """Optimize vector paths to match target image"""
+        
+        if not TORCH_AVAILABLE:
+            print("PyTorch not available, returning initial paths without optimization")
+            return initial_paths
         
         # Convert target to torch tensor
         target_tensor = torch.tensor(target_image[:, :, :3], dtype=torch.float32)
@@ -136,15 +170,18 @@ class DifferentiableOptimizer:
                 
         return best_paths
     
-    def _create_perceptual_loss(self) -> nn.Module:
+    def _create_perceptual_loss(self):
         """Create advanced perceptual loss function for higher similarity"""
+        if not TORCH_AVAILABLE:
+            return None
+        
         class AdvancedPerceptualLoss(nn.Module):
             def __init__(self):
                 super().__init__()
                 self.mse = nn.MSELoss()
                 self.l1 = nn.L1Loss()
                 
-            def forward(self, rendered: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+            def forward(self, rendered, target):
                 # Multi-scale perceptual loss
                 total_loss = 0.0
                 
@@ -169,7 +206,7 @@ class DifferentiableOptimizer:
                 
                 return total_loss
             
-            def _compute_edges_proper(self, image: torch.Tensor) -> torch.Tensor:
+            def _compute_edges_proper(self, image):
                 """Compute edge map using proper Sobel filters"""
                 # Convert to grayscale
                 if len(image.shape) == 3 and image.shape[-1] == 3:
@@ -197,7 +234,7 @@ class DifferentiableOptimizer:
                 # Return in original format
                 return edges.squeeze(0).permute(1, 2, 0)
             
-            def _color_distribution_loss(self, rendered: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+            def _color_distribution_loss(self, rendered, target):
                 """Loss based on color distribution similarity"""
                 # Compute color histograms (simplified)
                 rendered_mean = torch.mean(rendered, dim=(0, 1))
@@ -211,7 +248,7 @@ class DifferentiableOptimizer:
                 
                 return mean_loss + std_loss
             
-            def _structural_similarity_loss(self, rendered: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+            def _structural_similarity_loss(self, rendered, target):
                 """Simplified structural similarity loss"""
                 # Compute local means using average pooling
                 kernel_size = 11
@@ -253,8 +290,10 @@ class DifferentiableOptimizer:
         
         return AdvancedPerceptualLoss()
     
-    def _extract_paths(self, vector_model: VectorPath) -> List[List[Tuple[float, float]]]:
+    def _extract_paths(self, vector_model) -> List[List[Tuple[float, float]]]:
         """Extract current path coordinates from model"""
+        if not TORCH_AVAILABLE:
+            return vector_model.curves
         paths = []
         for curve in vector_model.curves:
             control_points = curve.control_points.detach().numpy()
@@ -265,6 +304,10 @@ class DifferentiableOptimizer:
     def refine_single_path(self, path: List[Tuple[float, float]], 
                           target_region: np.ndarray, color: Tuple[float, float, float]) -> List[Tuple[float, float]]:
         """Refine a single path to better match a target region"""
+        
+        if not TORCH_AVAILABLE:
+            print("PyTorch not available, returning original path")
+            return path
         
         if len(path) < 2:
             return path
@@ -298,8 +341,10 @@ class DifferentiableOptimizer:
         
         return best_path
     
-    def _path_region_loss(self, points: torch.Tensor, target_region: torch.Tensor) -> torch.Tensor:
+    def _path_region_loss(self, points, target_region):
         """Calculate how well path points align with target region"""
+        if not TORCH_AVAILABLE:
+            return 0.0
         height, width = target_region.shape[:2]
         loss = 0.0
         valid_points = 0

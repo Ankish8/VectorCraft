@@ -7,12 +7,19 @@ Uses SQLite for simplicity and Docker compatibility
 import sqlite3
 import hashlib
 import secrets
+import os
 from datetime import datetime
 from pathlib import Path
 
 class Database:
-    def __init__(self, db_path='vectorcraft.db'):
+    def __init__(self, db_path=None):
+        # Use data directory for persistent database storage in Docker
+        if db_path is None:
+            db_path = '/app/data/vectorcraft.db' if os.path.exists('/app/data') else 'vectorcraft.db'
         self.db_path = db_path
+        # Ensure the data directory exists in Docker
+        if '/app/data/' in self.db_path:
+            os.makedirs('/app/data', exist_ok=True)
         self.init_database()
     
     def init_database(self):
