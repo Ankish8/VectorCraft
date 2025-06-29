@@ -7,6 +7,8 @@ Flask web application for high-quality image to vector conversion
 import os
 import time
 import uuid
+import logging
+from datetime import datetime
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -28,6 +30,20 @@ app.config['SECRET_KEY'] = 'vectorcraft-2024-secret-key-auth'
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['RESULTS_FOLDER'] = 'results'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Setup logging for production
+if os.getenv('FLASK_ENV') == 'production':
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('vectorcraft.log'),
+            logging.StreamHandler()
+        ]
+    )
+    app.logger.setLevel(logging.INFO)
+else:
+    logging.basicConfig(level=logging.DEBUG)
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -615,10 +631,10 @@ def create_paypal_order():
 def capture_paypal_order():
     """Capture PayPal payment and create user account"""
     try:
-        print("🔍 DEBUG: Starting PayPal capture process")
+        print("💳 Processing PayPal payment...")
         data = request.get_json()
         order_id = data.get('order_id')
-        print(f"🔍 DEBUG: Order ID: {order_id}")
+        print(f"💳 Order ID: {order_id}")
         
         if not order_id:
             print("❌ DEBUG: No order ID provided")
@@ -644,14 +660,9 @@ def capture_paypal_order():
         paypal_email = capture_result.get('payer_email') or pending_order['email']
         amount = capture_result.get('amount', pending_order['amount'])
         
-        # SANDBOX TESTING: Override PayPal sandbox email with real email for testing
-        if paypal_email and '@business.example.com' in paypal_email:
-            email = 'ankish08@gmail.com'  # Use real email for sandbox testing
-            print(f"🔍 DEBUG: PayPal sandbox email detected ({paypal_email}), overriding with real email: {email}")
-        else:
-            email = paypal_email
-            print(f"🔍 DEBUG: Using PayPal email: {email}")
-        
+        # LIVE ENVIRONMENT: Use actual PayPal payer email
+        email = paypal_email
+        print(f"🔍 DEBUG: Using PayPal payer email: {email}")
         print(f"🔍 DEBUG: Final email: {email}, amount: {amount}")
         
         # Generate username and password
@@ -719,7 +730,9 @@ def capture_paypal_order():
         )
         print(f"🔍 DEBUG: Admin notification result: {admin_result}")
         
-        print("🔍 DEBUG: Payment completed successfully")
+        # Log successful payment
+        app.logger.info(f"Payment completed successfully - Order: {order_id}, Email: {email}, Amount: ${amount}")
+        print("✅ Payment completed successfully")
         
         # Clear session
         session.pop('pending_order', None)
@@ -735,11 +748,11 @@ def capture_paypal_order():
         })
         
     except Exception as e:
+        # Log error for production monitoring
+        app.logger.error(f"PayPal capture failed - Order: {order_id if 'order_id' in locals() else 'unknown'}, Error: {str(e)}")
         print(f"❌ PayPal capture error: {e}")
         import traceback
         print(f"❌ Full traceback: {traceback.format_exc()}")
-        
-        print("🔍 DEBUG: Error handling completed")
         
         return jsonify({'error': str(e)}), 500
 
