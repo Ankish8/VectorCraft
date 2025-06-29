@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin System Test - VectorCraft</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .metric { display: inline-block; margin: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; min-width: 120px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>🧪 VectorCraft Admin System Test</h1>
+    <p>This page tests all admin monitoring system components to verify they're working correctly.</p>
+    
+    <div id="loginStatus" class="test-result info">
+        🔄 Testing admin authentication...
+    </div>
+    
+    <div id="apiTests" class="test-result info">
+        🔄 Testing admin API endpoints...
+    </div>
+    
+    <div id="dataDisplay" style="margin-top: 20px;">
+        <h2>📊 Live Admin Data</h2>
+        <div id="metrics"></div>
+        <div id="recentTransactions"></div>
+        <div id="systemHealth"></div>
+        <div id="activeAlerts"></div>
+    </div>
+    
+    <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 5px;">
+        <h3>🔗 Admin Dashboard Links</h3>
+        <p><strong>If this test shows data, your admin system is working!</strong></p>
+        <ul>
+            <li><a href="/admin" target="_blank">📊 Admin Dashboard</a></li>
+            <li><a href="/admin/transactions" target="_blank">💳 Transactions</a></li>
+            <li><a href="/admin/system" target="_blank">🏥 System Health</a></li>
+            <li><a href="/admin/logs" target="_blank">📋 System Logs</a></li>
+            <li><a href="/admin/alerts" target="_blank">🚨 Alerts</a></li>
+            <li><a href="/admin/analytics" target="_blank">📈 Analytics</a></li>
+        </ul>
+        <p><strong>Login:</strong> admin / admin123</p>
+    </div>
+
+    <script>
+        async function testAdminSystem() {
+            // Test login first
+            try {
+                const loginResponse = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'username=admin&password=admin123'
+                });
+                
+                if (loginResponse.ok) {
+                    document.getElementById('loginStatus').className = 'test-result success';
+                    document.getElementById('loginStatus').innerHTML = '✅ Admin login successful';
+                    
+                    // Test API endpoints
+                    await testAPIs();
+                    await loadDashboardData();
+                } else {
+                    throw new Error('Login failed');
+                }
+            } catch (error) {
+                document.getElementById('loginStatus').className = 'test-result error';
+                document.getElementById('loginStatus').innerHTML = '❌ Admin login failed: ' + error.message;
+            }
+        }
+        
+        async function testAPIs() {
+            const apis = [
+                { url: '/admin/api/health', name: 'Health API' },
+                { url: '/admin/api/transactions', name: 'Transactions API' },
+                { url: '/admin/api/logs', name: 'Logs API' },
+                { url: '/admin/api/alerts', name: 'Alerts API' },
+                { url: '/admin/api/analytics', name: 'Analytics API' }
+            ];
+            
+            let results = [];
+            
+            for (const api of apis) {
+                try {
+                    const response = await fetch(api.url);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            results.push(`✅ ${api.name}: Working`);
+                        } else {
+                            results.push(`⚠️ ${api.name}: ${data.error || 'Unknown error'}`);
+                        }
+                    } else {
+                        results.push(`❌ ${api.name}: HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    results.push(`❌ ${api.name}: ${error.message}`);
+                }
+            }
+            
+            document.getElementById('apiTests').className = 'test-result success';
+            document.getElementById('apiTests').innerHTML = '🚀 API Test Results:<br>' + results.join('<br>');
+        }
+        
+        async function loadDashboardData() {
+            try {
+                // Load analytics data
+                const analyticsResponse = await fetch('/admin/api/analytics');
+                const analyticsData = await analyticsResponse.json();
+                
+                if (analyticsData.success) {
+                    const analytics = analyticsData.analytics;
+                    document.getElementById('metrics').innerHTML = `
+                        <h3>💰 Key Metrics</h3>
+                        <div class="metric">
+                            <strong>$${analytics.total_revenue.toFixed(2)}</strong><br>
+                            <small>Total Revenue</small>
+                        </div>
+                        <div class="metric">
+                            <strong>${analytics.total_transactions}</strong><br>
+                            <small>Transactions</small>
+                        </div>
+                        <div class="metric">
+                            <strong>$${analytics.avg_order_value.toFixed(2)}</strong><br>
+                            <small>Avg Order</small>
+                        </div>
+                    `;
+                }
+                
+                // Load recent transactions
+                const txResponse = await fetch('/admin/api/transactions?limit=5');
+                const txData = await txResponse.json();
+                
+                if (txData.success && txData.transactions.length > 0) {
+                    let txHtml = '<h3>💳 Recent Transactions</h3><ul>';
+                    txData.transactions.slice(0, 5).forEach(tx => {
+                        const statusColor = tx.status === 'completed' ? 'green' : 
+                                          tx.status === 'pending' ? 'orange' : 'red';
+                        txHtml += `<li>${tx.email} - $${tx.amount} - <span style="color: ${statusColor}">${tx.status}</span></li>`;
+                    });
+                    txHtml += '</ul>';
+                    document.getElementById('recentTransactions').innerHTML = txHtml;
+                }
+                
+                // Load system health
+                const healthResponse = await fetch('/admin/api/health');
+                const healthData = await healthResponse.json();
+                
+                if (healthData.success) {
+                    const overall = healthData.overall_status;
+                    const statusColor = overall.status === 'healthy' ? 'green' : 
+                                       overall.status === 'warning' ? 'orange' : 'red';
+                    
+                    let healthHtml = `<h3>🏥 System Health</h3>`;
+                    healthHtml += `<p><strong style="color: ${statusColor}">${overall.status.toUpperCase()}</strong> - ${overall.message}</p>`;
+                    healthHtml += '<ul>';
+                    
+                    Object.entries(healthData.health_results).forEach(([component, result]) => {
+                        const compColor = result.status === 'healthy' ? 'green' : 
+                                         result.status === 'warning' ? 'orange' : 'red';
+                        healthHtml += `<li><strong>${component}:</strong> <span style="color: ${compColor}">${result.status}</span>`;
+                        if (result.response_time) healthHtml += ` (${result.response_time}ms)`;
+                        healthHtml += '</li>';
+                    });
+                    healthHtml += '</ul>';
+                    document.getElementById('systemHealth').innerHTML = healthHtml;
+                }
+                
+                // Load active alerts
+                const alertsResponse = await fetch('/admin/api/alerts');
+                const alertsData = await alertsResponse.json();
+                
+                if (alertsData.success) {
+                    const summary = alertsData.summary;
+                    let alertHtml = `<h3>🚨 Active Alerts</h3>`;
+                    alertHtml += `<p><strong>${summary.total_active}</strong> total active alerts</p>`;
+                    if (summary.critical > 0) {
+                        alertHtml += `<p style="color: red"><strong>${summary.critical}</strong> critical alerts need attention!</p>`;
+                    }
+                    if (alertsData.alerts.length > 0) {
+                        alertHtml += '<ul>';
+                        alertsData.alerts.slice(0, 3).forEach(alert => {
+                            const alertColor = alert.type === 'critical' ? 'red' : 
+                                              alert.type === 'warning' ? 'orange' : 'blue';
+                            alertHtml += `<li><span style="color: ${alertColor}; font-weight: bold">${alert.type.toUpperCase()}</span>: ${alert.title}</li>`;
+                        });
+                        alertHtml += '</ul>';
+                    }
+                    document.getElementById('activeAlerts').innerHTML = alertHtml;
+                }
+                
+            } catch (error) {
+                document.getElementById('dataDisplay').innerHTML = `
+                    <div class="test-result error">
+                        ❌ Error loading dashboard data: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Run tests on page load
+        document.addEventListener('DOMContentLoaded', testAdminSystem);
+    </script>
+</body>
+</html>

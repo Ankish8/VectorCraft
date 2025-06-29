@@ -1,0 +1,168 @@
+{% extends "admin/base.html" %}
+
+{% block title %}System Logs - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-journal-text"></i> System Logs</h1>
+    <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> Log Filters</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <label class="form-label">Level</label>
+                <select class="form-select" id="levelFilter">
+                    <option value="">All Levels</option>
+                    <option value="CRITICAL">Critical</option>
+                    <option value="ERROR">Error</option>
+                    <option value="WARNING">Warning</option>
+                    <option value="INFO">Info</option>
+                    <option value="DEBUG">Debug</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Component</label>
+                <select class="form-select" id="componentFilter">
+                    <option value="">All Components</option>
+                    <option value="auth">Authentication</option>
+                    <option value="payment">Payment</option>
+                    <option value="email">Email</option>
+                    <option value="vectorization">Vectorization</option>
+                    <option value="admin">Admin</option>
+                    <option value="database">Database</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Time Period</label>
+                <select class="form-select" id="hoursFilter">
+                    <option value="1">Last Hour</option>
+                    <option value="6">Last 6 Hours</option>
+                    <option value="24" selected>Last 24 Hours</option>
+                    <option value="72">Last 3 Days</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-primary" onclick="applyFilters()">
+                    <i class="bi bi-search"></i> Apply Filters
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Logs -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-list"></i> Log Entries</h5>
+        <span id="logCount" class="badge bg-primary">Loading...</span>
+    </div>
+    <div class="card-body">
+        <div id="logsContainer">
+            <div class="text-center py-4">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading logs...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function refreshData() {
+        loadLogs();
+    }
+    
+    function applyFilters() {
+        loadLogs();
+    }
+    
+    function loadLogs() {
+        const level = document.getElementById('levelFilter').value;
+        const component = document.getElementById('componentFilter').value;
+        const hours = document.getElementById('hoursFilter').value;
+        
+        let url = '/admin/api/logs?';
+        const params = new URLSearchParams();
+        
+        if (level) params.append('level', level);
+        if (component) params.append('component', component);
+        if (hours) params.append('hours', hours);
+        params.append('limit', '100');
+        
+        url += params.toString();
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayLogs(data.logs);
+                    document.getElementById('logCount').textContent = data.count;
+                } else {
+                    document.getElementById('logsContainer').innerHTML = 
+                        '<div class="alert alert-danger">Error loading logs: ' + data.error + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('logsContainer').innerHTML = 
+                    '<div class="alert alert-danger">Error loading logs</div>';
+            });
+    }
+    
+    function displayLogs(logs) {
+        if (logs.length === 0) {
+            document.getElementById('logsContainer').innerHTML = 
+                '<div class="text-center py-4"><i class="bi bi-inbox" style="font-size: 3rem;"></i><p class="mt-3">No logs found</p></div>';
+            return;
+        }
+        
+        let html = '<div class="list-group list-group-flush">';
+        
+        logs.forEach(log => {
+            const levelClass = log.level === 'CRITICAL' || log.level === 'ERROR' ? 'danger' :
+                              log.level === 'WARNING' ? 'warning' :
+                              log.level === 'INFO' ? 'info' : 'secondary';
+            
+            html += `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="mb-2">
+                                <span class="badge bg-${levelClass} me-2">${log.level}</span>
+                                <strong>${log.component}</strong>
+                                <small class="text-muted ms-2">${log.created_at}</small>
+                            </div>
+                            <p class="mb-1">${log.message}</p>
+                            ${log.user_email ? `<small class="text-muted">User: ${log.user_email}</small>` : ''}
+                            ${log.transaction_id ? `<small class="text-muted ms-3">TX: ${log.transaction_id}</small>` : ''}
+                            ${log.details ? `<details class="mt-2"><summary class="text-muted small">Show details</summary><pre class="small mt-2">${JSON.stringify(JSON.parse(log.details), null, 2)}</pre></details>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        document.getElementById('logsContainer').innerHTML = html;
+    }
+    
+    // Load data on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadLogs();
+    });
+    
+    // Make refreshData available globally
+    window.refreshData = refreshData;
+</script>
+{% endblock %}

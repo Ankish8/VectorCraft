@@ -69,5 +69,14 @@ ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
 ENV PYTHONPATH=/app
 
+# Email configuration
+ENV SMTP_SERVER=smtpout.secureserver.net
+ENV SMTP_PORT=587
+ENV SMTP_USERNAME=support@thevectorcraft.com
+ENV SMTP_PASSWORD=Ankish@its123
+ENV FROM_EMAIL=support@thevectorcraft.com
+ENV ADMIN_EMAIL=support@thevectorcraft.com
+ENV DOMAIN_URL=http://localhost:8080
+
 # Use entrypoint script that ensures VTracer is available
 ENTRYPOINT ["/app/entrypoint.sh"]

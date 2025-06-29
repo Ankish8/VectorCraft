@@ -1,0 +1,109 @@
+{% extends "admin/base.html" %}
+
+{% block title %}System Health - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-cpu"></i> System Health</h1>
+    <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+</div>
+
+<!-- Overall Status -->
+<div id="overallStatus" class="alert alert-info mb-4">
+    <div class="d-flex align-items-center">
+        <div class="spinner-border spinner-border-sm me-2"></div>
+        <div>Loading system status...</div>
+    </div>
+</div>
+
+<!-- Component Health -->
+<div class="row" id="componentHealth">
+    <div class="col-12 text-center py-4">
+        <div class="spinner-border"></div>
+        <p class="mt-2">Loading component health status...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function refreshData() {
+        loadHealthStatus();
+    }
+    
+    function loadHealthStatus() {
+        fetch('/admin/api/health')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateOverallStatus(data.overall_status);
+                    updateComponentHealth(data.health_results);
+                } else {
+                    document.getElementById('overallStatus').innerHTML = 
+                        '<div class="alert alert-danger">Error loading health status</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('overallStatus').innerHTML = 
+                    '<div class="alert alert-danger">Error loading health status</div>';
+            });
+    }
+    
+    function updateOverallStatus(status) {
+        const alertClass = status.status === 'healthy' ? 'alert-success' : 
+                          status.status === 'warning' ? 'alert-warning' : 'alert-danger';
+        const icon = status.status === 'healthy' ? 'bi-check-circle' : 
+                    status.status === 'warning' ? 'bi-exclamation-triangle' : 'bi-x-circle';
+        
+        document.getElementById('overallStatus').className = `alert ${alertClass} mb-4`;
+        document.getElementById('overallStatus').innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="${icon} me-2" style="font-size: 1.5rem;"></i>
+                <div>
+                    <strong>System Status: ${status.status.toUpperCase()}</strong><br>
+                    <small>${status.message}</small>
+                </div>
+            </div>
+        `;
+    }
+    
+    function updateComponentHealth(healthResults) {
+        let html = '';
+        
+        Object.entries(healthResults).forEach(([component, result]) => {
+            const statusClass = result.status === 'healthy' ? 'success' : 
+                               result.status === 'warning' ? 'warning' : 'danger';
+            const icon = result.status === 'healthy' ? 'bi-check-circle-fill' : 
+                        result.status === 'warning' ? 'bi-exclamation-triangle-fill' : 'bi-x-circle-fill';
+            
+            html += `
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card border-${statusClass} h-100">
+                        <div class="card-body text-center">
+                            <i class="${icon} text-${statusClass}" style="font-size: 3rem;"></i>
+                            <h5 class="mt-3">${component.replace('_', ' ').toUpperCase()}</h5>
+                            <p class="text-muted mb-2">${result.status.toUpperCase()}</p>
+                            ${result.response_time ? `<small class="text-muted">Response: ${result.response_time}ms</small>` : ''}
+                            ${result.error_message ? `<small class="text-danger d-block mt-2">${result.error_message}</small>` : ''}
+                            <small class="text-muted d-block mt-2">Checked: ${new Date(result.checked_at).toLocaleTimeString()}</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        document.getElementById('componentHealth').innerHTML = html;
+    }
+    
+    // Load data on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadHealthStatus();
+    });
+    
+    // Make refreshData available globally
+    window.refreshData = refreshData;
+</script>
+{% endblock %}

@@ -1,0 +1,244 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Alerts - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-bell"></i> Alert Management</h1>
+    <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+</div>
+
+<!-- Alert Summary -->
+<div class="row mb-4" id="alertSummary">
+    <div class="col-12 text-center py-4">
+        <div class="spinner-border"></div>
+        <p class="mt-2">Loading alert summary...</p>
+    </div>
+</div>
+
+<!-- Alert Filters -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> Alert Filters</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="resolvedFilter">
+                    <option value="">All Alerts</option>
+                    <option value="false" selected>Active Only</option>
+                    <option value="true">Resolved Only</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button class="btn btn-primary" onclick="applyFilters()">
+                    <i class="bi bi-search"></i> Apply Filters
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alerts -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Alerts</h5>
+        <span id="alertCount" class="badge bg-primary">Loading...</span>
+    </div>
+    <div class="card-body">
+        <div id="alertsContainer">
+            <div class="text-center py-4">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading alerts...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function refreshData() {
+        loadAlerts();
+        loadAlertSummary();
+    }
+    
+    function applyFilters() {
+        loadAlerts();
+    }
+    
+    function loadAlertSummary() {
+        fetch('/admin/api/alerts')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.summary) {
+                    displayAlertSummary(data.summary);
+                }
+            })
+            .catch(error => console.error('Error loading alert summary:', error));
+    }
+    
+    function displayAlertSummary(summary) {
+        const html = `
+            <div class="col-md-3 mb-3">
+                <div class="card text-center border-danger">
+                    <div class="card-body">
+                        <h3 class="text-danger">${summary.critical}</h3>
+                        <p class="text-muted mb-0">Critical</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center border-warning">
+                    <div class="card-body">
+                        <h3 class="text-warning">${summary.warning}</h3>
+                        <p class="text-muted mb-0">Warning</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center border-info">
+                    <div class="card-body">
+                        <h3 class="text-info">${summary.info || 0}</h3>
+                        <p class="text-muted mb-0">Info</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center border-primary">
+                    <div class="card-body">
+                        <h3 class="text-primary">${summary.total_active}</h3>
+                        <p class="text-muted mb-0">Total Active</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('alertSummary').innerHTML = html;
+    }
+    
+    function loadAlerts() {
+        const resolved = document.getElementById('resolvedFilter').value;
+        
+        let url = '/admin/api/alerts?';
+        const params = new URLSearchParams();
+        
+        if (resolved !== '') params.append('resolved', resolved);
+        
+        url += params.toString();
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayAlerts(data.alerts);
+                    document.getElementById('alertCount').textContent = data.alerts.length;
+                } else {
+                    document.getElementById('alertsContainer').innerHTML = 
+                        '<div class="alert alert-danger">Error loading alerts: ' + data.error + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('alertsContainer').innerHTML = 
+                    '<div class="alert alert-danger">Error loading alerts</div>';
+            });
+    }
+    
+    function displayAlerts(alerts) {
+        if (alerts.length === 0) {
+            document.getElementById('alertsContainer').innerHTML = 
+                '<div class="text-center py-4"><i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i><p class="mt-3 text-success">No alerts found</p></div>';
+            return;
+        }
+        
+        let html = '<div class="list-group list-group-flush">';
+        
+        alerts.forEach(alert => {
+            const typeClass = alert.type === 'critical' ? 'danger' :
+                             alert.type === 'warning' ? 'warning' : 'info';
+            const icon = alert.type === 'critical' ? 'bi-exclamation-triangle-fill' :
+                        alert.type === 'warning' ? 'bi-exclamation-triangle' : 'bi-info-circle';
+            
+            html += `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="mb-2">
+                                <i class="${icon} text-${typeClass} me-2"></i>
+                                <strong>${alert.title}</strong>
+                                <span class="badge bg-${typeClass} ms-2">${alert.type.toUpperCase()}</span>
+                                ${alert.resolved ? '<span class="badge bg-success ms-2">RESOLVED</span>' : ''}
+                            </div>
+                            <p class="mb-1">${alert.message}</p>
+                            <small class="text-muted">
+                                Component: ${alert.component || 'Unknown'} • 
+                                Created: ${alert.created_at} 
+                                ${alert.resolved_at ? `• Resolved: ${alert.resolved_at}` : ''}
+                            </small>
+                        </div>
+                        <div class="ms-3">
+                            ${!alert.resolved ? `
+                                <button class="btn btn-sm btn-success" onclick="resolveAlert(${alert.id})">
+                                    <i class="bi bi-check"></i> Resolve
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        document.getElementById('alertsContainer').innerHTML = html;
+    }
+    
+    function resolveAlert(alertId) {
+        if (!confirm('Are you sure you want to resolve this alert?')) {
+            return;
+        }
+        
+        fetch(`/admin/api/alerts/${alertId}/resolve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Refresh the alerts list
+                loadAlerts();
+                loadAlertSummary();
+                // Show success message
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success alert-dismissible fade show';
+                alert.innerHTML = `
+                    Alert resolved successfully!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.container-fluid').insertBefore(alert, document.querySelector('.container-fluid').firstChild);
+            } else {
+                alert('Error resolving alert: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error resolving alert');
+        });
+    }
+    
+    // Load data on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAlerts();
+        loadAlertSummary();
+    });
+    
+    // Make refreshData available globally
+    window.refreshData = refreshData;
+</script>
+{% endblock %}

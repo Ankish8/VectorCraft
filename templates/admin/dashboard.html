@@ -1,0 +1,426 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Admin Dashboard - VectorCraft{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-speedometer2"></i> Admin Dashboard</h1>
+    <div>
+        <span class="text-muted me-3">Last updated: <span id="lastUpdated">Loading...</span></span>
+        <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<!-- System Status Banner -->
+<div id="systemStatusBanner" class="alert alert-info d-flex align-items-center mb-4" role="alert">
+    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+    <div>Loading system status...</div>
+</div>
+
+<!-- Metrics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card metric-card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <i class="bi bi-currency-dollar text-success" style="font-size: 2rem;"></i>
+                    <span class="badge bg-success">Today</span>
+                </div>
+                <h3 class="mb-1" id="todayRevenue">${{ "%.2f"|format(data.today_stats.revenue if data and data.today_stats else 0) }}</h3>
+                <p class="text-muted mb-0">Revenue</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card metric-card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <i class="bi bi-receipt text-primary" style="font-size: 2rem;"></i>
+                    <span class="badge bg-primary">Today</span>
+                </div>
+                <h3 class="mb-1" id="todayTransactions">{{ data.today_stats.transactions if data and data.today_stats else 0 }}</h3>
+                <p class="text-muted mb-0">Transactions</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card metric-card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <i class="bi bi-check-circle text-info" style="font-size: 2rem;"></i>
+                    <span class="badge bg-info">Today</span>
+                </div>
+                <h3 class="mb-1" id="successRate">{{ "%.1f"|format(data.today_stats.success_rate if data and data.today_stats else 0) }}%</h3>
+                <p class="text-muted mb-0">Success Rate</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card metric-card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
+                    <span class="badge bg-warning">Active</span>
+                </div>
+                <h3 class="mb-1" id="activeAlerts">{{ data.alert_summary.total_active if data and data.alert_summary else 0 }}</h3>
+                <p class="text-muted mb-0">Alerts</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Health and Recent Activity -->
+<div class="row mb-4">
+    <!-- System Health -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-cpu"></i> System Health</h5>
+                <button class="btn btn-sm btn-outline-secondary" onclick="refreshHealthStatus()">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="healthStatus">
+                    <div class="text-center py-3">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Checking system health...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Transactions -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Transactions</h5>
+                <a href="{{ url_for('admin_transactions') }}" class="btn btn-sm btn-outline-primary">
+                    View All
+                </a>
+            </div>
+            <div class="card-body">
+                <div id="recentTransactions">
+                    {% if data and data.recent_transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Email</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for tx in data.recent_transactions %}
+                                    <tr>
+                                        <td class="text-truncate" style="max-width: 150px;">{{ tx.email }}</td>
+                                        <td>${{ "%.2f"|format(tx.amount or 0) }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if tx.status == 'completed' else 'warning' if tx.status == 'pending' else 'danger' }}">
+                                                {{ tx.status }}
+                                            </span>
+                                        </td>
+                                        <td class="text-muted small">
+                                            {{ tx.created_at[:16] }}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-3">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mt-2">No recent transactions</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Summary and Quick Actions -->
+<div class="row">
+    <!-- Error Summary -->
+    <div class="col-lg-8 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-exclamation-circle"></i> Error Summary (24h)</h5>
+                <a href="{{ url_for('admin_logs') }}" class="btn btn-sm btn-outline-primary">
+                    View Logs
+                </a>
+            </div>
+            <div class="card-body">
+                {% if data and data.error_summary %}
+                    <div class="row text-center">
+                        <div class="col">
+                            <h4 class="text-danger">{{ data.error_summary.total_errors }}</h4>
+                            <p class="text-muted mb-0">Total Errors</p>
+                        </div>
+                        {% for component, count in data.error_summary.by_component.items() %}
+                        <div class="col">
+                            <h4>{{ count }}</h4>
+                            <p class="text-muted mb-0">{{ component.title() }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if data.error_summary.recent_errors %}
+                        <hr>
+                        <h6>Recent Errors:</h6>
+                        <div class="list-group list-group-flush">
+                            {% for error in data.error_summary.recent_errors[:3] %}
+                            <div class="list-group-item border-0 px-0">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="log-level log-{{ error.level.lower() }}">{{ error.level }}</span>
+                                        <strong class="ms-2">{{ error.component }}</strong>
+                                        <p class="mb-1 mt-1">{{ error.message }}</p>
+                                    </div>
+                                    <small class="text-muted">{{ error.created_at[:16] }}</small>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                        <p class="mt-2">No errors in the last 24 hours</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary" onclick="runHealthCheck()">
+                        <i class="bi bi-cpu"></i> Run Health Check
+                    </button>
+                    <button class="btn btn-outline-info" onclick="checkAlerts()">
+                        <i class="bi bi-bell"></i> Check Alerts
+                    </button>
+                    <a href="{{ url_for('admin_transactions') }}" class="btn btn-outline-success">
+                        <i class="bi bi-search"></i> Search Transactions
+                    </a>
+                    <a href="{{ url_for('admin_analytics') }}" class="btn btn-outline-warning">
+                        <i class="bi bi-graph-up"></i> View Analytics
+                    </a>
+                </div>
+                
+                <hr>
+                
+                <h6>System Info</h6>
+                <small class="text-muted">
+                    <div><strong>Version:</strong> 1.0.0</div>
+                    <div><strong>Environment:</strong> {{ 'Production' if config.get('ENV') == 'production' else 'Development' }}</div>
+                    <div><strong>Uptime:</strong> <span id="uptime">Loading...</span></div>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Dashboard-specific JavaScript
+    let startTime = Date.now();
+    
+    function refreshData() {
+        console.log('Refreshing dashboard data...');
+        
+        // Update timestamp
+        document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+        
+        // Refresh health status
+        refreshHealthStatus();
+        
+        // Refresh metrics (simplified - in production you'd call specific APIs)
+        // For now, we'll just update the uptime
+        updateUptime();
+    }
+    
+    function refreshHealthStatus() {
+        fetch('/admin/api/health')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateHealthStatus(data.health_results, data.overall_status);
+                    updateSystemStatusBanner(data.overall_status);
+                }
+            })
+            .catch(error => {
+                console.error('Error refreshing health status:', error);
+                document.getElementById('healthStatus').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> Error loading health status
+                    </div>
+                `;
+            });
+    }
+    
+    function updateHealthStatus(healthResults, overallStatus) {
+        const healthHtml = `
+            <div class="mb-3">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="health-indicator ${getHealthIndicatorClass(overallStatus.status)}"></span>
+                    <strong>Overall Status: ${overallStatus.status.toUpperCase()}</strong>
+                </div>
+                <p class="text-muted mb-0">${overallStatus.message}</p>
+            </div>
+            
+            <div class="row">
+                ${Object.entries(healthResults).map(([component, result]) => `
+                    <div class="col-sm-6 mb-2">
+                        <div class="d-flex align-items-center">
+                            <span class="health-indicator ${getHealthIndicatorClass(result.status)}"></span>
+                            <div>
+                                <div class="fw-bold">${component.replace('_', ' ').toUpperCase()}</div>
+                                ${result.response_time ? `<small class="text-muted">${result.response_time}ms</small>` : ''}
+                                ${result.error_message ? `<small class="text-danger d-block">${result.error_message}</small>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        
+        document.getElementById('healthStatus').innerHTML = healthHtml;
+    }
+    
+    function updateSystemStatusBanner(overallStatus) {
+        const banner = document.getElementById('systemStatusBanner');
+        
+        // Remove existing classes
+        banner.className = 'alert d-flex align-items-center mb-4';
+        
+        let alertClass, icon, message;
+        
+        switch(overallStatus.status) {
+            case 'healthy':
+                alertClass = 'alert-success';
+                icon = 'bi-check-circle';
+                message = `<strong>All Systems Operational</strong> - ${overallStatus.message}`;
+                break;
+            case 'warning':
+                alertClass = 'alert-warning';
+                icon = 'bi-exclamation-triangle';
+                message = `<strong>System Warning</strong> - ${overallStatus.message}`;
+                break;
+            case 'critical':
+                alertClass = 'alert-danger';
+                icon = 'bi-x-circle';
+                message = `<strong>System Critical</strong> - ${overallStatus.message}`;
+                break;
+            default:
+                alertClass = 'alert-info';
+                icon = 'bi-info-circle';
+                message = `<strong>Status Unknown</strong> - ${overallStatus.message}`;
+        }
+        
+        banner.className += ` ${alertClass}`;
+        banner.innerHTML = `
+            <i class="${icon} me-2"></i>
+            <div>${message}</div>
+        `;
+    }
+    
+    function runHealthCheck() {
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Running...';
+        btn.disabled = true;
+        
+        fetch('/admin/api/health')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    refreshHealthStatus();
+                    // Show success message
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-success alert-dismissible fade show mt-2';
+                    alert.innerHTML = `
+                        Health check completed successfully!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    btn.parentElement.appendChild(alert);
+                    
+                    // Remove alert after 3 seconds
+                    setTimeout(() => alert.remove(), 3000);
+                }
+            })
+            .catch(error => {
+                console.error('Health check failed:', error);
+            })
+            .finally(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+    }
+    
+    function checkAlerts() {
+        fetch('/admin/api/alerts')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateAlertBadge(data.summary.total_active);
+                    
+                    if (data.summary.critical > 0) {
+                        alert(`⚠️ ${data.summary.critical} critical alerts require immediate attention!`);
+                    } else if (data.summary.total_active > 0) {
+                        alert(`ℹ️ ${data.summary.total_active} alerts are currently active.`);
+                    } else {
+                        alert('✅ No active alerts.');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error checking alerts:', error);
+                alert('❌ Error checking alerts.');
+            });
+    }
+    
+    function updateUptime() {
+        const uptimeMs = Date.now() - startTime;
+        const uptimeSeconds = Math.floor(uptimeMs / 1000);
+        const hours = Math.floor(uptimeSeconds / 3600);
+        const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+        const seconds = uptimeSeconds % 60;
+        
+        document.getElementById('uptime').textContent = 
+            `${hours}h ${minutes}m ${seconds}s`;
+    }
+    
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        refreshHealthStatus();
+        updateUptime();
+        
+        // Update uptime every second
+        setInterval(updateUptime, 1000);
+    });
+    
+    // Make refreshData available globally for auto-refresh
+    window.refreshData = refreshData;
+</script>
+{% endblock %}

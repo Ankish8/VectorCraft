@@ -25,6 +25,7 @@ from vectorcraft import HybridVectorizer, OptimizedVectorizer
 from database import db
 from services.email_service import email_service
 from services.paypal_service import paypal_service
+from services.monitoring import health_monitor, system_logger, alert_manager
 
 app = Flask(__name__)
 # Use environment variable for secret key, generate secure fallback
@@ -100,6 +101,25 @@ def add_security_headers(response):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# Admin authentication decorator
+def admin_required(f):
+    """Decorator to require admin authentication"""
+    from functools import wraps
+    
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            flash('Please log in to access admin features.', 'error')
+            return redirect(url_for('login', next=request.url))
+        
+        # Check if user is admin (username 'admin' or email contains 'admin')
+        if current_user.username != 'admin' and 'admin' not in current_user.email.lower():
+            flash('Admin access required.', 'error')
+            return redirect(url_for('dashboard'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Global error handlers
 @app.errorhandler(404)
 def not_found(error):
@@ -168,11 +188,16 @@ def login():
             login_user(user, remember=remember)
             session['login_success'] = True
             
-            # Redirect to next page or dashboard
+            # Redirect to next page or appropriate dashboard
             next_page = request.args.get('next')
             if next_page and next_page.startswith('/'):
                 return redirect(next_page)
-            return redirect(url_for('dashboard'))
+            
+            # Check if user is admin and redirect to admin dashboard
+            if user_data['username'] == 'admin' or 'admin' in user_data['email'].lower():
+                return redirect(url_for('admin_dashboard'))
+            else:
+                return redirect(url_for('dashboard'))
         else:
             flash('Invalid username or password.', 'error')
             return render_template('login.html', error='Invalid username or password.')
@@ -341,6 +366,12 @@ def vectorize_image():
         if not allowed_file(file.filename):
             return jsonify({'error': 'Invalid file type. Supported: PNG, JPG, GIF, BMP, TIFF'}), 400
         
+        # Log vectorization start
+        system_logger.info('vectorization', f'Vectorization started by {current_user.username}',
+                          user_email=current_user.email, 
+                          details={'filename': file.filename, 'file_size': len(file.read())})
+        file.seek(0)  # Reset file pointer after reading for size
+        
         # Use optimized vectorization approach
         vectorizer_type = 'optimized'  # Always use optimized
         target_time = float(request.form.get('target_time', 60))
@@ -504,8 +535,24 @@ def vectorize_image():
                 strategy_used=result.strategy_used
             )
             print(f"📝 Recorded upload for user {current_user.username}")
+            
+            # Log successful vectorization completion
+            system_logger.info('vectorization', f'Vectorization completed successfully',
+                              user_email=current_user.email,
+                              details={
+                                  'filename': filename,
+                                  'processing_time': processing_time,
+                                  'strategy_used': result.strategy_used,
+                                  'quality_score': result.quality_score,
+                                  'svg_filename': svg_filename,
+                                  'file_size': file_size
+                              })
         except Exception as e:
             print(f"❌ Failed to record upload: {e}")
+            # Log database error
+            system_logger.error('vectorization', f'Failed to record upload in database: {str(e)}',
+                              user_email=current_user.email,
+                              details={'filename': filename})
         
         # Convert SVG to base64 for embedding
         svg_b64 = base64.b64encode(svg_content.encode()).decode()
@@ -548,6 +595,14 @@ def vectorize_image():
         # Clean up files on error
         if 'input_path' in locals() and os.path.exists(input_path):
             os.remove(input_path)
+        
+        # Log vectorization error
+        system_logger.error('vectorization', f'Vectorization failed: {str(e)}',
+                          user_email=current_user.email,
+                          details={
+                              'filename': file.filename if 'file' in locals() and file else 'unknown',
+                              'error_message': str(e)
+                          })
         
         return jsonify({'error': f'Processing failed: {str(e)}'}), 500
 
@@ -640,27 +695,63 @@ def buy_now():
 @app.route('/api/create-paypal-order', methods=['POST'])
 def create_paypal_order():
     """Create PayPal order for VectorCraft purchase"""
+    transaction_id = None
     try:
         data = request.get_json()
         email = data.get('email')
         amount = data.get('amount', 49.00)
         
         if not email:
+            system_logger.warning('payment', 'PayPal order creation failed: No email provided')
             return jsonify({'error': 'Email is required'}), 400
+        
+        # Generate transaction ID for tracking
+        transaction_id = f"VC_{int(time.time())}_{secrets.token_hex(4)}"
+        
+        # Log transaction creation
+        system_logger.info('payment', f'Creating PayPal order for {email}', 
+                          user_email=email, transaction_id=transaction_id,
+                          details={'amount': amount, 'email': email})
+        
+        # Create initial transaction record
+        db.log_transaction(
+            transaction_id=transaction_id,
+            email=email,
+            amount=amount,
+            currency='USD',
+            status='pending'
+        )
         
         # Create PayPal order
         order_result = paypal_service.create_order(amount=amount, customer_email=email)
         
         if not order_result or not order_result.get('success'):
+            # Update transaction with failure
+            db.update_transaction(transaction_id, 
+                                status='failed', 
+                                error_message='Failed to create PayPal order')
+            
+            system_logger.error('payment', 'PayPal order creation failed', 
+                              user_email=email, transaction_id=transaction_id,
+                              details={'error': 'PayPal service error'})
             return jsonify({'error': 'Failed to create PayPal order'}), 500
+        
+        # Update transaction with PayPal order ID
+        db.update_transaction(transaction_id, 
+                            paypal_order_id=order_result['order_id'],
+                            status='awaiting_payment')
         
         # Store order info in session for later processing
         session['pending_order'] = {
             'email': email,
             'amount': amount,
             'paypal_order_id': order_result['order_id'],
+            'transaction_id': transaction_id,
             'created_at': time.time()
         }
+        
+        system_logger.info('payment', f'PayPal order created successfully: {order_result["order_id"]}',
+                          user_email=email, transaction_id=transaction_id)
         
         return jsonify({
             'success': True,
@@ -669,36 +760,58 @@ def create_paypal_order():
         })
         
     except Exception as e:
-        print(f"❌ PayPal order creation error: {e}")
+        error_msg = f"PayPal order creation error: {e}"
+        print(f"❌ {error_msg}")
+        
+        if transaction_id:
+            db.update_transaction(transaction_id, 
+                                status='error', 
+                                error_message=str(e))
+            system_logger.error('payment', error_msg, transaction_id=transaction_id)
+        else:
+            system_logger.error('payment', error_msg)
+            
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/capture-paypal-order', methods=['POST'])
 def capture_paypal_order():
     """Capture PayPal payment and create user account"""
+    transaction_id = None
     try:
-        print("💳 Processing PayPal payment...")
+        system_logger.info('payment', 'Processing PayPal payment capture')
         data = request.get_json()
         order_id = data.get('order_id')
-        print(f"💳 Order ID: {order_id}")
         
         if not order_id:
-            print("❌ DEBUG: No order ID provided")
+            system_logger.warning('payment', 'PayPal capture failed: No order ID provided')
             return jsonify({'error': 'Order ID is required'}), 400
         
         # Get pending order from session
         pending_order = session.get('pending_order')
-        print(f"🔍 DEBUG: Pending order: {pending_order}")
+        transaction_id = pending_order.get('transaction_id') if pending_order else None
+        
         if not pending_order or pending_order['paypal_order_id'] != order_id:
-            print("❌ DEBUG: Invalid order session")
+            system_logger.error('payment', 'Invalid order session for PayPal capture',
+                              transaction_id=transaction_id,
+                              details={'order_id': order_id})
             return jsonify({'error': 'Invalid order session'}), 400
         
+        system_logger.info('payment', f'Capturing PayPal payment for order {order_id}',
+                          transaction_id=transaction_id)
+        
         # Capture PayPal payment
-        print("🔍 DEBUG: Capturing PayPal payment...")
         capture_result = paypal_service.capture_order(order_id)
-        print(f"🔍 DEBUG: Capture result: {capture_result}")
         
         if not capture_result or not capture_result.get('success'):
-            print("❌ DEBUG: PayPal capture failed")
+            # Update transaction with failure
+            if transaction_id:
+                db.update_transaction(transaction_id, 
+                                    status='failed', 
+                                    error_message='PayPal capture failed')
+            
+            system_logger.error('payment', 'PayPal capture failed',
+                              transaction_id=transaction_id,
+                              details={'order_id': order_id, 'capture_result': capture_result})
             return jsonify({'error': 'Failed to capture PayPal payment'}), 500
         
         # Use email from capture result if available, otherwise from session
@@ -707,42 +820,69 @@ def capture_paypal_order():
         
         # LIVE ENVIRONMENT: Use actual PayPal payer email
         email = paypal_email
-        print(f"🔍 DEBUG: Using PayPal payer email: {email}")
-        print(f"🔍 DEBUG: Final email: {email}, amount: {amount}")
         
         # Generate username and password
         import random
-        import secrets
-        import string
         username = f"user_{random.randint(10000, 99999)}"
         password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
-        print(f"🔍 DEBUG: Generated credentials - username: {username}, password: {password}")
+        
+        system_logger.info('payment', f'Creating user account for {email}',
+                          user_email=email, transaction_id=transaction_id,
+                          details={'username': username, 'amount': amount})
         
         # Create user account
         try:
-            print("🔍 DEBUG: Creating user account...")
-            print(f"🔍 DEBUG: Username: {username}")
-            print(f"🔍 DEBUG: Email: {email}")
-            print(f"🔍 DEBUG: Password length: {len(password)}")
-            
             # Check if user already exists
             existing_user = db.get_user_by_email(email)
             if existing_user:
-                print(f"❌ DEBUG: User with email {email} already exists: {existing_user}")
+                # Update transaction with error
+                if transaction_id:
+                    db.update_transaction(transaction_id, 
+                                        status='failed', 
+                                        error_message=f'User with email {email} already exists')
+                
+                system_logger.warning('payment', f'User account already exists: {email}',
+                                     user_email=email, transaction_id=transaction_id)
                 return jsonify({'error': f'User with email {email} already exists'}), 400
             
             user_id = db.create_user(username, email, password)
-            print(f"🔍 DEBUG: User creation result: {user_id}")
-            print(f"🔍 DEBUG: User creation result type: {type(user_id)}")
             
             if not user_id:
-                print("❌ DEBUG: User creation returned None/False")
+                # Update transaction with error
+                if transaction_id:
+                    db.update_transaction(transaction_id, 
+                                        status='failed', 
+                                        error_message='Failed to create user account')
+                
+                system_logger.error('payment', 'User creation returned None/False',
+                                  user_email=email, transaction_id=transaction_id)
                 return jsonify({'error': 'Failed to create user account - database returned None'}), 500
+                
         except Exception as e:
-            print(f"❌ DEBUG: User creation exception: {str(e)}")
-            import traceback
-            print(f"❌ DEBUG: Full traceback: {traceback.format_exc()}")
+            # Update transaction with error
+            if transaction_id:
+                db.update_transaction(transaction_id, 
+                                    status='failed', 
+                                    error_message=f'User creation failed: {str(e)}')
+            
+            system_logger.error('payment', f'User creation exception: {str(e)}',
+                              user_email=email, transaction_id=transaction_id)
             return jsonify({'error': f'User creation failed: {str(e)}'}), 500
+        
+        # Update transaction with success and user details
+        if transaction_id:
+            db.update_transaction(transaction_id,
+                                status='completed',
+                                username=username,
+                                paypal_payment_id=capture_result.get('payment_id'),
+                                user_created=True,
+                                completed_at=True,
+                                metadata={
+                                    'paypal_transaction_id': capture_result.get('transaction_id'),
+                                    'payer_email': email,
+                                    'amount': amount,
+                                    'currency': 'USD'
+                                })
         
         # Prepare order details
         order_details = {
@@ -753,35 +893,45 @@ def capture_paypal_order():
             'username': username,
             'payer_email': email
         }
-        print(f"🔍 DEBUG: Order details: {order_details}")
         
         # Send emails
-        print("🔍 DEBUG: Sending purchase confirmation email...")
+        system_logger.info('email', f'Sending purchase confirmation to {email}',
+                          user_email=email, transaction_id=transaction_id)
         confirm_result = email_service.send_purchase_confirmation(email, order_details)
-        print(f"🔍 DEBUG: Purchase confirmation result: {confirm_result}")
         
-        print("🔍 DEBUG: Sending credentials email...")
+        system_logger.info('email', f'Sending credentials email to {email}',
+                          user_email=email, transaction_id=transaction_id)
         email_sent = email_service.send_credentials_email(email, username, password, order_details)
-        print(f"🔍 DEBUG: Credentials email result: {email_sent}")
+        
+        # Update transaction with email status
+        if transaction_id:
+            db.update_transaction(transaction_id, email_sent=email_sent)
         
         if not email_sent:
-            print(f"⚠️  Failed to send email to {email} - but user account created successfully")
+            system_logger.warning('email', f'Failed to send credentials email to {email}',
+                                 user_email=email, transaction_id=transaction_id)
+        else:
+            system_logger.info('email', f'Credentials email sent successfully to {email}',
+                             user_email=email, transaction_id=transaction_id)
         
         # Send admin notification
-        print("🔍 DEBUG: Sending admin notification...")
         admin_result = email_service.send_admin_notification(
             "New PayPal Purchase",
             f"New customer: {email} (username: {username})\nAmount: ${amount:.2f}\nPayPal Order: {order_id}\nTransaction: {capture_result.get('transaction_id')}"
         )
-        print(f"🔍 DEBUG: Admin notification result: {admin_result}")
         
-        # Log successful payment
-        app.logger.info(f"Payment completed successfully - Order: {order_id}, Email: {email}, Amount: ${amount}")
-        print("✅ Payment completed successfully")
+        # Log successful payment completion
+        system_logger.info('payment', f'Payment completed successfully - ${amount:.2f}',
+                          user_email=email, transaction_id=transaction_id,
+                          details={
+                              'order_id': order_id,
+                              'username': username,
+                              'amount': amount,
+                              'email_sent': email_sent
+                          })
         
         # Clear session
         session.pop('pending_order', None)
-        print("🔍 DEBUG: Session cleared")
         
         return jsonify({
             'success': True,
@@ -793,11 +943,20 @@ def capture_paypal_order():
         })
         
     except Exception as e:
-        # Log error for production monitoring
+        error_msg = f"PayPal capture error: {str(e)}"
+        
+        # Update transaction with error if we have transaction_id
+        if transaction_id:
+            db.update_transaction(transaction_id, 
+                                status='error', 
+                                error_message=str(e))
+        
+        # Log error for monitoring
+        system_logger.error('payment', error_msg, 
+                           transaction_id=transaction_id,
+                           details={'order_id': order_id if 'order_id' in locals() else 'unknown'})
+        
         app.logger.error(f"PayPal capture failed - Order: {order_id if 'order_id' in locals() else 'unknown'}, Error: {str(e)}")
-        print(f"❌ PayPal capture error: {e}")
-        import traceback
-        print(f"❌ Full traceback: {traceback.format_exc()}")
         
         return jsonify({'error': str(e)}), 500
 
@@ -899,6 +1058,215 @@ def health_check():
         'vectorizers': ['standard', 'advanced'],
         'supported_formats': list(ALLOWED_EXTENSIONS)
     })
+
+# Admin Dashboard Routes
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    """Admin dashboard overview"""
+    try:
+        # Get system health status
+        health_status = health_monitor.get_overall_status()
+        
+        # Get recent transactions
+        recent_transactions = db.get_transactions(limit=10)
+        
+        # Get alert summary
+        alert_summary = alert_manager.get_alert_summary()
+        
+        # Calculate daily metrics
+        today_transactions = [tx for tx in recent_transactions if tx['created_at'].startswith(datetime.now().strftime('%Y-%m-%d'))]
+        today_revenue = sum(float(tx['amount'] or 0) for tx in today_transactions if tx['status'] == 'completed')
+        
+        # Get error summary
+        error_summary = system_logger.get_error_summary(hours=24)
+        
+        dashboard_data = {
+            'health_status': health_status,
+            'today_stats': {
+                'revenue': today_revenue,
+                'transactions': len(today_transactions),
+                'success_rate': len([tx for tx in today_transactions if tx['status'] == 'completed']) / max(len(today_transactions), 1) * 100
+            },
+            'alert_summary': alert_summary,
+            'error_summary': error_summary,
+            'recent_transactions': recent_transactions[:5]
+        }
+        
+        return render_template('admin/dashboard.html', data=dashboard_data)
+        
+    except Exception as e:
+        system_logger.error('admin', f'Admin dashboard error: {str(e)}', user_email=current_user.email)
+        flash(f'Dashboard error: {str(e)}', 'error')
+        return render_template('admin/dashboard.html', data={})
+
+@app.route('/admin/api/health')
+@admin_required
+def admin_api_health():
+    """API endpoint for system health status"""
+    try:
+        health_results = health_monitor.check_all_components()
+        overall_status = health_monitor.get_overall_status()
+        
+        return jsonify({
+            'success': True,
+            'health_results': health_results,
+            'overall_status': overall_status
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/transactions')
+@admin_required  
+def admin_api_transactions():
+    """API endpoint for transaction data"""
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        status = request.args.get('status')
+        email = request.args.get('email')
+        
+        transactions = db.get_transactions(limit=limit, status=status, email=email)
+        
+        return jsonify({
+            'success': True,
+            'transactions': transactions,
+            'count': len(transactions)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/logs')
+@admin_required
+def admin_api_logs():
+    """API endpoint for system logs"""
+    try:
+        limit = request.args.get('limit', 100, type=int)
+        level = request.args.get('level')
+        component = request.args.get('component')
+        hours = request.args.get('hours', 24, type=int)
+        
+        logs = system_logger.get_recent_logs(hours=hours, level=level, component=component, limit=limit)
+        
+        return jsonify({
+            'success': True,
+            'logs': logs,
+            'count': len(logs)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/alerts')
+@admin_required
+def admin_api_alerts():
+    """API endpoint for admin alerts"""
+    try:
+        resolved = request.args.get('resolved')
+        if resolved is not None:
+            resolved = resolved.lower() == 'true'
+        
+        alerts = db.get_alerts(resolved=resolved)
+        alert_summary = alert_manager.get_alert_summary()
+        
+        return jsonify({
+            'success': True,
+            'alerts': alerts,
+            'summary': alert_summary
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/alerts/<int:alert_id>/resolve', methods=['POST'])
+@admin_required
+def admin_api_resolve_alert(alert_id):
+    """API endpoint to resolve an alert"""
+    try:
+        success = alert_manager.resolve_alert(alert_id, current_user.email)
+        
+        if success:
+            return jsonify({'success': True, 'message': 'Alert resolved'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to resolve alert'}), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/analytics')
+@admin_required
+def admin_api_analytics():
+    """API endpoint for analytics data"""
+    try:
+        # Get transaction analytics
+        transactions = db.get_transactions(limit=100)
+        
+        # Calculate metrics
+        completed_transactions = [tx for tx in transactions if tx['status'] == 'completed']
+        total_revenue = sum(float(tx['amount'] or 0) for tx in completed_transactions)
+        
+        # Group by date for charts
+        from collections import defaultdict
+        daily_stats = defaultdict(lambda: {'revenue': 0, 'count': 0})
+        
+        for tx in completed_transactions:
+            date = tx['created_at'][:10]  # Get YYYY-MM-DD
+            daily_stats[date]['revenue'] += float(tx['amount'] or 0)
+            daily_stats[date]['count'] += 1
+        
+        # Format for charts
+        chart_data = [
+            {
+                'date': date,
+                'revenue': stats['revenue'],
+                'transactions': stats['count']
+            }
+            for date, stats in sorted(daily_stats.items())
+        ]
+        
+        return jsonify({
+            'success': True,
+            'analytics': {
+                'total_revenue': total_revenue,
+                'total_transactions': len(completed_transactions),
+                'avg_order_value': total_revenue / max(len(completed_transactions), 1),
+                'daily_data': chart_data[-7:]  # Last 7 days
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/transactions')
+@admin_required
+def admin_transactions():
+    """Admin transactions page"""
+    return render_template('admin/transactions.html')
+
+@app.route('/admin/system') 
+@admin_required
+def admin_system():
+    """Admin system health page"""
+    return render_template('admin/system.html')
+
+@app.route('/admin/logs')
+@admin_required
+def admin_logs():
+    """Admin system logs page"""
+    return render_template('admin/logs.html')
+
+@app.route('/admin/alerts')
+@admin_required
+def admin_alerts():
+    """Admin alerts page"""
+    return render_template('admin/alerts.html')
+
+@app.route('/admin/analytics')
+@admin_required
+def admin_analytics():
+    """Admin analytics page"""
+    return render_template('admin/analytics.html')
+
+@app.route('/admin-test')
+def admin_test():
+    """Test page to verify admin monitoring system is working"""
+    return render_template('admin_test.html')
 
 if __name__ == '__main__':
     # Determine debug mode based on environment

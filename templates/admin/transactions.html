@@ -1,0 +1,175 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Transactions - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-credit-card"></i> Transaction Monitoring</h1>
+    <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
+        <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> Filters</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="statusFilter">
+                    <option value="">All Statuses</option>
+                    <option value="completed">Completed</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" id="emailFilter" placeholder="Search by email">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Limit</label>
+                <select class="form-select" id="limitFilter">
+                    <option value="50">50 transactions</option>
+                    <option value="100">100 transactions</option>
+                    <option value="200">200 transactions</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-primary" onclick="applyFilters()">
+                    <i class="bi bi-search"></i> Apply Filters
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transactions Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-table"></i> Recent Transactions</h5>
+        <span id="transactionCount" class="badge bg-primary">Loading...</span>
+    </div>
+    <div class="card-body">
+        <div id="transactionsTable">
+            <div class="text-center py-4">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading transactions...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function refreshData() {
+        loadTransactions();
+    }
+    
+    function applyFilters() {
+        loadTransactions();
+    }
+    
+    function loadTransactions() {
+        const status = document.getElementById('statusFilter').value;
+        const email = document.getElementById('emailFilter').value;
+        const limit = document.getElementById('limitFilter').value;
+        
+        let url = '/admin/api/transactions?';
+        const params = new URLSearchParams();
+        
+        if (status) params.append('status', status);
+        if (email) params.append('email', email);
+        if (limit) params.append('limit', limit);
+        
+        url += params.toString();
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayTransactions(data.transactions);
+                    document.getElementById('transactionCount').textContent = data.count;
+                } else {
+                    document.getElementById('transactionsTable').innerHTML = 
+                        '<div class="alert alert-danger">Error loading transactions: ' + data.error + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('transactionsTable').innerHTML = 
+                    '<div class="alert alert-danger">Error loading transactions</div>';
+            });
+    }
+    
+    function displayTransactions(transactions) {
+        if (transactions.length === 0) {
+            document.getElementById('transactionsTable').innerHTML = 
+                '<div class="text-center py-4"><i class="bi bi-inbox" style="font-size: 3rem;"></i><p class="mt-3">No transactions found</p></div>';
+            return;
+        }
+        
+        let html = `
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Email</th>
+                            <th>Username</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>PayPal Order</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        transactions.forEach(tx => {
+            const statusClass = tx.status === 'completed' ? 'success' : 
+                               tx.status === 'pending' ? 'warning' : 'danger';
+            
+            html += `
+                <tr>
+                    <td><code>${tx.transaction_id}</code></td>
+                    <td>${tx.email}</td>
+                    <td>${tx.username || '-'}</td>
+                    <td>$${parseFloat(tx.amount || 0).toFixed(2)}</td>
+                    <td><span class="badge bg-${statusClass}">${tx.status}</span></td>
+                    <td><small>${tx.paypal_order_id || '-'}</small></td>
+                    <td><small>${tx.created_at}</small></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info" onclick="viewTransaction('${tx.transaction_id}')">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table></div>';
+        document.getElementById('transactionsTable').innerHTML = html;
+    }
+    
+    function viewTransaction(transactionId) {
+        alert('Transaction details for: ' + transactionId);
+        // In a real implementation, this would open a modal with detailed transaction info
+    }
+    
+    // Load data on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadTransactions();
+    });
+    
+    // Make refreshData available globally
+    window.refreshData = refreshData;
+</script>
+{% endblock %}

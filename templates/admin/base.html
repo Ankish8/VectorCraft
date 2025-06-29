@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}VectorCraft Admin{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            border-radius: 0.5rem;
+            margin: 0.2rem 0;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .content-wrapper {
+            margin-left: 0;
+        }
+        @media (min-width: 768px) {
+            .content-wrapper {
+                margin-left: 250px;
+            }
+        }
+        .health-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .health-healthy { background-color: #28a745; }
+        .health-warning { background-color: #ffc107; }
+        .health-critical { background-color: #dc3545; }
+        .health-unknown { background-color: #6c757d; }
+        
+        .metric-card {
+            transition: transform 0.2s;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .alert-badge {
+            position: relative;
+            top: -2px;
+        }
+        
+        .table-responsive {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .log-level {
+            font-size: 0.75em;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: bold;
+        }
+        .log-critical { background-color: #dc3545; color: white; }
+        .log-error { background-color: #dc3545; color: white; }
+        .log-warning { background-color: #ffc107; color: black; }
+        .log-info { background-color: #17a2b8; color: white; }
+        .log-debug { background-color: #6c757d; color: white; }
+    </style>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar position-fixed top-0 start-0 d-none d-md-flex flex-column p-3" style="width: 250px; z-index: 1000;">
+        <h4 class="text-white mb-4">
+            <i class="bi bi-shield-check"></i> VectorCraft Admin
+        </h4>
+        
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+                <a href="{{ url_for('admin_dashboard') }}" class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('admin_transactions') }}" class="nav-link {% if request.endpoint == 'admin_transactions' %}active{% endif %}">
+                    <i class="bi bi-credit-card"></i> Transactions
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('admin_system') }}" class="nav-link {% if request.endpoint == 'admin_system' %}active{% endif %}">
+                    <i class="bi bi-cpu"></i> System Health
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('admin_logs') }}" class="nav-link {% if request.endpoint == 'admin_logs' %}active{% endif %}">
+                    <i class="bi bi-journal-text"></i> System Logs
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('admin_alerts') }}" class="nav-link {% if request.endpoint == 'admin_alerts' %}active{% endif %}">
+                    <i class="bi bi-bell"></i> Alerts
+                    <span id="alertBadge" class="badge bg-danger ms-2 alert-badge" style="display: none;"></span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('admin_analytics') }}" class="nav-link {% if request.endpoint == 'admin_analytics' %}active{% endif %}">
+                    <i class="bi bi-graph-up"></i> Analytics
+                </a>
+            </li>
+        </ul>
+        
+        <hr class="text-white">
+        
+        <div class="dropdown">
+            <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-person-circle me-2"></i>
+                <strong>{{ current_user.username }}</strong>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
+                <li><a class="dropdown-item" href="{{ url_for('dashboard') }}"><i class="bi bi-house"></i> Main App</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sign out</a></li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Mobile Navigation -->
+    <nav class="navbar navbar-dark bg-primary d-md-none">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="bi bi-shield-check"></i> Admin
+            </span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title">VectorCraft Admin</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+                </div>
+                <div class="offcanvas-body">
+                    <ul class="navbar-nav justify-content-end flex-grow-1 pe-3">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_transactions') }}">
+                                <i class="bi bi-credit-card"></i> Transactions
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_system') }}">
+                                <i class="bi bi-cpu"></i> System Health
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_logs') }}">
+                                <i class="bi bi-journal-text"></i> System Logs
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_alerts') }}">
+                                <i class="bi bi-bell"></i> Alerts
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_analytics') }}">
+                                <i class="bi bi-graph-up"></i> Analytics
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('dashboard') }}">
+                                <i class="bi bi-house"></i> Main App
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('logout') }}">
+                                <i class="bi bi-box-arrow-right"></i> Sign out
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <div class="content-wrapper">
+        <div class="container-fluid p-4">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Common Admin JavaScript -->
+    <script>
+        // Auto-refresh functionality
+        let autoRefreshInterval;
+        
+        function startAutoRefresh(intervalSeconds = 30) {
+            autoRefreshInterval = setInterval(() => {
+                if (typeof refreshData === 'function') {
+                    refreshData();
+                }
+            }, intervalSeconds * 1000);
+        }
+        
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        }
+        
+        // Health indicator helper
+        function getHealthIndicatorClass(status) {
+            return 'health-' + (status || 'unknown');
+        }
+        
+        // Format timestamp
+        function formatTimestamp(timestamp) {
+            return new Date(timestamp).toLocaleString();
+        }
+        
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount || 0);
+        }
+        
+        // Update alert badge
+        function updateAlertBadge(count) {
+            const badge = document.getElementById('alertBadge');
+            if (count > 0) {
+                badge.textContent = count;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        
+        // Load alert summary on page load
+        fetch('/admin/api/alerts')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.summary) {
+                    updateAlertBadge(data.summary.total_active);
+                }
+            })
+            .catch(error => console.error('Error loading alert summary:', error));
+            
+        // Start auto-refresh for most pages
+        document.addEventListener('DOMContentLoaded', function() {
+            startAutoRefresh(30); // Refresh every 30 seconds
+        });
+        
+        // Stop auto-refresh when page is hidden
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                stopAutoRefresh();
+            } else {
+                startAutoRefresh(30);
+            }
+        });
+    </script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
