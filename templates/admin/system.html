@@ -34,7 +34,9 @@
     }
     
     function loadHealthStatus() {
-        fetch('/admin/api/health')
+        // Add cache-busting parameter to ensure fresh data
+        const timestamp = new Date().getTime();
+        fetch(`/admin/api/health?_=${timestamp}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -101,6 +103,9 @@
     // Load data on page load
     document.addEventListener('DOMContentLoaded', function() {
         loadHealthStatus();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadHealthStatus, 30000);
     });
     
     // Make refreshData available globally

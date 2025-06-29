@@ -1108,11 +1108,19 @@ def admin_api_health():
         health_results = health_monitor.check_all_components()
         overall_status = health_monitor.get_overall_status()
         
-        return jsonify({
+        response = jsonify({
             'success': True,
             'health_results': health_results,
-            'overall_status': overall_status
+            'overall_status': overall_status,
+            'timestamp': datetime.now().isoformat()
         })
+        
+        # Add cache-busting headers
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        return response
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
