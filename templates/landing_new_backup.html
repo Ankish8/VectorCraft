@@ -57,125 +57,50 @@
     </script>
     
     <style>
-        /* Enhanced Subtle Testimonial Animations */
-        .testimonial-fade-in {
-            opacity: 0;
-            transform: translateY(30px) scale(0.95);
-            animation: fadeInUpScale 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-        
-        @keyframes fadeInUpScale {
-            0% {
-                opacity: 0;
-                transform: translateY(30px) scale(0.95);
-            }
-            60% {
-                opacity: 0.8;
-                transform: translateY(5px) scale(1.02);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-        
-        /* Gentle floating animation for quote icons */
-        @keyframes float {
-            0%, 100% {
-                transform: translateY(0px) rotate(0deg);
-            }
-            25% {
-                transform: translateY(-2px) rotate(1deg);
-            }
-            50% {
-                transform: translateY(-4px) rotate(0deg);
-            }
-            75% {
-                transform: translateY(-2px) rotate(-1deg);
-            }
-        }
-        
-        /* Avatar pulse animation */
-        @keyframes avatarPulse {
-            0%, 100% {
-                transform: scale(1);
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            }
-            50% {
-                transform: scale(1.05);
-                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15);
-            }
-        }
-        
-        /* Star shimmer animation */
-        @keyframes shimmer {
-            0% {
-                transform: translateX(-100%);
-            }
-            100% {
-                transform: translateX(100%);
-            }
-        }
-        
-        /* Enhanced hover effects */
-        .testimonial-fade-in:hover {
-            transform: translateY(-3px) scale(1.01);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        
-        .testimonial-fade-in:hover .absolute svg {
-            animation: float 2.5s ease-in-out infinite;
-            opacity: 0.8;
-        }
-        
-        .testimonial-fade-in:hover .w-12 {
-            animation: avatarPulse 1.5s ease-in-out infinite;
-        }
-        
-        /* Subtle star animation on hover */
-        .testimonial-fade-in:hover .text-yellow-400 {
-            position: relative;
+        /* Simple Marquee Styles */
+        .simple-marquee {
             overflow: hidden;
+            white-space: nowrap;
+            box-sizing: border-box;
         }
         
-        .testimonial-fade-in:hover .text-yellow-400::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            animation: shimmer 1.5s ease-in-out;
+        .simple-marquee-content {
+            display: inline-block;
+            padding-left: 100%;
+            animation: scroll-left 40s linear infinite;
         }
         
-        /* Smooth text highlight animation */
-        .testimonial-fade-in .text-primary {
-            position: relative;
-            transition: all 0.3s ease;
+        .simple-marquee-reverse .simple-marquee-content {
+            animation: scroll-right 40s linear infinite;
         }
         
-        .testimonial-fade-in:hover .text-primary {
-            text-shadow: 0 0 8px rgba(80, 70, 230, 0.3);
+        @keyframes scroll-left {
+            0% {
+                transform: translate3d(100%, 0, 0);
+            }
+            100% {
+                transform: translate3d(-100%, 0, 0);
+            }
         }
         
-        /* Background subtle pulse */
-        .testimonial-fade-in::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(80, 70, 230, 0.02), rgba(158, 122, 255, 0.02));
-            border-radius: 1rem;
-            opacity: 0;
-            transition: opacity 0.4s ease;
-            z-index: -1;
+        @keyframes scroll-right {
+            0% {
+                transform: translate3d(-100%, 0, 0);
+            }
+            100% {
+                transform: translate3d(100%, 0, 0);
+            }
         }
         
-        .testimonial-fade-in:hover::before {
-            opacity: 1;
+        .simple-marquee:hover .simple-marquee-content {
+            animation-play-state: paused;
+        }
+        
+        .testimonial-card {
+            display: inline-block;
+            vertical-align: top;
+            white-space: normal;
+            margin-right: 2rem;
         }
     </style>
     
@@ -400,36 +325,65 @@
             transition: all 0.3s ease;
         }
         
-        /* Magic UI Ripple Effect */
-        .magic-ripple-container {
-            pointer-events: none;
+        /* Ripple Effect */
+        .ripple-container {
             position: absolute;
             inset: 0;
-            user-select: none;
-            mask-image: linear-gradient(to bottom, white, transparent);
-            -webkit-mask-image: linear-gradient(to bottom, white, transparent);
+            overflow: hidden;
         }
-
-        .magic-ripple-circle {
+        
+        .ripple {
             position: absolute;
-            border-radius: 50%;
-            border: 1px solid rgba(34, 197, 94, 0.2);
-            background: rgba(34, 197, 94, 0.05);
-            box-shadow: 0 4px 20px rgba(34, 197, 94, 0.1);
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) scale(1);
-            animation: magicRipple 3s ease-out infinite;
+            transform: translate(-50%, -50%);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 50%;
+            animation: ripple 4s infinite ease-out;
         }
-
-        @keyframes magicRipple {
-            0%, 100% {
-                transform: translate(-50%, -50%) scale(1);
-                opacity: 0.3;
+        
+        .ripple:nth-child(1) {
+            width: 60px;
+            height: 60px;
+            animation-delay: 0s;
+        }
+        
+        .ripple:nth-child(2) {
+            width: 120px;
+            height: 120px;
+            animation-delay: 0.5s;
+        }
+        
+        .ripple:nth-child(3) {
+            width: 180px;
+            height: 180px;
+            animation-delay: 1s;
+        }
+        
+        .ripple:nth-child(4) {
+            width: 240px;
+            height: 240px;
+            animation-delay: 1.5s;
+        }
+        
+        .ripple:nth-child(5) {
+            width: 300px;
+            height: 300px;
+            animation-delay: 2s;
+        }
+        
+        @keyframes ripple {
+            0% {
+                opacity: 0.8;
+                transform: translate(-50%, -50%) scale(0.5);
             }
             50% {
-                transform: translate(-50%, -50%) scale(0.85);
-                opacity: 0.6;
+                opacity: 0.4;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1.5);
             }
         }
         
@@ -451,272 +405,6 @@
                 background-position: 100% 50%;
             }
         }
-
-        /* AnimatedList - Use Cases Animations */
-        .animated-list-item {
-            opacity: 0;
-            transform: translateY(30px) scale(0.95);
-            animation: slideInUp 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-        }
-        
-        @keyframes slideInUp {
-            0% {
-                opacity: 0;
-                transform: translateY(30px) scale(0.95);
-            }
-            50% {
-                opacity: 0.7;
-                transform: translateY(-5px) scale(1.02);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-        
-        /* Enhanced Magic Card for AnimatedList */
-        .animated-list-card {
-            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-            overflow: hidden;
-            position: relative;
-        }
-        
-        .animated-list-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.6s;
-        }
-        
-        .animated-list-card:hover::before {
-            left: 100%;
-        }
-        
-        .animated-list-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        }
-        
-        /* Professional Icon backgrounds */
-        .profession-icon {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-            color: white;
-            transition: all 0.3s ease;
-        }
-        
-        .animated-list-card:hover .profession-icon {
-            transform: scale(1.1);
-        }
-        
-        /* Specific profession colors */
-        .profession-screen { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .profession-merchandise { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-        .profession-embroidery { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-        .profession-large { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
-        .profession-digital { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-        .profession-photo { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
-
-        /* SparklesText Effect */
-        .sparkles-text {
-            position: relative;
-            display: inline-block;
-        }
-        
-        .sparkle {
-            position: absolute;
-            pointer-events: none;
-            z-index: 20;
-            width: 12px;
-            height: 12px;
-            opacity: 0;
-            animation: sparkleAnimation 1.5s infinite ease-in-out;
-        }
-        
-        @keyframes sparkleAnimation {
-            0%, 100% {
-                opacity: 0;
-                transform: scale(0) rotate(0deg);
-            }
-            50% {
-                opacity: 1;
-                transform: scale(1) rotate(180deg);
-            }
-        }
-        
-        .sparkle:nth-child(1) { animation-delay: 0s; }
-        .sparkle:nth-child(2) { animation-delay: 0.3s; }
-        .sparkle:nth-child(3) { animation-delay: 0.6s; }
-        .sparkle:nth-child(4) { animation-delay: 0.9s; }
-        .sparkle:nth-child(5) { animation-delay: 1.2s; }
-        
-        .sparkle-svg {
-            fill: #9E7AFF;
-            filter: drop-shadow(0 0 3px rgba(158, 122, 255, 0.6));
-        }
-        
-        .sparkle-svg.secondary {
-            fill: #FE8BBB;
-            filter: drop-shadow(0 0 3px rgba(254, 139, 187, 0.6));
-        }
-
-        /* Subtle Background Effects */
-        .dot-pattern {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            opacity: 0.1;
-            background-image: radial-gradient(circle at 1px 1px, rgba(139, 92, 246, 0.3) 1px, transparent 0);
-            background-size: 20px 20px;
-            animation: dotFloat 20s ease-in-out infinite;
-        }
-        
-        .retro-grid {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            opacity: 0.05;
-            perspective: 200px;
-            overflow: hidden;
-        }
-        
-        .retro-grid-inner {
-            position: absolute;
-            inset: 0;
-            transform: rotateX(65deg);
-        }
-        
-        .retro-grid-pattern {
-            position: absolute;
-            width: 600vw;
-            height: 300vh;
-            margin-left: -200%;
-            background-image: 
-                linear-gradient(to right, rgba(139, 92, 246, 0.2) 1px, transparent 0),
-                linear-gradient(to bottom, rgba(139, 92, 246, 0.2) 1px, transparent 0);
-            background-size: 60px 60px;
-            background-repeat: repeat;
-            animation: retroGridScroll 30s linear infinite;
-            transform-origin: 100% 0 0;
-        }
-        
-        .retro-grid-gradient {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to top, rgba(255, 255, 255, 1) 0%, transparent 90%);
-        }
-        
-        @keyframes dotFloat {
-            0%, 100% {
-                transform: translateY(0px);
-                opacity: 0.1;
-            }
-            50% {
-                transform: translateY(-10px);
-                opacity: 0.2;
-            }
-        }
-        
-        @keyframes retroGridScroll {
-            0% {
-                transform: translateY(0);
-            }
-            100% {
-                transform: translateY(-60px);
-            }
-        }
-        
-        /* Dark mode adjustments */
-        @media (prefers-color-scheme: dark) {
-            .retro-grid-pattern {
-                background-image: 
-                    linear-gradient(to right, rgba(139, 92, 246, 0.1) 1px, transparent 0),
-                    linear-gradient(to bottom, rgba(139, 92, 246, 0.1) 1px, transparent 0);
-            }
-            
-            .retro-grid-gradient {
-                background: linear-gradient(to top, rgba(0, 0, 0, 1) 0%, transparent 90%);
-            }
-            
-            .dot-pattern {
-                background-image: radial-gradient(circle at 1px 1px, rgba(139, 92, 246, 0.2) 1px, transparent 0);
-            }
-        }
-
-        /* Scroll-based Animations */
-        .scroll-reveal {
-            opacity: 0;
-            transform: translateY(50px);
-            transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-        
-        .scroll-reveal.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        .scroll-reveal-left {
-            opacity: 0;
-            transform: translateX(-50px);
-            transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-        
-        .scroll-reveal-left.visible {
-            opacity: 1;
-            transform: translateX(0);
-        }
-        
-        .scroll-reveal-right {
-            opacity: 0;
-            transform: translateX(50px);
-            transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-        
-        .scroll-reveal-right.visible {
-            opacity: 1;
-            transform: translateX(0);
-        }
-        
-        .scroll-reveal-scale {
-            opacity: 0;
-            transform: scale(0.8);
-            transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-        
-        .scroll-reveal-scale.visible {
-            opacity: 1;
-            transform: scale(1);
-        }
-        
-        /* Parallax Effects */
-        .parallax-slow {
-            transform: translateY(0);
-            transition: transform 0.1s ease-out;
-        }
-        
-        .parallax-medium {
-            transform: translateY(0);
-            transition: transform 0.1s ease-out;
-        }
-        
-        /* Staggered Animation Delays */
-        .scroll-reveal:nth-child(1) { transition-delay: 0s; }
-        .scroll-reveal:nth-child(2) { transition-delay: 0.1s; }
-        .scroll-reveal:nth-child(3) { transition-delay: 0.2s; }
-        .scroll-reveal:nth-child(4) { transition-delay: 0.3s; }
-        .scroll-reveal:nth-child(5) { transition-delay: 0.4s; }
-        .scroll-reveal:nth-child(6) { transition-delay: 0.5s; }
         
         /* Line Shadow Text Animation */
         .line-shadow-text {
@@ -895,9 +583,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="relative pt-32 pb-20 bg-white overflow-hidden">
-        <!-- Subtle Dot Pattern Background -->
-        <div class="dot-pattern"></div>
+    <section class="relative pt-32 pb-20 bg-white">
         <div class="absolute inset-0 bg-grid-pattern opacity-10"></div>
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <!-- Hero Badge -->
@@ -970,14 +656,7 @@
     </section>
 
     <!-- Features Section - BentoGrid -->
-    <section id="features" class="relative py-20 bg-gray-50 overflow-hidden">
-        <!-- Subtle Retro Grid Background -->
-        <div class="retro-grid">
-            <div class="retro-grid-inner">
-                <div class="retro-grid-pattern"></div>
-            </div>
-            <div class="retro-grid-gradient"></div>
-        </div>
+    <section id="features" class="py-20 bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
                 <h2 class="text-4xl md:text-5xl font-bold mb-6">
@@ -1079,8 +758,13 @@
 
                 <!-- Line Tracing with Ripple Effect -->
                 <div class="group relative flex flex-col overflow-hidden rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 h-80">
-                    <!-- Magic UI Ripple Effect Background -->
-                    <div class="magic-ripple-container opacity-30 group-hover:opacity-60 transition-all duration-500" id="magicRippleEffect">
+                    <!-- Ripple Effect Background -->
+                    <div class="ripple-container opacity-20 group-hover:opacity-40 transition-all duration-500">
+                        <div class="ripple"></div>
+                        <div class="ripple"></div>
+                        <div class="ripple"></div>
+                        <div class="ripple"></div>
+                        <div class="ripple"></div>
                     </div>
                     <div class="absolute inset-0 bg-gradient-to-br from-green-500/0 to-emerald-500/0 group-hover:from-green-500/5 group-hover:to-emerald-500/5 transition-all duration-300"></div>
                     <div class="relative z-10 flex flex-col p-8">
@@ -1139,71 +823,52 @@
                 <p class="text-xl text-gray-600">Some of those professions are:</p>
             </div>
             
-            <!-- AnimatedList Implementation -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animated-list-container">
-                <!-- Use Case 1 - Screen Printers -->
-                <div class="animated-list-item animated-list-card magic-card rounded-xl" style="animation-delay: 0.1s;">
-                    <div class="aspect-video profession-icon profession-screen">
-                        🖨️
-                    </div>
-                    <div class="p-6 bg-white">
-                        <h3 class="text-xl font-bold text-center text-gray-900 mb-2">Screen Printers</h3>
-                        <p class="text-gray-600 text-center text-sm">Convert designs to vector format for perfect screen printing results</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Use Case 1 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <div class="aspect-video bg-gray-100"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-center text-gray-900">Screen Printers</h3>
                     </div>
                 </div>
                 
-                <!-- Use Case 2 - Merchandise Printers -->
-                <div class="animated-list-item animated-list-card magic-card rounded-xl" style="animation-delay: 0.2s;">
-                    <div class="aspect-video profession-icon profession-merchandise">
-                        👕
-                    </div>
-                    <div class="p-6 bg-white">
-                        <h3 class="text-xl font-bold text-center text-gray-900 mb-2">Merchandise Printers</h3>
-                        <p class="text-gray-600 text-center text-sm">Create crisp vector graphics for merchandise and promotional items</p>
+                <!-- Use Case 2 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <div class="aspect-video bg-gray-100"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-center text-gray-900">Merchandise Printers</h3>
                     </div>
                 </div>
                 
-                <!-- Use Case 3 - Embroidery -->
-                <div class="animated-list-item animated-list-card magic-card rounded-xl" style="animation-delay: 0.3s;">
-                    <div class="aspect-video profession-icon profession-embroidery">
-                        🧵
-                    </div>
-                    <div class="p-6 bg-white">
-                        <h3 class="text-xl font-bold text-center text-gray-900 mb-2">Embroidery</h3>
-                        <p class="text-gray-600 text-center text-sm">Transform images into embroidery-ready vector patterns</p>
+                <!-- Use Case 3 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <div class="aspect-video bg-gray-100"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-center text-gray-900">Embroidery</h3>
                     </div>
                 </div>
                 
-                <!-- Use Case 4 - Large Format Printers -->
-                <div class="animated-list-item animated-list-card magic-card rounded-xl" style="animation-delay: 0.4s;">
-                    <div class="aspect-video profession-icon profession-large">
-                        🏢
-                    </div>
-                    <div class="p-6 bg-white">
-                        <h3 class="text-xl font-bold text-center text-gray-900 mb-2">Large Format Printers</h3>
-                        <p class="text-gray-600 text-center text-sm">Scale graphics infinitely for banners, billboards, and signage</p>
+                <!-- Use Case 4 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <div class="aspect-video bg-gray-100"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-center text-gray-900">Large Printers</h3>
                     </div>
                 </div>
                 
-                <!-- Use Case 5 - Digital Marketers -->
-                <div class="animated-list-item animated-list-card magic-card rounded-xl" style="animation-delay: 0.5s;">
-                    <div class="aspect-video profession-icon profession-digital">
-                        📱
-                    </div>
-                    <div class="p-6 bg-white">
-                        <h3 class="text-xl font-bold text-center text-gray-900 mb-2">Digital Marketers</h3>
-                        <p class="text-gray-600 text-center text-sm">Create scalable brand assets and logos for all digital platforms</p>
+                <!-- Use Case 5 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <div class="aspect-video bg-gray-100"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-center text-gray-900">Digital Marketers</h3>
                     </div>
                 </div>
                 
-                <!-- Use Case 6 - Photographers -->
-                <div class="animated-list-item animated-list-card magic-card rounded-xl" style="animation-delay: 0.6s;">
-                    <div class="aspect-video profession-icon profession-photo">
-                        📸
-                    </div>
-                    <div class="p-6 bg-white">
-                        <h3 class="text-xl font-bold text-center text-gray-900 mb-2">Photographers</h3>
-                        <p class="text-gray-600 text-center text-sm">Convert photographs to artistic vector illustrations</p>
+                <!-- Use Case 6 -->
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <div class="aspect-video bg-gray-100"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-center text-gray-900">Photographers</h3>
                     </div>
                 </div>
             </div>
@@ -1220,128 +885,382 @@
                 </h2>
             </div>
             
-            <!-- Subtle Testimonials Grid -->
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                <!-- Testimonial Card 1 -->
-                <div class="testimonial-fade-in group relative bg-white p-8 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-500 transform hover:-translate-y-1 border border-gray-100">
-                    <div class="absolute top-4 right-4 text-gray-200 opacity-40 group-hover:opacity-60 transition-opacity duration-300">
-                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h4v10h-10z"/>
-                        </svg>
+            <!-- Magic UI Marquee Component -->
+            <div class="relative flex w-full flex-col items-center justify-center overflow-hidden">
+                <!-- First Row - Normal Direction -->
+                <div class="group flex overflow-hidden p-2 [--duration:40s] [--gap:1rem] [gap:var(--gap)] mb-4">
+                    <div class="flex shrink-0 [gap:var(--gap)] animate-marquee flex-row group-hover:[animation-play-state:paused]">
+                        <!-- Review Card 1 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/jack" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Jack Parker</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@jack</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"VectorCraft is a MUST for any Creative House!!! Really fast processing speed."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 2 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/jill" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Jennifer Smith</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@jill</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Great software for creating vectors before using them on our laser engraver"</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 3 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/john" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Michael Johnson</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@john</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Excellent software for vectorizing images, lets you fine tune how your result will be."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 4 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/jane" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Sarah Brown</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@jane</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Simply the best! I love the vectors I have obtained with this software."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 5 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/james" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">James Taylor</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@james</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"A totally essential tool for screen printing! It's a very simple software to use."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 6 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/jenny" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Emily Davis</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@jenny</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Convert an image to vector graphics in seconds, Amazing! Extremely important for me."</blockquote>
+                        </figure>
                     </div>
-                    <div class="flex items-center mb-6">
-                        <div class="w-12 h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full mr-4 flex items-center justify-center text-white font-semibold shadow-sm group-hover:shadow-md transition-all duration-300">MJ</div>
-                        <div>
-                            <h4 class="font-semibold text-gray-900">Michael Johnson</h4>
-                            <p class="text-gray-500 text-sm">Design Professional</p>
-                        </div>
-                    </div>
-                    <p class="text-gray-700 leading-relaxed">"Excellent software for vectorizing images, lets you <span class="text-primary font-medium">fine tune</span> how your result will be."</p>
-                    <div class="flex text-yellow-400 mt-4 opacity-80">
-                        <span class="text-sm">★★★★★</span>
+                    <!-- Duplicate for seamless loop -->
+                    <div class="flex shrink-0 [gap:var(--gap)] animate-marquee flex-row group-hover:[animation-play-state:paused]">
+                        <!-- Review Card 1 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/jack" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Jack Parker</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@jack</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"VectorCraft is a MUST for any Creative House!!! Really fast processing speed."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 2 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/jill" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Jennifer Smith</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@jill</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Great software for creating vectors before using them on our laser engraver"</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 3 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/john" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Michael Johnson</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@john</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Excellent software for vectorizing images, lets you fine tune how your result will be."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 4 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/jane" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Sarah Brown</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@jane</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Simply the best! I love the vectors I have obtained with this software."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 5 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/james" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">James Taylor</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@james</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"A totally essential tool for screen printing! It's a very simple software to use."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 6 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/jenny" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Emily Davis</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@jenny</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Convert an image to vector graphics in seconds, Amazing! Extremely important for me."</blockquote>
+                        </figure>
                     </div>
                 </div>
-
-                <!-- Testimonial Card 2 -->
-                <div class="testimonial-fade-in group relative bg-white p-8 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-500 transform hover:-translate-y-1 border border-gray-100" style="animation-delay: 0.1s;">
-                    <div class="absolute top-4 right-4 text-gray-200 opacity-40 group-hover:opacity-60 transition-opacity duration-300">
-                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h4v10h-10z"/>
-                        </svg>
+                
+                <!-- Second Row - Reverse Direction -->
+                <div class="group flex overflow-hidden p-2 [--duration:40s] [--gap:1rem] [gap:var(--gap)]">
+                    <div class="flex shrink-0 justify-around [gap:var(--gap)] animate-marquee flex-row group-hover:[animation-play-state:paused] [animation-direction:reverse]">
+                        <!-- Review Card 1 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/david" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">David Wilson</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@david</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Results are excellent, vectorize with a quality that surprises me."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 2 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/alice" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Alice Johnson</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@alice</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Great software! It supports a large number of export formats, especially the SVG and AI."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 3 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/robert" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Robert Chen</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@robert</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"The easiest tool for converting raster images to vector. Simple and intuitive interface."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 4 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/maria" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Maria Garcia</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@maria</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Impressed by the smart outline of nodes that it generates. Extremely important for me."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 5 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/kevin" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Kevin Lee</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@kevin</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"We use it for both standard graphic design but also with our laser engraver and cutter."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 6 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/lisa" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Lisa Martinez</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@lisa</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Has automatic mode for simple pictures and a more advanced one if you need to pick parameters."</blockquote>
+                        </figure>
+                        
+                        <!-- Duplicate cards for seamless scrolling -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/david" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">David Wilson</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@david</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Results are excellent, vectorize with a quality that surprises me."</blockquote>
+                        </figure>
+                        
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/alice" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Alice Johnson</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@alice</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Great software! It supports a large number of export formats, especially the SVG and AI."</blockquote>
+                        </figure>
+                        
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/robert" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Robert Chen</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@robert</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"The easiest tool for converting raster images to vector. Simple and intuitive interface."</blockquote>
+                        </figure>
+                        
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/maria" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Maria Garcia</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@maria</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Impressed by the smart outline of nodes that it generates. Extremely important for me."</blockquote>
+                        </figure>
+                        
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/kevin" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Kevin Lee</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@kevin</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"We use it for both standard graphic design but also with our laser engraver and cutter."</blockquote>
+                        </figure>
+                        
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/lisa" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Lisa Martinez</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@lisa</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Has automatic mode for simple pictures and a more advanced one if you need to pick parameters."</blockquote>
+                        </figure>
                     </div>
-                    <div class="flex items-center mb-6">
-                        <div class="w-12 h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full mr-4 flex items-center justify-center text-white font-semibold shadow-sm group-hover:shadow-md transition-all duration-300">JS</div>
-                        <div>
-                            <h4 class="font-semibold text-gray-900">Jennifer Smith</h4>
-                            <p class="text-gray-500 text-sm">Laser Engraver Owner</p>
-                        </div>
-                    </div>
-                    <p class="text-gray-700 leading-relaxed">"Great software for creating vectors before using them on our <span class="text-primary font-medium">laser engraver</span>."</p>
-                    <div class="flex text-yellow-400 mt-4 opacity-80">
-                        <span class="text-sm">★★★★★</span>
+                    <!-- Duplicate for seamless loop -->
+                    <div class="flex shrink-0 justify-around [gap:var(--gap)] animate-marquee flex-row group-hover:[animation-play-state:paused] [animation-direction:reverse]">
+                        <!-- Review Card 1 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/david" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">David Wilson</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@david</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Results are excellent, vectorize with a quality that surprises me."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 2 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/alice" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Alice Johnson</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@alice</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Great software! It supports a large number of export formats, especially the SVG and AI."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 3 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/robert" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Robert Chen</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@robert</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"The easiest tool for converting raster images to vector. Simple and intuitive interface."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 4 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/maria" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Maria Garcia</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@maria</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Impressed by the smart outline of nodes that it generates. Extremely important for me."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 5 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/kevin" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Kevin Lee</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@kevin</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"We use it for both standard graphic design but also with our laser engraver and cutter."</blockquote>
+                        </figure>
+                        
+                        <!-- Review Card 6 -->
+                        <figure class="relative w-64 cursor-pointer overflow-hidden rounded-xl border p-4 border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05] mr-4">
+                            <div class="flex flex-row items-center gap-2">
+                                <img class="rounded-full" width="32" height="32" alt="" src="https://avatar.vercel.sh/lisa" />
+                                <div class="flex flex-col">
+                                    <figcaption class="text-sm font-medium">Lisa Martinez</figcaption>
+                                    <p class="text-xs font-medium text-gray-500">@lisa</p>
+                                </div>
+                            </div>
+                            <blockquote class="mt-2 text-sm">"Has automatic mode for simple pictures and a more advanced one if you need to pick parameters."</blockquote>
+                        </figure>
                     </div>
                 </div>
-
-                <!-- Testimonial Card 3 -->
-                <div class="testimonial-fade-in group relative bg-white p-8 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-500 transform hover:-translate-y-1 border border-gray-100" style="animation-delay: 0.2s;">
-                    <div class="absolute top-4 right-4 text-gray-200 opacity-40 group-hover:opacity-60 transition-opacity duration-300">
-                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h4v10h-10z"/>
-                        </svg>
-                    </div>
-                    <div class="flex items-center mb-6">
-                        <div class="w-12 h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full mr-4 flex items-center justify-center text-white font-semibold shadow-sm group-hover:shadow-md transition-all duration-300">DW</div>
-                        <div>
-                            <h4 class="font-semibold text-gray-900">David Wilson</h4>
-                            <p class="text-gray-500 text-sm">Creative Director</p>
-                        </div>
-                    </div>
-                    <p class="text-gray-700 leading-relaxed">"VectorCraft is a <span class="text-primary font-medium">MUST</span> for any Creative House!!! Really fast processing speed."</p>
-                    <div class="flex text-yellow-400 mt-4 opacity-80">
-                        <span class="text-sm">★★★★★</span>
-                    </div>
-                </div>
-
-                <!-- Testimonial Card 4 -->
-                <div class="testimonial-fade-in group relative bg-white p-8 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-500 transform hover:-translate-y-1 border border-gray-100" style="animation-delay: 0.3s;">
-                    <div class="absolute top-4 right-4 text-gray-200 opacity-40 group-hover:opacity-60 transition-opacity duration-300">
-                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h4v10h-10z"/>
-                        </svg>
-                    </div>
-                    <div class="flex items-center mb-6">
-                        <div class="w-12 h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full mr-4 flex items-center justify-center text-white font-semibold shadow-sm group-hover:shadow-md transition-all duration-300">SB</div>
-                        <div>
-                            <h4 class="font-semibold text-gray-900">Sarah Brown</h4>
-                            <p class="text-gray-500 text-sm">Digital Artist</p>
-                        </div>
-                    </div>
-                    <p class="text-gray-700 leading-relaxed">"<span class="text-primary font-medium">Simply the best!</span> I love the vectors I have obtained with this software."</p>
-                    <div class="flex text-yellow-400 mt-4 opacity-80">
-                        <span class="text-sm">★★★★★</span>
-                    </div>
-                </div>
-
-                <!-- Testimonial Card 5 -->
-                <div class="testimonial-fade-in group relative bg-white p-8 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-500 transform hover:-translate-y-1 border border-gray-100" style="animation-delay: 0.4s;">
-                    <div class="absolute top-4 right-4 text-gray-200 opacity-40 group-hover:opacity-60 transition-opacity duration-300">
-                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h4v10h-10z"/>
-                        </svg>
-                    </div>
-                    <div class="flex items-center mb-6">
-                        <div class="w-12 h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full mr-4 flex items-center justify-center text-white font-semibold shadow-sm group-hover:shadow-md transition-all duration-300">JT</div>
-                        <div>
-                            <h4 class="font-semibold text-gray-900">James Taylor</h4>
-                            <p class="text-gray-500 text-sm">Screen Printer</p>
-                        </div>
-                    </div>
-                    <p class="text-gray-700 leading-relaxed">"A totally <span class="text-primary font-medium">essential tool</span> for screen printing! Very simple software to use."</p>
-                    <div class="flex text-yellow-400 mt-4 opacity-80">
-                        <span class="text-sm">★★★★★</span>
-                    </div>
-                </div>
-
-                <!-- Testimonial Card 6 -->
-                <div class="testimonial-fade-in group relative bg-white p-8 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-500 transform hover:-translate-y-1 border border-gray-100" style="animation-delay: 0.5s;">
-                    <div class="absolute top-4 right-4 text-gray-200 opacity-40 group-hover:opacity-60 transition-opacity duration-300">
-                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h4v10h-10z"/>
-                        </svg>
-                    </div>
-                    <div class="flex items-center mb-6">
-                        <div class="w-12 h-12 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full mr-4 flex items-center justify-center text-white font-semibold shadow-sm group-hover:shadow-md transition-all duration-300">ED</div>
-                        <div>
-                            <h4 class="font-semibold text-gray-900">Emily Davis</h4>
-                            <p class="text-gray-500 text-sm">Graphic Designer</p>
-                        </div>
-                    </div>
-                    <p class="text-gray-700 leading-relaxed">"Convert an image to vector graphics in <span class="text-primary font-medium">seconds</span>. Amazing! Extremely important for me."</p>
-                    <div class="flex text-yellow-400 mt-4 opacity-80">
-                        <span class="text-sm">★★★★★</span>
-                    </div>
-                </div>
-            </div>        </div>
+                
+                <!-- Gradient overlays -->
+                <div class="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-gray-50"></div>
+                <div class="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-gray-50"></div>
+            </div>
+        </div>
     </section>
 
     <!-- Pricing/CTA Section -->
@@ -1386,20 +1305,20 @@
                 </h2>
             </div>
             
-            <div class="space-y-1 max-w-3xl mx-auto">
+            <div class="space-y-4">
                 <!-- FAQ 1 -->
-                <div class="border-b border-gray-200">
-                    <button class="w-full py-6 px-4 text-left focus:outline-none" onclick="toggleFAQ(this)">
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <button class="w-full p-6 text-left focus:outline-none" onclick="toggleFAQ(this)">
                         <div class="flex justify-between items-center">
-                            <h3 class="text-lg font-medium text-gray-900">
-                                Does VectorCraft work with Windows and Mac (OSX)?
+                            <h3 class="text-lg font-semibold">
+                                <span class="gradient-text">Does VectorCraft work with Windows and Mac (OSX)?</span>
                             </h3>
-                            <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-6 h-6 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </div>
                     </button>
-                    <div class="hidden pb-6 px-4">
+                    <div class="hidden px-6 pb-6">
                         <p class="text-gray-600">
                             Yes, VectorCraft is fully compatible with both Windows and Mac operating systems. The software has been designed to run smoothly on Windows 10 and 11, as well as macOS 10.14 (Mojave) and newer versions.
                         </p>
@@ -1407,18 +1326,18 @@
                 </div>
                 
                 <!-- FAQ 2 -->
-                <div class="border-b border-gray-200">
-                    <button class="w-full py-6 px-4 text-left focus:outline-none" onclick="toggleFAQ(this)">
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <button class="w-full p-6 text-left focus:outline-none" onclick="toggleFAQ(this)">
                         <div class="flex justify-between items-center">
-                            <h3 class="text-lg font-medium text-gray-900">
-                                Why Use Vector Images?
+                            <h3 class="text-lg font-semibold">
+                                <span class="gradient-text">Why Use Vector Images?</span>
                             </h3>
-                            <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-6 h-6 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </div>
                     </button>
-                    <div class="hidden pb-6 px-4">
+                    <div class="hidden px-6 pb-6">
                         <p class="text-gray-600">
                             Vector images are scalable graphics that maintain quality at any size, unlike raster images which become pixelated when enlarged. This makes vector images ideal for printing in various sizes, from business cards to large banners, without any loss in quality.
                         </p>
@@ -1426,18 +1345,18 @@
                 </div>
                 
                 <!-- FAQ 3 -->
-                <div class="border-b border-gray-200">
-                    <button class="w-full py-6 px-4 text-left focus:outline-none" onclick="toggleFAQ(this)">
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <button class="w-full p-6 text-left focus:outline-none" onclick="toggleFAQ(this)">
                         <div class="flex justify-between items-center">
-                            <h3 class="text-lg font-medium text-gray-900">
-                                Do I get free updates and support?
+                            <h3 class="text-lg font-semibold">
+                                <span class="gradient-text">Do I get free updates and support?</span>
                             </h3>
-                            <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-6 h-6 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </div>
                     </button>
-                    <div class="hidden pb-6 px-4">
+                    <div class="hidden px-6 pb-6">
                         <p class="text-gray-600">
                             Absolutely! Your one-time purchase comes with lifetime updates to the software and unlimited access to our customer support team. Whenever we release new features or improvements, you'll get them at no additional cost.
                         </p>
@@ -1445,18 +1364,18 @@
                 </div>
                 
                 <!-- FAQ 4 -->
-                <div class="border-b border-gray-200">
-                    <button class="w-full py-6 px-4 text-left focus:outline-none" onclick="toggleFAQ(this)">
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <button class="w-full p-6 text-left focus:outline-none" onclick="toggleFAQ(this)">
                         <div class="flex justify-between items-center">
-                            <h3 class="text-lg font-medium text-gray-900">
-                                What File Formats Are Supported?
+                            <h3 class="text-lg font-semibold">
+                                <span class="gradient-text">What File Formats Are Supported?</span>
                             </h3>
-                            <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-6 h-6 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </div>
                     </button>
-                    <div class="hidden pb-6 px-4">
+                    <div class="hidden px-6 pb-6">
                         <p class="text-gray-600">
                             VectorCraft supports a wide range of file formats. For input, you can use JPG, PNG, GIF, BMP, and TIFF. For output, VectorCraft provides industry-standard vector formats including SVG, EPS, PDF, and AI compatible files, giving you maximum flexibility for your projects.
                         </p>
@@ -1464,18 +1383,18 @@
                 </div>
                 
                 <!-- FAQ 5 -->
-                <div class="border-b border-gray-200">
-                    <button class="w-full py-6 px-4 text-left focus:outline-none" onclick="toggleFAQ(this)">
+                <div class="magic-card rounded-xl overflow-hidden">
+                    <button class="w-full p-6 text-left focus:outline-none" onclick="toggleFAQ(this)">
                         <div class="flex justify-between items-center">
-                            <h3 class="text-lg font-medium text-gray-900">
-                                Do I have to pay any other fees?
+                            <h3 class="text-lg font-semibold">
+                                <span class="gradient-text">Do I have to pay any other fees?</span>
                             </h3>
-                            <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-6 h-6 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </div>
                     </button>
-                    <div class="hidden pb-6 px-4">
+                    <div class="hidden px-6 pb-6">
                         <p class="text-gray-600">
                             No, there are absolutely no hidden fees or subscription costs. Your one-time payment of $49 gives you lifetime access to VectorCraft with all future updates included. This is a limited-time offer, as the regular price is $295.
                         </p>
@@ -1507,232 +1426,6 @@
             content.classList.toggle('hidden');
             icon.classList.toggle('rotate-180');
         }
-
-        // Magic UI Ripple Effect Generator
-        function createMagicRipple(options = {}) {
-            const {
-                mainCircleSize = 180,
-                mainCircleOpacity = 0.3,
-                numCircles = 6,
-                containerId = 'magicRippleEffect'
-            } = options;
-
-            const container = document.getElementById(containerId);
-            if (!container) return;
-
-            // Clear existing ripples
-            container.innerHTML = '';
-
-            // Create ripple circles
-            for (let i = 0; i < numCircles; i++) {
-                const circle = document.createElement('div');
-                circle.className = 'magic-ripple-circle';
-                
-                const size = mainCircleSize + i * 50;
-                const opacity = Math.max(0.1, mainCircleOpacity - i * 0.04);
-                const animationDelay = `${i * 0.5}s`;
-                
-                circle.style.width = `${size}px`;
-                circle.style.height = `${size}px`;
-                circle.style.opacity = opacity;
-                circle.style.animationDelay = animationDelay;
-                
-                container.appendChild(circle);
-            }
-        }
-
-        // Initialize Magic UI Ripple effect when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            createMagicRipple();
-            initializeSparklesText();
-            initializeScrollAnimations();
-            initializeParallaxEffects();
-        });
-
-        // SparklesText Effect Generator
-        function createSparkle(container, x, y, isSecondary = false) {
-            const sparkle = document.createElement('div');
-            sparkle.className = 'sparkle';
-            sparkle.style.left = x + '%';
-            sparkle.style.top = y + '%';
-            
-            sparkle.innerHTML = `
-                <svg width="12" height="12" viewBox="0 0 21 21" class="sparkle-svg ${isSecondary ? 'secondary' : ''}">
-                    <path d="M9.82531 0.843845C10.0553 0.215178 10.9446 0.215178 11.1746 0.843845L11.8618 2.72026C12.4006 4.19229 12.3916 6.39157 13.5 7.5C14.6084 8.60843 16.8077 8.59935 18.2797 9.13822L20.1561 9.82534C20.7858 10.0553 20.7858 10.9447 20.1561 11.1747L18.2797 11.8618C16.8077 12.4007 14.6084 12.3916 13.5 13.5C12.3916 14.6084 12.4006 16.8077 11.8618 18.2798L11.1746 20.1562C10.9446 20.7858 10.0553 20.7858 9.82531 20.1562L9.13819 18.2798C8.59932 16.8077 8.60843 14.6084 7.5 13.5C6.39157 12.3916 4.19225 12.4007 2.72023 11.8618L0.843814 11.1747C0.215148 10.9447 0.215148 10.0553 0.843814 9.82534L2.72023 9.13822C4.19225 8.59935 6.39157 8.60843 7.5 7.5C8.60843 6.39157 8.59932 4.19229 9.13819 2.72026L9.82531 0.843845Z"/>
-                </svg>
-            `;
-            
-            container.appendChild(sparkle);
-            
-            // Remove sparkle after animation completes
-            setTimeout(() => {
-                if (sparkle.parentNode) {
-                    sparkle.parentNode.removeChild(sparkle);
-                }
-            }, 1500);
-        }
-
-        function addSparkles(element, sparkleCount = 3) {
-            if (!element.classList.contains('sparkles-text')) {
-                element.classList.add('sparkles-text');
-            }
-            
-            // Generate sparkles at random positions
-            for (let i = 0; i < sparkleCount; i++) {
-                const x = Math.random() * 100;
-                const y = Math.random() * 100;
-                const isSecondary = Math.random() > 0.5;
-                
-                setTimeout(() => {
-                    createSparkle(element, x, y, isSecondary);
-                }, i * 500);
-            }
-        }
-
-        function initializeSparklesText() {
-            // Add sparkles to key terms
-            const keyTerms = [
-                'VectorCraft',
-                'AI-powered',
-                'professional',
-                'LIFETIME LICENSE',
-                'instant',
-                'perfect',
-                'amazing'
-            ];
-            
-            // Find and enhance elements containing key terms
-            keyTerms.forEach(term => {
-                const elements = document.querySelectorAll('h1, h2, h3, .gradient-text, .text-primary');
-                elements.forEach(el => {
-                    if (el.textContent && el.textContent.includes(term) && !el.classList.contains('sparkles-enhanced')) {
-                        el.classList.add('sparkles-enhanced');
-                        
-                        // Add periodic sparkles
-                        const sparkleInterval = setInterval(() => {
-                            if (document.contains(el)) {
-                                addSparkles(el, 2);
-                            } else {
-                                clearInterval(sparkleInterval);
-                            }
-                        }, 3000 + Math.random() * 2000); // Random interval between 3-5 seconds
-                    }
-                });
-            });
-        }
-
-        // Scroll-based Animations
-        function initializeScrollAnimations() {
-            // Create intersection observer for scroll reveals
-            const observerOptions = {
-                threshold: 0.1,
-                rootMargin: '0px 0px -50px 0px'
-            };
-
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('visible');
-                    }
-                });
-            }, observerOptions);
-
-            // Add scroll reveal classes to elements and observe them
-            const elementsToReveal = [
-                // Features section cards
-                ...document.querySelectorAll('#features .group'),
-                // Use cases cards
-                ...document.querySelectorAll('#use-cases .animated-list-item'),
-                // FAQ items
-                ...document.querySelectorAll('.faq-item'),
-                // Testimonial cards
-                ...document.querySelectorAll('.testimonial-fade-in'),
-                // Section headings
-                ...document.querySelectorAll('h2, h3'),
-                // CTA sections
-                ...document.querySelectorAll('.magic-card')
-            ];
-
-            elementsToReveal.forEach((element, index) => {
-                // Add appropriate scroll reveal class based on position
-                if (index % 3 === 0) {
-                    element.classList.add('scroll-reveal-left');
-                } else if (index % 3 === 1) {
-                    element.classList.add('scroll-reveal');
-                } else {
-                    element.classList.add('scroll-reveal-right');
-                }
-                
-                observer.observe(element);
-            });
-
-            // Observe video section with scale animation
-            const videoSection = document.querySelector('.aspect-video');
-            if (videoSection) {
-                videoSection.classList.add('scroll-reveal-scale');
-                observer.observe(videoSection);
-            }
-        }
-
-        // Parallax Effects
-        function initializeParallaxEffects() {
-            const parallaxElements = {
-                slow: document.querySelectorAll('.parallax-slow'),
-                medium: document.querySelectorAll('.parallax-medium')
-            };
-
-            function updateParallax() {
-                const scrolled = window.pageYOffset;
-                const rate = scrolled * -0.5;
-                const rateM = scrolled * -0.3;
-
-                parallaxElements.slow.forEach(element => {
-                    element.style.transform = `translateY(${rate}px)`;
-                });
-
-                parallaxElements.medium.forEach(element => {
-                    element.style.transform = `translateY(${rateM}px)`;
-                });
-            }
-
-            // Throttle scroll events for better performance
-            let ticking = false;
-            function requestTick() {
-                if (!ticking) {
-                    requestAnimationFrame(updateParallax);
-                    ticking = true;
-                    setTimeout(() => { ticking = false; }, 16);
-                }
-            }
-
-            window.addEventListener('scroll', requestTick);
-        }
-
-        // Add scroll progress indicator
-        function createScrollProgress() {
-            const progressBar = document.createElement('div');
-            progressBar.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 0%;
-                height: 3px;
-                background: linear-gradient(90deg, #5046e6, #9E7AFF);
-                z-index: 9999;
-                transition: width 0.1s ease;
-            `;
-            document.body.appendChild(progressBar);
-
-            window.addEventListener('scroll', () => {
-                const scrollPercent = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
-                progressBar.style.width = scrollPercent + '%';
-            });
-        }
-
-        // Initialize scroll progress
-        document.addEventListener('DOMContentLoaded', () => {
-            createScrollProgress();
-        });
         
         // Smooth scrolling for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
