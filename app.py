@@ -21,6 +21,8 @@ from flask_wtf.file import FileField, FileRequired, FileAllowed
 from wtforms import StringField, PasswordField, SelectField, HiddenField, SubmitField
 from wtforms.validators import DataRequired, Email, Length, ValidationError
 from werkzeug.utils import secure_filename
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import base64
 from io import BytesIO
 from PIL import Image
@@ -30,6 +32,7 @@ from database import db
 from services.email_service import email_service
 from services.paypal_service import paypal_service
 from services.monitoring import health_monitor, system_logger, alert_manager
+from services.security_service import security_service
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -41,8 +44,22 @@ app.config['RESULTS_FOLDER'] = 'results'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour CSRF token lifetime
 
+# Session security configuration
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_ENV') == 'production'  # HTTPS only in production
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # No JavaScript access
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
+app.config['PERMANENT_SESSION_LIFETIME'] = int(os.getenv('SESSION_TIMEOUT', 3600))  # 1 hour default
+
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
+
+# Initialize rate limiter
+limiter = Limiter(
+    app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
 
 # Configure structured logging
 logging.basicConfig(
@@ -83,6 +100,39 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access VectorCraft.'
 login_manager.login_message_category = 'info'
+
+# Session timeout and security handling
+@app.before_request
+def before_request():
+    """Handle session timeout and security checks"""
+    # Make session permanent to use PERMANENT_SESSION_LIFETIME
+    session.permanent = True
+    
+    # Check if session should expire
+    if 'last_activity' in session:
+        last_activity = datetime.fromisoformat(session['last_activity'])
+        if datetime.now() - last_activity > timedelta(seconds=app.config['PERMANENT_SESSION_LIFETIME']):
+            session.clear()
+            flash('Session expired. Please log in again.', 'warning')
+            return redirect(url_for('login'))
+    
+    # Update last activity timestamp
+    session['last_activity'] = datetime.now().isoformat()
+    
+    # Basic security headers
+    @app.after_request
+    def after_request(response):
+        # Security headers
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        
+        # Add CSP header
+        if os.getenv('FLASK_ENV') == 'production':
+            response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'"
+        
+        return response
 
 # Create directories
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -257,6 +307,7 @@ def vectorcraft_app():
     return render_template('index.html')
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
 def login():
     """Login page with rate limiting and CSRF protection"""
     if current_user.is_authenticated:
@@ -455,6 +506,7 @@ def generate_palette_preview():
 
 @app.route('/api/vectorize', methods=['POST'])
 @login_required
+@limiter.limit("30 per hour")
 def vectorize_image():
     try:
         # Validate file upload
@@ -467,22 +519,28 @@ def vectorize_image():
             logger.warning(f"Empty filename in vectorize request from {current_user.username}")
             return jsonify({'error': 'No file selected'}), 400
         
-        # Sanitize filename
-        filename = sanitize_filename(file.filename)
-        if not filename:
-            logger.warning(f"Invalid file type uploaded by {current_user.username}: {file.filename}")
-            return jsonify({'error': 'Invalid file type. Supported: PNG, JPG, GIF, BMP, TIFF'}), 400
+        # Save uploaded file temporarily for security validation
+        temp_upload_path = os.path.join(app.config['UPLOAD_FOLDER'], f"temp_{uuid.uuid4().hex}_{secure_filename(file.filename)}")
+        file.save(temp_upload_path)
         
-        # Validate file size
-        file.seek(0, 2)  # Seek to end
-        file_size = file.tell()
-        file.seek(0)  # Reset to beginning
+        # Comprehensive security validation and sanitization
+        is_valid, sanitized_path, error_message = security_service.validate_and_sanitize_upload(
+            temp_upload_path, file.filename
+        )
         
-        if file_size > app.config['MAX_CONTENT_LENGTH']:
-            logger.warning(f"File too large uploaded by {current_user.username}: {file_size} bytes")
-            return jsonify({'error': 'File too large. Maximum size is 16MB.'}), 413
+        if not is_valid:
+            # Remove temporary file
+            if os.path.exists(temp_upload_path):
+                os.remove(temp_upload_path)
+            logger.warning(f"File upload failed security validation for {current_user.username}: {error_message}")
+            return jsonify({'error': f'File upload failed security validation: {error_message}'}), 400
+        
+        # Use sanitized file and secure filename
+        filename = secure_filename(file.filename)
+        upload_path = sanitized_path
         
         # Log vectorization start
+        file_size = os.path.getsize(upload_path)
         system_logger.info('vectorization', f'Vectorization started by {current_user.username}',
                           user_email=current_user.email, 
                           details={'filename': filename, 'file_size': file_size})
@@ -815,6 +873,7 @@ def buy_now():
     return render_template('buy.html')
 
 @app.route('/api/create-paypal-order', methods=['POST'])
+@limiter.limit("5 per minute")
 def create_paypal_order():
     """Create PayPal order for VectorCraft purchase"""
     transaction_id = None
@@ -896,6 +955,7 @@ def create_paypal_order():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/capture-paypal-order', methods=['POST'])
+@limiter.limit("10 per minute")
 def capture_paypal_order():
     """Capture PayPal payment and create user account"""
     transaction_id = None
@@ -1184,6 +1244,7 @@ def health_check():
 # Admin Dashboard Routes
 @app.route('/admin')
 @admin_required
+@limiter.limit("60 per hour")
 def admin_dashboard():
     """Admin dashboard overview"""
     try:
@@ -1224,6 +1285,7 @@ def admin_dashboard():
 
 @app.route('/admin/api/health')
 @admin_required
+@limiter.limit("120 per hour")
 def admin_api_health():
     """API endpoint for system health status"""
     try:
@@ -1414,7 +1476,7 @@ if __name__ == '__main__':
     logger.info("Health check: http://localhost:8080/health")
     
     if debug_mode:
-        logger.info("Login with demo credentials: admin/admin123 or demo/demo123")
+        logger.info("Debug mode enabled - check environment variables for admin credentials")
     
     logger.info("Convert any image to a crisp, scalable vector!")
     logger.info("Press Ctrl+C to stop the server")

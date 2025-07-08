@@ -129,19 +129,24 @@ VectorCraft/
 # Email (GoDaddy SMTP) - CONFIGURED & WORKING
 SMTP_SERVER=smtpout.secureserver.net
 SMTP_PORT=587
-SMTP_USERNAME=support@thevectorcraft.com
-SMTP_PASSWORD=Ankish@its123
-FROM_EMAIL=support@thevectorcraft.com
-ADMIN_EMAIL=support@thevectorcraft.com
+SMTP_USERNAME=your-email@domain.com
+SMTP_PASSWORD=your-secure-password
+FROM_EMAIL=your-email@domain.com
+ADMIN_EMAIL=admin@domain.com
 
 # PayPal (LIVE) - CONFIGURED & WORKING
-PAYPAL_CLIENT_ID=AdFVX9rnR-x6kPBU5A5jsMq-TmYNhocBLkAaH1M3Y6OtWD4lAVfKhd28AcW2KTP-b1fSXyr8ge3VUX2R
-PAYPAL_CLIENT_SECRET=EImO1cRvNPTK9C8Oq2fqHDHxGhu7VTPw-a3O9zaV9ynx_X3qz5GDcNCDBaCc08F_wv2BgC8_hiKUxDPA
+PAYPAL_CLIENT_ID=your-paypal-client-id
+PAYPAL_CLIENT_SECRET=your-paypal-client-secret
 PAYPAL_ENVIRONMENT=live
 
 # Application - CONFIGURED
-DOMAIN_URL=http://localhost:8080
+DOMAIN_URL=https://yourdomain.com
 FLASK_ENV=production
+
+# Admin Configuration
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=your-secure-admin-password
+ADMIN_EMAIL=admin@yourdomain.com
 ```
 
 ## Current Deployment Status ✅
@@ -156,7 +161,7 @@ FLASK_ENV=production
 ### Access URLs (Development)
 - **Main App**: http://localhost:8080
 - **Admin Dashboard**: http://localhost:8080/admin
-- **Login**: admin / admin123
+- **Login**: Set via ADMIN_USERNAME and ADMIN_PASSWORD environment variables
 - **Health Check**: http://localhost:8080/health
 
 ### System Health Status ✅

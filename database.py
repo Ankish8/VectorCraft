@@ -140,14 +140,18 @@ class Database:
         self.create_default_users()
     
     def create_default_users(self):
-        """Create default users for demo purposes"""
-        if not self.get_user_by_username('admin'):
-            self.create_user('admin', 'admin@vectorcraft.com', 'admin123')
-            self.logger.info("Created default admin user (admin/admin123)")
-            
-        if not self.get_user_by_username('demo'):
-            self.create_user('demo', 'demo@vectorcraft.com', 'demo123')
-            self.logger.info("Created demo user (demo/demo123)")
+        """Create default admin user with secure credentials from environment"""
+        admin_username = os.getenv('ADMIN_USERNAME', 'admin')
+        admin_email = os.getenv('ADMIN_EMAIL', 'admin@vectorcraft.com')
+        admin_password = os.getenv('ADMIN_PASSWORD')
+        
+        # Only create admin if it doesn't exist and password is provided
+        if not self.get_user_by_username(admin_username) and admin_password:
+            self.create_user(admin_username, admin_email, admin_password)
+            self.logger.info(f"Created default admin user ({admin_username})")
+        elif not admin_password:
+            self.logger.warning("ADMIN_PASSWORD environment variable not set - admin user not created")
+            self.logger.warning("Set ADMIN_PASSWORD environment variable to create admin user")
     
     def hash_password(self, password):
         """Hash password using bcrypt"""
@@ -464,11 +468,15 @@ if __name__ == '__main__':
     logger.info("Testing VectorCraft Database...")
     logger.info(f"Database file: {db.db_path}")
     
-    # Test authentication
-    user = db.authenticate_user('admin', 'admin123')
+    # Test database initialization
+    logger.info("Database initialization complete")
+    
+    # Check if admin user exists
+    admin_username = os.getenv('ADMIN_USERNAME', 'admin')
+    user = db.get_user_by_username(admin_username)
     if user:
-        logger.info(f"Authentication successful for: {user['username']}")
+        logger.info(f"Admin user exists: {user['username']}")
         logger.info(f"   Email: {user['email']}")
         logger.info(f"   Created: {user['created_at']}")
     else:
-        logger.error("Authentication failed")
+        logger.warning("No admin user found. Set ADMIN_PASSWORD environment variable to create one.")

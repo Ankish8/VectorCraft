@@ -18,3 +18,5 @@ werkzeug>=2.0.0
 python-dotenv>=0.19.0
 vtracer>=0.6.0
 bcrypt>=3.2.0
+python-magic>=0.4.24
+flask-limiter>=2.1.0

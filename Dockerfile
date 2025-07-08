@@ -4,7 +4,7 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including Rust for VTracer
+# Install system dependencies including Rust for VTracer and security tools
 RUN apt-get update && apt-get install -y \
     build-essential \
     pkg-config \
@@ -18,7 +18,14 @@ RUN apt-get update && apt-get install -y \
     libwebp-dev \
     libopencv-dev \
     curl \
+    libmagic1 \
+    file \
+    clamav \
+    clamav-daemon \
     && rm -rf /var/lib/apt/lists/*
+
+# Update ClamAV virus definitions
+RUN freshclam --quiet || true
 
 # Note: VTracer installation requires Rust compilation which is slow
 # For now, the app will work without VTracer (using fallback strategies)
@@ -69,14 +76,12 @@ ENV FLASK_APP=app.py
 ENV FLASK_ENV=production
 ENV PYTHONPATH=/app
 
-# Email configuration
+# Email configuration - Use environment variables for security
+# These should be set at runtime, not in the Dockerfile
 ENV SMTP_SERVER=smtpout.secureserver.net
 ENV SMTP_PORT=587
-ENV SMTP_USERNAME=support@thevectorcraft.com
-ENV SMTP_PASSWORD=Ankish@its123
-ENV FROM_EMAIL=support@thevectorcraft.com
-ENV ADMIN_EMAIL=support@thevectorcraft.com
-ENV DOMAIN_URL=http://localhost:8080
+# SMTP credentials and other sensitive data must be provided at runtime
+# via docker run -e SMTP_USERNAME=... -e SMTP_PASSWORD=... etc.
 
 # Use entrypoint script that ensures VTracer is available
 ENTRYPOINT ["/app/entrypoint.sh"]
