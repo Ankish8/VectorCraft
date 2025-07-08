@@ -8,11 +8,13 @@ import sqlite3
 import hashlib
 import secrets
 import os
+import logging
 from datetime import datetime
 from pathlib import Path
 
 class Database:
     def __init__(self, db_path=None):
+        self.logger = logging.getLogger(__name__)
         # Use data directory for persistent database storage in Docker
         if db_path is None:
             db_path = '/app/data/vectorcraft.db' if os.path.exists('/app/data') else 'vectorcraft.db'
@@ -21,6 +23,16 @@ class Database:
         if '/app/data/' in self.db_path:
             os.makedirs('/app/data', exist_ok=True)
         self.init_database()
+    
+    @contextmanager
+    def get_db_connection(self):
+        """Context manager for database connections"""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        try:
+            yield conn
+        finally:
+            conn.close()
     
     def init_database(self):
         """Initialize the database with required tables"""
@@ -131,27 +143,25 @@ class Database:
         """Create default users for demo purposes"""
         if not self.get_user_by_username('admin'):
             self.create_user('admin', 'admin@vectorcraft.com', 'admin123')
-            print("✅ Created default admin user (admin/admin123)")
+            self.logger.info("Created default admin user (admin/admin123)")
             
         if not self.get_user_by_username('demo'):
             self.create_user('demo', 'demo@vectorcraft.com', 'demo123')
-            print("✅ Created demo user (demo/demo123)")
+            self.logger.info("Created demo user (demo/demo123)")
     
-    def hash_password(self, password, salt=None):
-        """Hash password with salt"""
-        if salt is None:
-            salt = secrets.token_hex(16)
-        
-        # Use SHA-256 with salt
-        password_hash = hashlib.sha256((password + salt).encode()).hexdigest()
-        return password_hash, salt
+    def hash_password(self, password):
+        """Hash password using bcrypt"""
+        # Generate salt and hash password
+        salt = bcrypt.gensalt()
+        password_hash = bcrypt.hashpw(password.encode('utf-8'), salt)
+        return password_hash.decode('utf-8'), salt.decode('utf-8')
     
     def create_user(self, username, email, password):
         """Create a new user and return user ID"""
         password_hash, salt = self.hash_password(password)
         
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with self.get_db_connection() as conn:
                 cursor = conn.execute('''
                     INSERT INTO users (username, email, password_hash, salt)
                     VALUES (?, ?, ?, ?)
@@ -159,21 +169,20 @@ class Database:
                 conn.commit()
                 return cursor.lastrowid
         except sqlite3.IntegrityError as e:
-            print(f"❌ Database IntegrityError: {e}")
+            self.logger.error(f"Database IntegrityError: {e}")
             return None
         except Exception as e:
-            print(f"❌ Database Error: {e}")
+            self.logger.error(f"Database Error: {e}")
             return None
     
-    def verify_password(self, password, stored_hash, salt):
-        """Verify password against stored hash"""
-        password_hash, _ = self.hash_password(password, salt)
-        return password_hash == stored_hash
+    def verify_password(self, password, stored_hash):
+        """Verify password against stored hash using bcrypt"""
+        return bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8'))
     
     def authenticate_user(self, username, password):
         """Authenticate user credentials"""
         user = self.get_user_by_username(username)
-        if user and self.verify_password(password, user['password_hash'], user['salt']):
+        if user and self.verify_password(password, user['password_hash']):
             # Update last login
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute('''
@@ -451,14 +460,15 @@ db = Database()
 
 if __name__ == '__main__':
     # Test the database
-    print("🗄️ Testing VectorCraft Database...")
-    print(f"Database file: {db.db_path}")
+    logger = logging.getLogger(__name__)
+    logger.info("Testing VectorCraft Database...")
+    logger.info(f"Database file: {db.db_path}")
     
     # Test authentication
     user = db.authenticate_user('admin', 'admin123')
     if user:
-        print(f"✅ Authentication successful for: {user['username']}")
-        print(f"   Email: {user['email']}")
-        print(f"   Created: {user['created_at']}")
+        logger.info(f"Authentication successful for: {user['username']}")
+        logger.info(f"   Email: {user['email']}")
+        logger.info(f"   Created: {user['created_at']}")
     else:
-        print("❌ Authentication failed")
+        logger.error("Authentication failed")

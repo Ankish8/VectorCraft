@@ -6,6 +6,7 @@ Handles email delivery using GoDaddy SMTP
 
 import smtplib
 import os
+import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
@@ -20,6 +21,7 @@ class EmailService:
     """Email service using GoDaddy SMTP configuration"""
     
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
         # GoDaddy SMTP settings - try both ports
         self.smtp_server = "smtpout.secureserver.net"
         self.smtp_port_ssl = 465  # SSL
@@ -30,11 +32,11 @@ class EmailService:
         self.domain_url = os.getenv('DOMAIN_URL', 'http://localhost:8080')
         
         if not self.smtp_username or not self.smtp_password:
-            print("⚠️  SMTP credentials not configured. Email sending will be simulated.")
+            self.logger.warning("SMTP credentials not configured. Email sending will be simulated.")
             self.enabled = False
         else:
-            print(f"📧 Email service configured: {self.from_email}")
-            print("📧 If SMTP fails, emails will be simulated with console output")
+            self.logger.info(f"Email service configured: {self.from_email}")
+            self.logger.info("If SMTP fails, emails will be simulated with console output")
             self.enabled = True
     
     def _create_message(self, to_email, subject, body_text, body_html=None):
@@ -58,18 +60,18 @@ class EmailService:
     def _send_email(self, message):
         """Send email via SMTP"""
         if not self.enabled:
-            print("📧 SMTP not configured - simulating email send:")
-            print(f"TO: {message['To']}")
-            print(f"SUBJECT: {message['Subject']}")
-            print("BODY:")
-            print(message.get_payload()[0].get_payload())
-            print("-" * 50)
+            self.logger.info("SMTP not configured - simulating email send:")
+            self.logger.info(f"TO: {message['To']}")
+            self.logger.info(f"SUBJECT: {message['Subject']}")
+            self.logger.info("BODY:")
+            self.logger.info(message.get_payload()[0].get_payload())
+            self.logger.info("-" * 50)
             return True
         
         # Try STARTTLS first (port 587), then SSL (port 465)
         for port, use_ssl in [(self.smtp_port_tls, False), (self.smtp_port_ssl, True)]:
             try:
-                print(f"🔄 Trying {self.smtp_server}:{port} {'(SSL)' if use_ssl else '(STARTTLS)'}")
+                self.logger.debug(f"Trying {self.smtp_server}:{port} {'(SSL)' if use_ssl else '(STARTTLS)'}")
                 
                 if use_ssl:
                     # Connect with SSL
@@ -81,31 +83,31 @@ class EmailService:
                 
                 with server:
                     server.set_debuglevel(0)  # Disable debug for cleaner output
-                    print(f"🔐 Logging in as {self.smtp_username}")
+                    self.logger.debug(f"Logging in as {self.smtp_username}")
                     server.login(self.smtp_username, self.smtp_password)
                     
                     text = message.as_string()
                     server.sendmail(self.from_email, message['To'], text)
-                    print(f"✅ Email sent successfully to {message['To']} via port {port}")
+                    self.logger.info(f"Email sent successfully to {message['To']} via port {port}")
                     return True
                     
             except smtplib.SMTPAuthenticationError as e:
-                print(f"❌ Authentication failed on port {port}: {str(e)}")
+                self.logger.error(f"Authentication failed on port {port}: {str(e)}")
                 continue
             except smtplib.SMTPConnectError as e:
-                print(f"❌ Connection failed on port {port}: {str(e)}")
+                self.logger.error(f"Connection failed on port {port}: {str(e)}")
                 continue
             except Exception as e:
-                print(f"❌ Failed on port {port}: {str(e)}")
+                self.logger.error(f"Failed on port {port}: {str(e)}")
                 continue
         
-        print(f"❌ All SMTP connection attempts failed for {message['To']}")
-        print("📧 Falling back to email simulation:")
-        print(f"TO: {message['To']}")
-        print(f"SUBJECT: {message['Subject']}")
-        print("BODY:")
-        print(message.get_payload()[0].get_payload())
-        print("-" * 50)
+        self.logger.error(f"All SMTP connection attempts failed for {message['To']}")
+        self.logger.info("Falling back to email simulation:")
+        self.logger.info(f"TO: {message['To']}")
+        self.logger.info(f"SUBJECT: {message['Subject']}")
+        self.logger.info("BODY:")
+        self.logger.info(message.get_payload()[0].get_payload())
+        self.logger.info("-" * 50)
         return True  # Return True so the order process continues
     
     def send_credentials_email(self, email, username, password, order_details=None):

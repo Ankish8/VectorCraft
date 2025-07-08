@@ -8,6 +8,7 @@ import os
 import requests
 import base64
 import json
+import logging
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -18,6 +19,7 @@ class PayPalService:
     """PayPal REST API service for processing payments"""
     
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
         self.client_id = os.getenv('PAYPAL_CLIENT_ID', '')
         self.client_secret = os.getenv('PAYPAL_CLIENT_SECRET', '')
         self.environment = os.getenv('PAYPAL_ENVIRONMENT', 'sandbox')
@@ -32,11 +34,11 @@ class PayPalService:
         self.token_expires_at = None
         
         if not self.client_id or not self.client_secret:
-            print("⚠️  PayPal credentials not configured. Payment processing will be simulated.")
+            self.logger.warning("PayPal credentials not configured. Payment processing will be simulated.")
             self.enabled = False
         else:
             self.enabled = True
-            print(f"💳 PayPal service configured: {self.environment} environment")
+            self.logger.info(f"PayPal service configured: {self.environment} environment")
     
     def _get_access_token(self):
         """Get OAuth access token from PayPal"""
@@ -74,15 +76,15 @@ class PayPalService:
                 # Set expiration to 90% of actual expiration for safety
                 expires_in = int(token_data.get('expires_in', 3600)) * 0.9
                 self.token_expires_at = datetime.now().timestamp() + expires_in
-                print(f"✅ PayPal access token obtained")
+                self.logger.debug(f"PayPal access token obtained")
                 return self.access_token
             else:
-                print(f"❌ Failed to get PayPal access token: {response.status_code}")
-                print(f"Response: {response.text}")
+                self.logger.error(f"Failed to get PayPal access token: {response.status_code}")
+                self.logger.error(f"Response: {response.text}")
                 return None
                 
         except Exception as e:
-            print(f"❌ Error getting PayPal access token: {str(e)}")
+            self.logger.error(f"Error getting PayPal access token: {str(e)}")
             return None
     
     def create_order(self, amount=49.00, currency='USD', customer_email=None):
@@ -137,10 +139,10 @@ class PayPalService:
             
             if response.status_code in [200, 201]:
                 order = response.json()
-                print(f"✅ PayPal order created: {order['id']}")
-                print(f"🔗 PayPal order links: {order.get('links', [])}")
+                self.logger.info(f"PayPal order created: {order['id']}")
+                self.logger.debug(f"PayPal order links: {order.get('links', [])}")
                 approval_url = self._get_approval_url(order)
-                print(f"🔗 Approval URL: {approval_url}")
+                self.logger.info(f"Approval URL: {approval_url}")
                 return {
                     'success': True,
                     'order_id': order['id'],
@@ -149,12 +151,12 @@ class PayPalService:
                     'currency': currency
                 }
             else:
-                print(f"❌ Failed to create PayPal order: {response.status_code}")
-                print(f"Response: {response.text}")
+                self.logger.error(f"Failed to create PayPal order: {response.status_code}")
+                self.logger.error(f"Response: {response.text}")
                 return None
                 
         except Exception as e:
-            print(f"❌ Error creating PayPal order: {str(e)}")
+            self.logger.error(f"Error creating PayPal order: {str(e)}")
             return None
     
     def capture_order(self, order_id):
@@ -180,7 +182,7 @@ class PayPalService:
             
             if response.status_code in [200, 201]:
                 capture_data = response.json()
-                print(f"✅ PayPal payment captured: {order_id}")
+                self.logger.info(f"PayPal payment captured: {order_id}")
                 
                 # Extract payment details
                 payment_info = self._extract_payment_info(capture_data)
@@ -195,12 +197,12 @@ class PayPalService:
                     'status': 'COMPLETED'
                 }
             else:
-                print(f"❌ Failed to capture PayPal payment: {response.status_code}")
-                print(f"Response: {response.text}")
+                self.logger.error(f"Failed to capture PayPal payment: {response.status_code}")
+                self.logger.error(f"Response: {response.text}")
                 return None
                 
         except Exception as e:
-            print(f"❌ Error capturing PayPal payment: {str(e)}")
+            self.logger.error(f"Error capturing PayPal payment: {str(e)}")
             return None
     
     def get_order_details(self, order_id):
@@ -227,11 +229,11 @@ class PayPalService:
             if response.status_code == 200:
                 return response.json()
             else:
-                print(f"❌ Failed to get PayPal order details: {response.status_code}")
+                self.logger.error(f"Failed to get PayPal order details: {response.status_code}")
                 return None
                 
         except Exception as e:
-            print(f"❌ Error getting PayPal order details: {str(e)}")
+            self.logger.error(f"Error getting PayPal order details: {str(e)}")
             return None
     
     def _get_approval_url(self, order):
@@ -274,7 +276,7 @@ class PayPalService:
     
     def _simulate_order_creation(self, amount, currency):
         """Simulate order creation when PayPal is not configured"""
-        print(f"💳 SIMULATED: PayPal order creation for ${amount:.2f} {currency}")
+        self.logger.info(f"SIMULATED: PayPal order creation for ${amount:.2f} {currency}")
         return {
             'success': True,
             'order_id': f'SIMULATED_{int(datetime.now().timestamp())}',
@@ -285,7 +287,7 @@ class PayPalService:
     
     def _simulate_order_capture(self, order_id):
         """Simulate order capture when PayPal is not configured"""
-        print(f"💳 SIMULATED: PayPal payment capture for order {order_id}")
+        self.logger.info(f"SIMULATED: PayPal payment capture for order {order_id}")
         return {
             'success': True,
             'order_id': order_id,

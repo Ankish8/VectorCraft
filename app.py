@@ -16,6 +16,10 @@ from dotenv import load_dotenv
 load_dotenv()
 from flask import Flask, render_template, request, jsonify, send_file, url_for, redirect, flash, session
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_wtf import FlaskForm, CSRFProtect
+from flask_wtf.file import FileField, FileRequired, FileAllowed
+from wtforms import StringField, PasswordField, SelectField, HiddenField, SubmitField
+from wtforms.validators import DataRequired, Email, Length, ValidationError
 from werkzeug.utils import secure_filename
 import base64
 from io import BytesIO
@@ -26,6 +30,8 @@ from database import db
 from services.email_service import email_service
 from services.paypal_service import paypal_service
 from services.monitoring import health_monitor, system_logger, alert_manager
+from collections import defaultdict
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 # Use environment variable for secret key, generate secure fallback
@@ -33,20 +39,43 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['RESULTS_FOLDER'] = 'results'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour CSRF token lifetime
 
-# Setup logging for production
-if os.getenv('FLASK_ENV') == 'production':
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler('vectorcraft.log'),
-            logging.StreamHandler()
-        ]
-    )
-    app.logger.setLevel(logging.INFO)
-else:
-    logging.basicConfig(level=logging.DEBUG)
+# Initialize CSRF protection
+csrf = CSRFProtect(app)
+
+# Configure structured logging
+logging.basicConfig(
+    level=logging.INFO if os.getenv('FLASK_ENV') == 'production' else logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('vectorcraft.log'),
+        logging.StreamHandler()
+    ]
+)
+app.logger.setLevel(logging.INFO if os.getenv('FLASK_ENV') == 'production' else logging.DEBUG)
+
+# Create logger instance
+logger = logging.getLogger(__name__)
+
+# Rate limiting for login attempts
+login_attempts = defaultdict(list)
+MAX_LOGIN_ATTEMPTS = 5
+LOGIN_COOLDOWN = timedelta(minutes=15)
+
+def is_rate_limited(ip_address):
+    """Check if IP is rate limited for login attempts"""
+    now = datetime.now()
+    # Clean old attempts
+    login_attempts[ip_address] = [attempt for attempt in login_attempts[ip_address] 
+                                 if now - attempt < LOGIN_COOLDOWN]
+    
+    # Check if rate limited
+    return len(login_attempts[ip_address]) >= MAX_LOGIN_ATTEMPTS
+
+def record_login_attempt(ip_address):
+    """Record a login attempt"""
+    login_attempts[ip_address].append(datetime.now())
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -65,6 +94,46 @@ standard_vectorizer = HybridVectorizer()
 optimized_vectorizer = OptimizedVectorizer()
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff'}
+
+# Form validation classes
+class LoginForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(min=3, max=50)])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=6, max=100)])
+    submit = SubmitField('Login')
+
+class VectorizeForm(FlaskForm):
+    file = FileField('Image File', validators=[
+        FileRequired(),
+        FileAllowed(['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff'], 'Images only!')
+    ])
+    strategy = SelectField('Strategy', choices=[
+        ('vtracer_high_fidelity', 'VTracer High Fidelity'),
+        ('experimental_v2', 'Experimental V2'),
+        ('vtracer_experimental', 'VTracer Experimental')
+    ], default='vtracer_high_fidelity')
+    submit = SubmitField('Vectorize')
+
+class PaymentForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    submit = SubmitField('Purchase Access')
+
+# Input validation helpers
+def validate_file_extension(filename):
+    """Validate file extension against allowed types"""
+    if '.' not in filename:
+        return False
+    extension = filename.rsplit('.', 1)[1].lower()
+    return extension in ALLOWED_EXTENSIONS
+
+def sanitize_filename(filename):
+    """Sanitize uploaded filename"""
+    if not filename:
+        return None
+    # Use werkzeug's secure_filename and add additional validation
+    filename = secure_filename(filename)
+    if not validate_file_extension(filename):
+        return None
+    return filename
 
 class User(UserMixin):
     """User class for Flask-Login"""
@@ -91,12 +160,38 @@ def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-XSS-Protection'] = '1; mode=block'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' cdn.tailwindcss.com unpkg.com cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' cdn.tailwindcss.com;"
     
     # Add HTTPS security headers in production
     if os.getenv('FLASK_ENV') == 'production':
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     
     return response
+
+# Global error handlers
+@app.errorhandler(413)
+def file_too_large(error):
+    """Handle file upload size limit exceeded"""
+    logger.warning(f"File upload size limit exceeded: {error}")
+    return render_template('error.html', 
+                         error_title='File Too Large',
+                         error_message='The uploaded file is too large. Maximum size is 16MB.'), 413
+
+@app.errorhandler(404)
+def not_found(error):
+    """Handle 404 errors"""
+    logger.warning(f"404 error: {request.url}")
+    return render_template('error.html', 
+                         error_title='Page Not Found',
+                         error_message='The requested page could not be found.'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle 500 errors"""
+    logger.error(f"Internal server error: {error}")
+    return render_template('error.html', 
+                         error_title='Internal Server Error',
+                         error_message='An internal server error occurred. Please try again later.'), 500
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -163,30 +258,36 @@ def vectorcraft_app():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Login page"""
+    """Login page with rate limiting and CSRF protection"""
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
+    
+    form = LoginForm()
     
     # Check for message parameter
     message = request.args.get('message')
     if message == 'credentials_sent':
         flash('Login credentials have been sent to your email. Please check your inbox.', 'info')
     
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        remember = bool(request.form.get('remember_me'))
+    if form.validate_on_submit():
+        client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
         
-        if not username or not password:
-            flash('Please enter both username and password.', 'error')
-            return render_template('login.html', error='Please enter both username and password.')
+        # Check rate limiting
+        if is_rate_limited(client_ip):
+            flash('Too many login attempts. Please try again later.', 'error')
+            logger.warning(f"Rate limited login attempt from {client_ip}")
+            return render_template('login.html', form=form, error='Too many login attempts. Please try again later.')
+        
+        # Record login attempt
+        record_login_attempt(client_ip)
         
         # Authenticate user
-        user_data = db.authenticate_user(username, password)
+        user_data = db.authenticate_user(form.username.data, form.password.data)
         if user_data:
             user = User(user_data)
-            login_user(user, remember=remember)
+            login_user(user, remember=False)  # Disable remember me for security
             session['login_success'] = True
+            logger.info(f"Successful login for user: {user.username}")
             
             # Redirect to next page or appropriate dashboard
             next_page = request.args.get('next')
@@ -200,9 +301,10 @@ def login():
                 return redirect(url_for('dashboard'))
         else:
             flash('Invalid username or password.', 'error')
-            return render_template('login.html', error='Invalid username or password.')
+            logger.warning(f"Failed login attempt for username: {form.username.data} from {client_ip}")
+            return render_template('login.html', form=form, error='Invalid username or password.')
     
-    return render_template('login.html')
+    return render_template('login.html', form=form)
 
 @app.route('/logout')
 def logout():
@@ -279,7 +381,7 @@ def extract_palettes():
         })
         
     except Exception as e:
-        print(f"❌ Palette extraction error: {e}")
+        logger.error(f"Palette extraction error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/palette-preview', methods=['POST'])
@@ -348,29 +450,49 @@ def generate_palette_preview():
         })
         
     except Exception as e:
-        print(f"❌ Palette preview error: {e}")
+        logger.error(f"Palette preview error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/vectorize', methods=['POST'])
 @login_required
 def vectorize_image():
     try:
-        # Check if file was uploaded
+        # Validate file upload
         if 'file' not in request.files:
+            logger.warning(f"No file uploaded in vectorize request from {current_user.username}")
             return jsonify({'error': 'No file uploaded'}), 400
         
         file = request.files['file']
         if file.filename == '':
+            logger.warning(f"Empty filename in vectorize request from {current_user.username}")
             return jsonify({'error': 'No file selected'}), 400
         
-        if not allowed_file(file.filename):
+        # Sanitize filename
+        filename = sanitize_filename(file.filename)
+        if not filename:
+            logger.warning(f"Invalid file type uploaded by {current_user.username}: {file.filename}")
             return jsonify({'error': 'Invalid file type. Supported: PNG, JPG, GIF, BMP, TIFF'}), 400
+        
+        # Validate file size
+        file.seek(0, 2)  # Seek to end
+        file_size = file.tell()
+        file.seek(0)  # Reset to beginning
+        
+        if file_size > app.config['MAX_CONTENT_LENGTH']:
+            logger.warning(f"File too large uploaded by {current_user.username}: {file_size} bytes")
+            return jsonify({'error': 'File too large. Maximum size is 16MB.'}), 413
         
         # Log vectorization start
         system_logger.info('vectorization', f'Vectorization started by {current_user.username}',
                           user_email=current_user.email, 
-                          details={'filename': file.filename, 'file_size': len(file.read())})
-        file.seek(0)  # Reset file pointer after reading for size
+                          details={'filename': filename, 'file_size': file_size})
+        
+        # Validate strategy parameter
+        valid_strategies = ['vtracer_high_fidelity', 'experimental_v2', 'vtracer_experimental']
+        strategy = request.form.get('strategy', 'vtracer_high_fidelity')
+        if strategy not in valid_strategies:
+            logger.warning(f"Invalid strategy selected by {current_user.username}: {strategy}")
+            strategy = 'vtracer_high_fidelity'
         
         # Use optimized vectorization approach
         vectorizer_type = 'optimized'  # Always use optimized
@@ -388,7 +510,7 @@ def vectorize_image():
             'curve_fitting': request.form.get('curve_fitting', 'spline')
         }
         
-        print(f"🎛️ Vectorization parameters: {vectorization_params}")
+        logger.debug(f"Vectorization parameters: {vectorization_params}")
         
         # Save uploaded file
         filename = secure_filename(file.filename)
@@ -405,7 +527,7 @@ def vectorize_image():
         # Set custom VTracer parameters 
         if hasattr(vectorizer, 'real_vtracer') and vectorizer.real_vtracer.available:
             vectorizer.real_vtracer.set_custom_parameters(vectorization_params)
-            print(f"🎛️ Set VTracer parameters: {vectorization_params}")
+            logger.debug(f"Set VTracer parameters: {vectorization_params}")
         
         # Use high-fidelity strategy for best quality
         if hasattr(vectorizer, 'adaptive_optimizer'):
@@ -413,7 +535,7 @@ def vectorize_image():
             original_optimize = vectorizer.adaptive_optimizer.optimize_strategy_selection
             vectorizer.adaptive_optimizer.optimize_strategy_selection = lambda metadata, elapsed: strategy
         
-        print(f"🎯 WEB INTERFACE: Using {strategy} strategy for {filename} (User: {current_user.username})")
+        logger.info(f"Using {strategy} strategy for {filename} (User: {current_user.username})")
         
         # Check if palette-based vectorization is requested
         use_palette = request.form.get('use_palette', 'false').lower() == 'true'
@@ -423,17 +545,17 @@ def vectorize_image():
             import json
             try:
                 selected_palette = json.loads(request.form.get('selected_palette'))
-                print(f"🎨 Using custom palette with {len(selected_palette)} colors: {selected_palette}")
-                print(f"🎨 Strategy: {strategy}")
-                print(f"🎨 Use palette: {use_palette}")
+                logger.debug(f"Using custom palette with {len(selected_palette)} colors: {selected_palette}")
+                logger.debug(f"Strategy: {strategy}")
+                logger.debug(f"Use palette: {use_palette}")
             except Exception as e:
-                print(f"❌ Failed to parse selected palette: {e}, using standard vectorization")
+                logger.warning(f"Failed to parse selected palette: {e}, using standard vectorization")
                 use_palette = False
         
         # Vectorize image
         start_time = time.time()
         
-        print(f"🎨 Palette condition check: use_palette={use_palette}, has_palette={selected_palette is not None}, strategy={strategy}")
+        logger.debug(f"Palette condition check: use_palette={use_palette}, has_palette={selected_palette is not None}, strategy={strategy}")
         
         if use_palette and selected_palette and strategy == 'experimental':
             # Use palette-based vectorization
@@ -449,11 +571,11 @@ def vectorize_image():
             
             # Use experimental strategy with palette
             experimental_strategy = ExperimentalVTracerV3Strategy()
-            print(f"🎨 Processing with palette: {selected_palette}")
+            logger.debug(f"Processing with palette: {selected_palette}")
             palette_result = experimental_strategy.vectorize_with_palette(
                 image_array, selected_palette, None, None
             )
-            print(f"🎨 Palette result elements: {len(palette_result.elements) if hasattr(palette_result, 'elements') else 'No elements'}")
+            logger.debug(f"Palette result elements: {len(palette_result.elements) if hasattr(palette_result, 'elements') else 'No elements'}")
             
             # Create a result-like object
             class ImageMetadata:
@@ -508,14 +630,14 @@ def vectorize_image():
         
         # Handle different result types from vectorization
         if hasattr(result, 'svg_builder') and result.svg_builder:
-            print(f"🎨 Using svg_builder, elements: {len(result.svg_builder.elements) if hasattr(result.svg_builder, 'elements') else 'No elements'}")
+            logger.debug(f"Using svg_builder, elements: {len(result.svg_builder.elements) if hasattr(result.svg_builder, 'elements') else 'No elements'}")
             result.svg_builder.save(svg_path)
             result.svg_builder.save(output_path)  # Save to output folder too
             svg_content = result.svg_builder.get_svg_string()
-            print(f"🎨 SVG content length: {len(svg_content)} characters")
-            print(f"🎨 SVG preview: {svg_content[:200]}...")
+            logger.debug(f"SVG content length: {len(svg_content)} characters")
+            logger.debug(f"SVG preview: {svg_content[:200]}...")
         else:
-            print(f"🎨 Using direct SVG result")
+            logger.debug(f"Using direct SVG result")
             # Handle direct SVG result
             with open(svg_path, 'w') as f:
                 f.write(result.get_svg_string())
@@ -534,7 +656,7 @@ def vectorize_image():
                 processing_time=processing_time,
                 strategy_used=result.strategy_used
             )
-            print(f"📝 Recorded upload for user {current_user.username}")
+            logger.info(f"Recorded upload for user {current_user.username}")
             
             # Log successful vectorization completion
             system_logger.info('vectorization', f'Vectorization completed successfully',
@@ -548,7 +670,7 @@ def vectorize_image():
                                   'file_size': file_size
                               })
         except Exception as e:
-            print(f"❌ Failed to record upload: {e}")
+            logger.error(f"Failed to record upload: {e}")
             # Log database error
             system_logger.error('vectorization', f'Failed to record upload in database: {str(e)}',
                               user_email=current_user.email,
@@ -566,7 +688,7 @@ def vectorize_image():
         os.remove(input_path)
         
         download_url = url_for('download_result', filename=svg_filename)
-        print(f"🔗 Download URL: {download_url} (filename: {svg_filename})")
+        logger.info(f"Download URL: {download_url} (filename: {svg_filename})")
         
         return jsonify({
             'success': True,
@@ -761,7 +883,7 @@ def create_paypal_order():
         
     except Exception as e:
         error_msg = f"PayPal order creation error: {e}"
-        print(f"❌ {error_msg}")
+        logger.error(error_msg)
         
         if transaction_id:
             db.update_transaction(transaction_id, 
@@ -1015,7 +1137,7 @@ def create_order_legacy():
         email_sent = email_service.send_credentials_email(email, username, password, order_details)
         
         if not email_sent:
-            print(f"⚠️  Failed to send email to {email} - but user account created successfully")
+            logger.warning(f"Failed to send email to {email} - but user account created successfully")
         
         # Send admin notification
         email_service.send_admin_notification(
@@ -1031,7 +1153,7 @@ def create_order_legacy():
         })
         
     except Exception as e:
-        print(f"❌ Order creation error: {e}")
+        logger.error(f"Order creation error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/clear-session')
@@ -1281,20 +1403,20 @@ if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV') != 'production'
     env_name = os.getenv('FLASK_ENV', 'development')
     
-    print("🚀 Starting VectorCraft - Professional Vector Conversion with Authentication...")
-    print("📊 Initializing advanced vectorization engines...")
-    print("🔐 Authentication system enabled")
-    print(f"🌍 Environment: {env_name}")
-    print(f"🔧 Debug mode: {'ON' if debug_mode else 'OFF'}")
-    print("✅ Ready!")
-    print("\n🌐 Access VectorCraft at: http://localhost:8080")
-    print("🔧 API endpoint: http://localhost:8080/api/vectorize")
-    print("📋 Health check: http://localhost:8080/health")
+    logger.info("Starting VectorCraft - Professional Vector Conversion with Authentication...")
+    logger.info("Initializing advanced vectorization engines...")
+    logger.info("Authentication system enabled")
+    logger.info(f"Environment: {env_name}")
+    logger.info(f"Debug mode: {'ON' if debug_mode else 'OFF'}")
+    logger.info("Ready!")
+    logger.info("Access VectorCraft at: http://localhost:8080")
+    logger.info("API endpoint: http://localhost:8080/api/vectorize")
+    logger.info("Health check: http://localhost:8080/health")
     
     if debug_mode:
-        print("🔑 Login with demo credentials: admin/admin123 or demo/demo123")
+        logger.info("Login with demo credentials: admin/admin123 or demo/demo123")
     
-    print("\n💡 Convert any image to a crisp, scalable vector!")
-    print(" Press Ctrl+C to stop the server")
+    logger.info("Convert any image to a crisp, scalable vector!")
+    logger.info("Press Ctrl+C to stop the server")
     
     app.run(debug=debug_mode, host='0.0.0.0', port=8080)

@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VectorCraft - Professional Vector Conversion</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vectorcraft.css') }}">
     <style>
         .slider {
             -webkit-appearance: none;
@@ -1628,5 +1630,6 @@
         console.log('   • 1 key: Actual size');
         console.log('   • Buttons: Top-right corner when viewing SVG');
     </script>
+    <script src="{{ url_for('static', filename='js/vectorcraft.js') }}"></script>
 </body>
 </html>
