@@ -33,9 +33,6 @@ from services.email_service import email_service
 from services.paypal_service import paypal_service
 from services.monitoring import health_monitor, system_logger, alert_manager
 from services.security_service import security_service
-from services.redis_service import redis_service
-from services.task_queue_manager import task_queue_manager
-from services.api_service import api_service
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -1462,12 +1459,6 @@ def admin_analytics():
 def admin_test():
     """Test page to verify admin monitoring system is working"""
     return render_template('admin_test.html')
-
-# Register async API routes
-from blueprints.api.async_routes import async_bp
-from blueprints.api.webhook_routes import webhook_bp
-app.register_blueprint(async_bp)
-app.register_blueprint(webhook_bp)
 
 if __name__ == '__main__':
     # Determine debug mode based on environment

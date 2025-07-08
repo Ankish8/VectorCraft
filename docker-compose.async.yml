@@ -1,0 +1,227 @@
+version: '3.8'
+
+services:
+  # Redis - Message broker and cache
+  redis:
+    image: redis:7-alpine
+    container_name: vectorcraft_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - vectorcraft_network
+
+  # PostgreSQL - Optional database upgrade
+  postgres:
+    image: postgres:15-alpine
+    container_name: vectorcraft_postgres
+    environment:
+      POSTGRES_DB: vectorcraft
+      POSTGRES_USER: vectorcraft
+      POSTGRES_PASSWORD: vectorcraft_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vectorcraft"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - vectorcraft_network
+
+  # VectorCraft Main Application
+  vectorcraft_app:
+    build: .
+    container_name: vectorcraft_app
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./results:/app/results
+      - ./output:/app/output
+      - ./logs:/app/logs
+    environment:
+      - FLASK_ENV=production
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DATABASE_URL=postgresql://vectorcraft:vectorcraft_password@postgres:5432/vectorcraft
+    depends_on:
+      - redis
+      - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - vectorcraft_network
+
+  # Celery Worker
+  celery_worker:
+    build: .
+    container_name: vectorcraft_worker
+    command: celery -A vectorization_tasks worker --loglevel=info --concurrency=4 --queues=vectorization,batch_processing,image_analysis,maintenance
+    volumes:
+      - ./uploads:/app/uploads
+      - ./results:/app/results
+      - ./output:/app/output
+      - ./logs:/app/logs
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DATABASE_URL=postgresql://vectorcraft:vectorcraft_password@postgres:5432/vectorcraft
+    depends_on:
+      - redis
+      - postgres
+    healthcheck:
+      test: ["CMD", "celery", "-A", "vectorization_tasks", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - vectorcraft_network
+
+  # Celery Beat Scheduler
+  celery_beat:
+    build: .
+    container_name: vectorcraft_beat
+    command: celery -A vectorization_tasks beat --loglevel=info
+    volumes:
+      - ./logs:/app/logs
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - vectorcraft_network
+
+  # Flower - Celery monitoring
+  flower:
+    build: .
+    container_name: vectorcraft_flower
+    command: celery -A vectorization_tasks flower --address=0.0.0.0 --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - vectorcraft_network
+
+  # Nginx - Load balancer and reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: vectorcraft_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - vectorcraft_app
+    restart: unless-stopped
+    networks:
+      - vectorcraft_network
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus
+    container_name: vectorcraft_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - vectorcraft_network
+
+  # Grafana - Monitoring dashboard
+  grafana:
+    image: grafana/grafana
+    container_name: vectorcraft_grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - vectorcraft_network
+
+  # Redis Exporter - Redis metrics for Prometheus
+  redis_exporter:
+    image: oliver006/redis_exporter
+    container_name: vectorcraft_redis_exporter
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - vectorcraft_network
+
+  # Node Exporter - System metrics
+  node_exporter:
+    image: prom/node-exporter
+    container_name: vectorcraft_node_exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    networks:
+      - vectorcraft_network
+
+volumes:
+  redis_data:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  vectorcraft_network:
+    driver: bridge

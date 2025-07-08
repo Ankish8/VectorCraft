@@ -11,6 +11,8 @@ import os
 import logging
 from datetime import datetime
 from pathlib import Path
+from contextlib import contextmanager
+import bcrypt
 
 class Database:
     def __init__(self, db_path=None):
@@ -124,6 +126,29 @@ class Database:
                 )
             ''')
             
+            # Performance monitoring tables
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS performance_metrics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    metric_type TEXT NOT NULL,
+                    endpoint TEXT NOT NULL,
+                    value REAL NOT NULL,
+                    status TEXT NOT NULL,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS system_metrics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    metric_type TEXT NOT NULL,
+                    cpu_percent REAL,
+                    memory_percent REAL,
+                    disk_percent REAL,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
             # Create indexes for performance
             conn.execute('CREATE INDEX IF NOT EXISTS idx_transactions_email ON transactions(email)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status)')
@@ -133,6 +158,13 @@ class Database:
             conn.execute('CREATE INDEX IF NOT EXISTS idx_system_logs_level ON system_logs(level)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_system_logs_created_at ON system_logs(created_at)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_admin_alerts_resolved ON admin_alerts(resolved)')
+            
+            # Performance monitoring indexes
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_performance_metrics_type ON performance_metrics(metric_type)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_performance_metrics_endpoint ON performance_metrics(endpoint)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_performance_metrics_timestamp ON performance_metrics(timestamp)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_system_metrics_type ON system_metrics(metric_type)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_system_metrics_timestamp ON system_metrics(timestamp)')
             
             conn.commit()
             
@@ -458,6 +490,118 @@ class Database:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
+    
+    def log_performance_metric(self, metric_type, endpoint, value, status, timestamp=None):
+        """Log performance metric"""
+        if timestamp is None:
+            timestamp = datetime.now()
+        
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                INSERT INTO performance_metrics (metric_type, endpoint, value, status, timestamp)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (metric_type, endpoint, value, status, timestamp))
+            conn.commit()
+    
+    def log_system_metric(self, metric_type, cpu_percent=None, memory_percent=None, disk_percent=None, timestamp=None):
+        """Log system metric"""
+        if timestamp is None:
+            timestamp = datetime.now()
+        
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                INSERT INTO system_metrics (metric_type, cpu_percent, memory_percent, disk_percent, timestamp)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (metric_type, cpu_percent, memory_percent, disk_percent, timestamp))
+            conn.commit()
+    
+    def get_performance_metrics(self, metric_type=None, endpoint=None, hours=24, limit=1000):
+        """Get performance metrics for specified time period"""
+        query = '''
+            SELECT * FROM performance_metrics 
+            WHERE timestamp > datetime('now', '-{} hours')
+        '''.format(hours)
+        params = []
+        
+        if metric_type:
+            query += ' AND metric_type = ?'
+            params.append(metric_type)
+        
+        if endpoint:
+            query += ' AND endpoint = ?'
+            params.append(endpoint)
+        
+        query += ' ORDER BY timestamp DESC LIMIT ?'
+        params.append(limit)
+        
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(query, params)
+            return [dict(row) for row in cursor.fetchall()]
+    
+    def get_system_metrics(self, metric_type=None, hours=24, limit=1000):
+        """Get system metrics for specified time period"""
+        query = '''
+            SELECT * FROM system_metrics 
+            WHERE timestamp > datetime('now', '-{} hours')
+        '''.format(hours)
+        params = []
+        
+        if metric_type:
+            query += ' AND metric_type = ?'
+            params.append(metric_type)
+        
+        query += ' ORDER BY timestamp DESC LIMIT ?'
+        params.append(limit)
+        
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(query, params)
+            return [dict(row) for row in cursor.fetchall()]
+    
+    def get_performance_summary(self, hours=24):
+        """Get performance summary for dashboard"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            
+            # Get request performance summary
+            cursor = conn.execute('''
+                SELECT 
+                    endpoint,
+                    COUNT(*) as total_requests,
+                    AVG(value) as avg_response_time,
+                    MIN(value) as min_response_time,
+                    MAX(value) as max_response_time,
+                    SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as error_count
+                FROM performance_metrics
+                WHERE metric_type = 'request_time' 
+                AND timestamp > datetime('now', '-{} hours')
+                GROUP BY endpoint
+                ORDER BY total_requests DESC
+            '''.format(hours))
+            
+            endpoint_stats = [dict(row) for row in cursor.fetchall()]
+            
+            # Get system performance summary
+            cursor = conn.execute('''
+                SELECT 
+                    AVG(cpu_percent) as avg_cpu,
+                    MAX(cpu_percent) as max_cpu,
+                    AVG(memory_percent) as avg_memory,
+                    MAX(memory_percent) as max_memory,
+                    AVG(disk_percent) as avg_disk,
+                    MAX(disk_percent) as max_disk
+                FROM system_metrics
+                WHERE timestamp > datetime('now', '-{} hours')
+            '''.format(hours))
+            
+            system_stats = dict(cursor.fetchone()) if cursor.fetchone() else {}
+            
+            return {
+                'endpoint_stats': endpoint_stats,
+                'system_stats': system_stats,
+                'time_period': f'Last {hours} hours'
+            }
 
 # Global database instance
 db = Database()
