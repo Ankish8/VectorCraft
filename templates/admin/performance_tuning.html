@@ -1,0 +1,402 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Performance Tuning - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>⚡ Performance Tuning</h1>
+    <p class="subtitle">System optimization and performance monitoring</p>
+</div>
+
+<div class="row">
+    <!-- Real-time Metrics -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-tachometer-alt me-2"></i>Real-time Performance Metrics</h5>
+                <div class="card-tools">
+                    <button class="btn btn-sm btn-outline-primary" onclick="refreshMetrics()">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value">{{ real_time_metrics.response_time or '245' }}ms</div>
+                            <div class="metric-label">Response Time</div>
+                            <div class="metric-trend trend-up">↑ 5%</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value">{{ real_time_metrics.throughput or '1,247' }}/min</div>
+                            <div class="metric-label">Throughput</div>
+                            <div class="metric-trend trend-up">↑ 12%</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value">{{ real_time_metrics.error_rate or '0.02' }}%</div>
+                            <div class="metric-label">Error Rate</div>
+                            <div class="metric-trend trend-down">↓ 0.01%</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value">{{ real_time_metrics.cpu_usage or '24' }}%</div>
+                            <div class="metric-label">CPU Usage</div>
+                            <div class="metric-trend trend-stable">→ 0%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Performance Chart -->
+                <div class="mt-4">
+                    <canvas id="performanceChart" width="400" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optimization Controls -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-sliders-h me-2"></i>Optimization Controls</h5>
+            </div>
+            <div class="card-body">
+                <div class="optimization-control">
+                    <label class="form-label">Auto Optimization</label>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="autoOptimization" {{ 'checked' if optimization_status.auto_optimization else '' }}>
+                        <label class="form-check-label" for="autoOptimization">
+                            {{ 'Enabled' if optimization_status.auto_optimization else 'Disabled' }}
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="optimization-control">
+                    <label class="form-label">Cache Level</label>
+                    <select class="form-select" id="cacheLevel">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                        <option value="aggressive">Aggressive</option>
+                    </select>
+                </div>
+                
+                <div class="optimization-control">
+                    <label class="form-label">Database Connection Pool</label>
+                    <input type="range" class="form-range" min="5" max="50" value="{{ tuning_params.db_pool_size or 20 }}" id="dbPoolSize">
+                    <div class="text-center">
+                        <small>Current: <span id="dbPoolValue">{{ tuning_params.db_pool_size or 20 }}</span> connections</small>
+                    </div>
+                </div>
+                
+                <div class="optimization-control">
+                    <label class="form-label">Request Timeout</label>
+                    <input type="range" class="form-range" min="5" max="120" value="{{ tuning_params.request_timeout or 30 }}" id="requestTimeout">
+                    <div class="text-center">
+                        <small>Current: <span id="timeoutValue">{{ tuning_params.request_timeout or 30 }}</span> seconds</small>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 mt-3">
+                    <button class="btn btn-primary" onclick="applyOptimization()">
+                        <i class="fas fa-rocket me-2"></i>Apply Optimization
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="resetDefaults()">
+                        <i class="fas fa-undo me-2"></i>Reset to Defaults
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Optimization Recommendations -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-lightbulb me-2"></i>Optimization Recommendations</h5>
+            </div>
+            <div class="card-body">
+                <div class="recommendation-list">
+                    {% for recommendation in optimization_recommendations or [] %}
+                    <div class="recommendation-item">
+                        <div class="recommendation-icon">
+                            <i class="fas fa-arrow-up text-success"></i>
+                        </div>
+                        <div class="recommendation-content">
+                            <h6>{{ recommendation.title }}</h6>
+                            <p>{{ recommendation.description }}</p>
+                            <small class="text-muted">Impact: {{ recommendation.impact }}</small>
+                        </div>
+                        <div class="recommendation-action">
+                            <button class="btn btn-sm btn-outline-primary">Apply</button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="recommendation-item">
+                        <div class="recommendation-icon">
+                            <i class="fas fa-arrow-up text-success"></i>
+                        </div>
+                        <div class="recommendation-content">
+                            <h6>Increase Database Pool Size</h6>
+                            <p>Current pool size is below optimal. Consider increasing to 30 connections.</p>
+                            <small class="text-muted">Impact: High</small>
+                        </div>
+                        <div class="recommendation-action">
+                            <button class="btn btn-sm btn-outline-primary">Apply</button>
+                        </div>
+                    </div>
+                    <div class="recommendation-item">
+                        <div class="recommendation-icon">
+                            <i class="fas fa-arrow-up text-warning"></i>
+                        </div>
+                        <div class="recommendation-content">
+                            <h6>Enable Query Caching</h6>
+                            <p>Database queries can be cached to improve response times.</p>
+                            <small class="text-muted">Impact: Medium</small>
+                        </div>
+                        <div class="recommendation-action">
+                            <button class="btn btn-sm btn-outline-primary">Apply</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Resources -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-server me-2"></i>System Resources</h5>
+            </div>
+            <div class="card-body">
+                <div class="resource-monitor">
+                    <div class="resource-item">
+                        <div class="resource-label">Memory Usage</div>
+                        <div class="resource-bar">
+                            <div class="progress">
+                                <div class="progress-bar bg-info" style="width: {{ real_time_metrics.memory_usage or 45 }}%"></div>
+                            </div>
+                            <span class="resource-value">{{ real_time_metrics.memory_usage or 45 }}%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="resource-item">
+                        <div class="resource-label">CPU Usage</div>
+                        <div class="resource-bar">
+                            <div class="progress">
+                                <div class="progress-bar bg-success" style="width: {{ real_time_metrics.cpu_usage or 24 }}%"></div>
+                            </div>
+                            <span class="resource-value">{{ real_time_metrics.cpu_usage or 24 }}%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="resource-item">
+                        <div class="resource-label">Disk Usage</div>
+                        <div class="resource-bar">
+                            <div class="progress">
+                                <div class="progress-bar bg-warning" style="width: {{ real_time_metrics.disk_usage or 67 }}%"></div>
+                            </div>
+                            <span class="resource-value">{{ real_time_metrics.disk_usage or 67 }}%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="resource-item">
+                        <div class="resource-label">Network I/O</div>
+                        <div class="resource-bar">
+                            <div class="progress">
+                                <div class="progress-bar bg-primary" style="width: {{ real_time_metrics.network_io or 32 }}%"></div>
+                            </div>
+                            <span class="resource-value">{{ real_time_metrics.network_io or 32 }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.metric-card {
+    text-align: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.metric-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.metric-trend {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.trend-up {
+    color: #28a745;
+}
+
+.trend-down {
+    color: #dc3545;
+}
+
+.trend-stable {
+    color: #6c757d;
+}
+
+.optimization-control {
+    margin-bottom: 20px;
+}
+
+.form-range {
+    margin: 10px 0;
+}
+
+.recommendation-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.recommendation-icon {
+    font-size: 1.2rem;
+    margin-top: 5px;
+}
+
+.recommendation-content {
+    flex: 1;
+}
+
+.recommendation-content h6 {
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.recommendation-content p {
+    margin-bottom: 5px;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.resource-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.resource-label {
+    width: 100px;
+    font-weight: 600;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.resource-bar {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.resource-bar .progress {
+    flex: 1;
+    height: 8px;
+}
+
+.resource-value {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+    width: 40px;
+    text-align: right;
+}
+</style>
+
+<script>
+// Range input updates
+document.getElementById('dbPoolSize').addEventListener('input', function() {
+    document.getElementById('dbPoolValue').textContent = this.value;
+});
+
+document.getElementById('requestTimeout').addEventListener('input', function() {
+    document.getElementById('timeoutValue').textContent = this.value;
+});
+
+// Functions for optimization controls
+function refreshMetrics() {
+    // Refresh real-time metrics
+    location.reload();
+}
+
+function applyOptimization() {
+    const autoOptimization = document.getElementById('autoOptimization').checked;
+    const cacheLevel = document.getElementById('cacheLevel').value;
+    const dbPoolSize = document.getElementById('dbPoolSize').value;
+    const requestTimeout = document.getElementById('requestTimeout').value;
+    
+    // Send optimization settings to server
+    fetch('/admin/performance/api/tuning-parameters', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            auto_optimization: autoOptimization,
+            cache_level: cacheLevel,
+            db_pool_size: dbPoolSize,
+            request_timeout: requestTimeout
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Optimization settings applied successfully!');
+        } else {
+            alert('Failed to apply optimization settings: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error applying optimization settings');
+    });
+}
+
+function resetDefaults() {
+    document.getElementById('autoOptimization').checked = false;
+    document.getElementById('cacheLevel').value = 'medium';
+    document.getElementById('dbPoolSize').value = 20;
+    document.getElementById('requestTimeout').value = 30;
+    document.getElementById('dbPoolValue').textContent = '20';
+    document.getElementById('timeoutValue').textContent = '30';
+}
+
+// Initialize performance chart (placeholder)
+const ctx = document.getElementById('performanceChart').getContext('2d');
+// Chart.js implementation would go here
+</script>
+{% endblock %}

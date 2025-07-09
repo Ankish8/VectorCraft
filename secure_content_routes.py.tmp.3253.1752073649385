@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+"""
+Security Fix Script: Add @admin_required to all unprotected admin routes
+This script fixes a critical security vulnerability where 25 admin routes 
+were completely unprotected.
+"""
+
+import re
+
+def secure_admin_routes():
+    file_path = '/Users/ankish/Downloads/VC2/blueprints/admin/content.py'
+    
+    # Read the file
+    with open(file_path, 'r') as f:
+        content = f.read()
+    
+    # Pattern to find routes that don't have @admin_required
+    route_pattern = r'(@admin_bp\.route\([^)]+\))\n(?!@admin_required\n)def\s+(\w+)\([^)]*\):'
+    
+    # Find all matches
+    matches = re.findall(route_pattern, content)
+    
+    print(f"Found {len(matches)} unprotected routes:")
+    for route, func_name in matches:
+        print(f"  - {func_name}")
+    
+    # Replace each unprotected route with secured version
+    def add_admin_required(match):
+        route_decorator = match.group(1)
+        func_def = match.group(0).split('\n', 1)[1]  # Everything after first line
+        return f"{route_decorator}\n@admin_required\n{func_def}"
+    
+    secured_content = re.sub(route_pattern, add_admin_required, content)
+    
+    # Write back to file
+    with open(file_path, 'w') as f:
+        f.write(secured_content)
+    
+    print(f"\n✅ Successfully secured all routes in {file_path}")
+    
+    # Verify the fix
+    with open(file_path, 'r') as f:
+        verify_content = f.read()
+    
+    # Count remaining unprotected routes
+    remaining_matches = re.findall(route_pattern, verify_content)
+    print(f"✅ Remaining unprotected routes: {len(remaining_matches)}")
+    
+    return len(matches), len(remaining_matches)
+
+if __name__ == "__main__":
+    fixed, remaining = secure_admin_routes()
+    print(f"\nSecurity Fix Summary:")
+    print(f"  Routes secured: {fixed}")
+    print(f"  Routes remaining: {remaining}")
+    if remaining == 0:
+        print("🎉 All routes now properly secured!")
+    else:
+        print("⚠️  Some routes still need attention")

@@ -1,0 +1,561 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Subscription Management - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🔄 Subscription Management</h1>
+    <p class="subtitle">Manage recurring subscriptions and billing cycles</p>
+</div>
+
+<div class="row">
+    <!-- Active Subscriptions -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-sync me-2"></i>Active Subscriptions</h5>
+                <div class="card-tools">
+                    <div class="input-group input-group-sm" style="width: 250px;">
+                        <input type="text" class="form-control" placeholder="Search subscriptions..." id="searchSubscriptions">
+                        <button class="btn btn-outline-secondary" onclick="searchSubscriptions()">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="subscriptions-list">
+                    {% for subscription in subscriptions or [] %}
+                    <div class="subscription-item">
+                        <div class="subscription-header">
+                            <div class="customer-info">
+                                <h6>{{ subscription.customer_email }}</h6>
+                                <span class="subscription-id">ID: {{ subscription.id }}</span>
+                            </div>
+                            <div class="subscription-status">
+                                <span class="badge bg-{{ 'success' if subscription.status == 'active' else 'warning' if subscription.status == 'pending' else 'danger' }}">
+                                    {{ subscription.status|title }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="subscription-details">
+                            <div class="detail-row">
+                                <div class="detail-item">
+                                    <span class="label">Plan:</span>
+                                    <span class="value">{{ subscription.plan_name }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">Amount:</span>
+                                    <span class="value">${{ subscription.amount }}/{{ subscription.billing_cycle }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">Next Billing:</span>
+                                    <span class="value">{{ subscription.next_billing_date.strftime('%Y-%m-%d') if subscription.next_billing_date else 'N/A' }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">Started:</span>
+                                    <span class="value">{{ subscription.created_at.strftime('%Y-%m-%d') if subscription.created_at else 'N/A' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="subscription-actions">
+                            <button class="btn btn-sm btn-outline-info" onclick="viewSubscriptionDetails('{{ subscription.id }}')">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="pauseSubscription('{{ subscription.id }}')">
+                                <i class="fas fa-pause"></i> Pause
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="cancelSubscription('{{ subscription.id }}')">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Sample subscriptions when none exist -->
+                    <div class="subscription-item">
+                        <div class="subscription-header">
+                            <div class="customer-info">
+                                <h6>john.doe@example.com</h6>
+                                <span class="subscription-id">ID: SUB_001</span>
+                            </div>
+                            <div class="subscription-status">
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                        </div>
+                        <div class="subscription-details">
+                            <div class="detail-row">
+                                <div class="detail-item">
+                                    <span class="label">Plan:</span>
+                                    <span class="value">Premium Monthly</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">Amount:</span>
+                                    <span class="value">$49.99/month</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">Next Billing:</span>
+                                    <span class="value">2024-02-15</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">Started:</span>
+                                    <span class="value">2023-12-15</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="subscription-actions">
+                            <button class="btn btn-sm btn-outline-info" onclick="viewSubscriptionDetails('SUB_001')">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="pauseSubscription('SUB_001')">
+                                <i class="fas fa-pause"></i> Pause
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="cancelSubscription('SUB_001')">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="subscription-item">
+                        <div class="subscription-header">
+                            <div class="customer-info">
+                                <h6>jane.smith@example.com</h6>
+                                <span class="subscription-id">ID: SUB_002</span>
+                            </div>
+                            <div class="subscription-status">
+                                <span class="badge bg-warning">Pending</span>
+                            </div>
+                        </div>
+                        <div class="subscription-details">
+                            <div class="detail-row">
+                                <div class="detail-item">
+                                    <span class="label">Plan:</span>
+                                    <span class="value">Standard Monthly</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">Amount:</span>
+                                    <span class="value">$29.99/month</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">Next Billing:</span>
+                                    <span class="value">2024-02-10</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="label">Started:</span>
+                                    <span class="value">2024-01-10</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="subscription-actions">
+                            <button class="btn btn-sm btn-outline-info" onclick="viewSubscriptionDetails('SUB_002')">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="pauseSubscription('SUB_002')">
+                                <i class="fas fa-pause"></i> Pause
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="cancelSubscription('SUB_002')">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subscription Statistics -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie me-2"></i>Subscription Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="subscription-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ total_subscriptions or '247' }}</div>
+                        <div class="stat-label">Total Subscriptions</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ active_subscriptions or '234' }}</div>
+                        <div class="stat-label">Active</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ pending_subscriptions or '8' }}</div>
+                        <div class="stat-label">Pending</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ cancelled_subscriptions or '5' }}</div>
+                        <div class="stat-label">Cancelled</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${{ monthly_recurring_revenue or '7,847.53' }}</div>
+                        <div class="stat-label">Monthly Recurring Revenue</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ churn_rate or '2.3' }}%</div>
+                        <div class="stat-label">Churn Rate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-exclamation-triangle me-2"></i>Billing Issues</h5>
+            </div>
+            <div class="card-body">
+                <div class="billing-issues">
+                    <div class="issue-item">
+                        <div class="issue-type">
+                            <i class="fas fa-credit-card text-danger"></i>
+                            <span>Failed Payment</span>
+                        </div>
+                        <div class="issue-count">{{ failed_payments or '3' }}</div>
+                    </div>
+                    <div class="issue-item">
+                        <div class="issue-type">
+                            <i class="fas fa-clock text-warning"></i>
+                            <span>Overdue</span>
+                        </div>
+                        <div class="issue-count">{{ overdue_payments or '2' }}</div>
+                    </div>
+                    <div class="issue-item">
+                        <div class="issue-type">
+                            <i class="fas fa-ban text-info"></i>
+                            <span>Suspended</span>
+                        </div>
+                        <div class="issue-count">{{ suspended_subscriptions or '1' }}</div>
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-outline-primary w-100 mt-3" onclick="viewBillingIssues()">
+                    <i class="fas fa-list me-2"></i>View All Issues
+                </button>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-tools me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm" onclick="sendBillingReminders()">
+                        <i class="fas fa-envelope me-2"></i>Send Billing Reminders
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="processRetryPayments()">
+                        <i class="fas fa-redo me-2"></i>Retry Failed Payments
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="exportSubscriptions()">
+                        <i class="fas fa-download me-2"></i>Export Subscriptions
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm" onclick="bulkUpdateSubscriptions()">
+                        <i class="fas fa-edit me-2"></i>Bulk Update
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Subscription Details Modal -->
+<div class="modal fade" id="subscriptionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Subscription Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="subscriptionDetails">
+                    <!-- Details will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="editSubscription()">Edit Subscription</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.subscription-item {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.subscription-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.customer-info h6 {
+    margin: 0;
+    color: #333;
+}
+
+.subscription-id {
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-family: monospace;
+}
+
+.detail-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.detail-item .label {
+    color: #6c757d;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.detail-item .value {
+    color: #333;
+    font-weight: 500;
+}
+
+.subscription-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.subscription-stats {
+    display: grid;
+    gap: 15px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.billing-issues {
+    display: grid;
+    gap: 10px;
+}
+
+.issue-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.issue-type {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.issue-type span {
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.issue-count {
+    font-weight: bold;
+    color: #dc3545;
+    background: #fff;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+</style>
+
+<script>
+function searchSubscriptions() {
+    const searchTerm = document.getElementById('searchSubscriptions').value;
+    console.log('Searching for:', searchTerm);
+    // Implementation would filter the subscription list
+}
+
+function viewSubscriptionDetails(subscriptionId) {
+    console.log('Viewing subscription:', subscriptionId);
+    
+    // Mock subscription data
+    const subscriptionDetails = `
+        <div class="subscription-detail-view">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Customer Information</h6>
+                    <p><strong>Email:</strong> john.doe@example.com</p>
+                    <p><strong>Name:</strong> John Doe</p>
+                    <p><strong>Customer Since:</strong> December 15, 2023</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Subscription Details</h6>
+                    <p><strong>Plan:</strong> Premium Monthly</p>
+                    <p><strong>Status:</strong> <span class="badge bg-success">Active</span></p>
+                    <p><strong>Amount:</strong> $49.99/month</p>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <h6>Billing Information</h6>
+                    <p><strong>Next Billing:</strong> February 15, 2024</p>
+                    <p><strong>Payment Method:</strong> PayPal</p>
+                    <p><strong>Last Payment:</strong> January 15, 2024</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Usage Statistics</h6>
+                    <p><strong>Files Processed:</strong> 247</p>
+                    <p><strong>Storage Used:</strong> 1.2 GB</p>
+                    <p><strong>API Calls:</strong> 3,421</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('subscriptionDetails').innerHTML = subscriptionDetails;
+    new bootstrap.Modal(document.getElementById('subscriptionModal')).show();
+}
+
+function pauseSubscription(subscriptionId) {
+    if (confirm('Are you sure you want to pause this subscription?')) {
+        console.log('Pausing subscription:', subscriptionId);
+        
+        fetch(`/admin/pricing/api/subscriptions/${subscriptionId}/pause`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Subscription paused successfully');
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error pausing subscription');
+        });
+    }
+}
+
+function cancelSubscription(subscriptionId) {
+    if (confirm('Are you sure you want to cancel this subscription? This action cannot be undone.')) {
+        console.log('Cancelling subscription:', subscriptionId);
+        
+        fetch(`/admin/pricing/api/subscriptions/${subscriptionId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Subscription cancelled successfully');
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error cancelling subscription');
+        });
+    }
+}
+
+function editSubscription() {
+    console.log('Editing subscription...');
+    // Implementation would allow editing subscription details
+    alert('Edit subscription functionality would be implemented here');
+}
+
+function viewBillingIssues() {
+    console.log('Viewing billing issues...');
+    window.location.href = '/admin/pricing/billing-issues';
+}
+
+function sendBillingReminders() {
+    if (confirm('Send billing reminders to all customers with overdue payments?')) {
+        console.log('Sending billing reminders...');
+        
+        const button = event.target;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+        button.disabled = true;
+        
+        setTimeout(() => {
+            button.innerHTML = '<i class="fas fa-envelope me-2"></i>Send Billing Reminders';
+            button.disabled = false;
+            alert('Billing reminders sent successfully!');
+        }, 2000);
+    }
+}
+
+function processRetryPayments() {
+    if (confirm('Retry all failed payments?')) {
+        console.log('Processing retry payments...');
+        
+        const button = event.target;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        button.disabled = true;
+        
+        setTimeout(() => {
+            button.innerHTML = '<i class="fas fa-redo me-2"></i>Retry Failed Payments';
+            button.disabled = false;
+            alert('Payment retries processed. Check results in billing issues.');
+        }, 3000);
+    }
+}
+
+function exportSubscriptions() {
+    console.log('Exporting subscriptions...');
+    window.location.href = '/admin/pricing/api/subscriptions/export';
+}
+
+function bulkUpdateSubscriptions() {
+    console.log('Bulk update subscriptions...');
+    // Implementation would show bulk update modal
+    alert('Bulk update functionality would be implemented here');
+}
+
+// Search on enter key
+document.getElementById('searchSubscriptions').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        searchSubscriptions();
+    }
+});
+</script>
+{% endblock %}

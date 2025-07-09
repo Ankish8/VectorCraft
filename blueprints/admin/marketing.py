@@ -47,7 +47,7 @@ def get_marketing_services():
 @admin_bp.route('/marketing')
 @admin_bp.route('/marketing/dashboard')
 @admin_required
-def dashboard():
+def marketing_dashboard():
     """Marketing dashboard overview"""
     try:
         marketing_manager, journey_manager, engagement_engine = get_marketing_services()

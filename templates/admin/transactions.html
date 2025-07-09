@@ -528,11 +528,8 @@
     
     function createDispute(transactionId) {
         if (confirm('Create a dispute case for this transaction?')) {
-            fetch(`/admin/api/create-dispute/${transactionId}`, {
+            makeSecureRequest(`/admin/api/create-dispute/${transactionId}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     dispute_type: 'billing_inquiry',
                     message: 'Admin initiated dispute case'

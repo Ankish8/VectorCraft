@@ -1,0 +1,185 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Business Logic - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🔧 Business Logic Configuration</h1>
+    <p class="subtitle">Core business rules and workflow management</p>
+</div>
+
+<div class="row">
+    <!-- Business Rules -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-cogs me-2"></i>Business Rules</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6>Payment Processing</h6>
+                            <small class="text-muted">PayPal integration settings</small>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="paymentProcessing" checked>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6>Auto User Creation</h6>
+                            <small class="text-muted">Create users after payment</small>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="autoUserCreation" checked>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6>Email Notifications</h6>
+                            <small class="text-muted">Send credentials via email</small>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="emailNotifications" checked>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6>File Processing</h6>
+                            <small class="text-muted">Vector conversion pipeline</small>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="fileProcessing" checked>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-primary mt-3">Save Business Rules</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Workflow Configuration -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-project-diagram me-2"></i>Workflow Configuration</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Payment Flow</label>
+                    <select class="form-select">
+                        <option selected>Standard Flow</option>
+                        <option>Express Checkout</option>
+                        <option>Guest Checkout</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">User Creation Delay (seconds)</label>
+                    <input type="number" class="form-control" value="0" min="0" max="300">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email Retry Attempts</label>
+                    <input type="number" class="form-control" value="3" min="1" max="10">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Session Timeout (minutes)</label>
+                    <input type="number" class="form-control" value="30" min="5" max="120">
+                </div>
+                <button class="btn btn-success">Update Workflow</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Business Metrics -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line me-2"></i>Business Metrics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="metric-box">
+                            <h3>{{ conversion_rate or '94.2' }}%</h3>
+                            <p>Conversion Rate</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-box">
+                            <h3>{{ avg_processing_time or '2.4' }}s</h3>
+                            <p>Avg Processing Time</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-box">
+                            <h3>{{ success_rate or '99.1' }}%</h3>
+                            <p>Success Rate</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-box">
+                            <h3>{{ total_transactions or '1,247' }}</h3>
+                            <p>Total Transactions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-sync me-2"></i>Refresh Rules
+                    </button>
+                    <button class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-play me-2"></i>Test Workflow
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm">
+                        <i class="fas fa-download me-2"></i>Export Config
+                    </button>
+                    <button class="btn btn-outline-info btn-sm">
+                        <i class="fas fa-history me-2"></i>View Logs
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.metric-box {
+    text-align: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.metric-box h3 {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.metric-box p {
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
+.form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+</style>
+{% endblock %}

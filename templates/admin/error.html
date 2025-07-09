@@ -1,0 +1,48 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Error - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        System Error
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h5 class="alert-heading">Error Code: {{ error_code or 500 }}</h5>
+                        <p class="mb-0">{{ error_message or "An unexpected error occurred. Please try again later." }}</p>
+                    </div>
+                    
+                    {% if error_details %}
+                    <div class="mt-4">
+                        <h6>Error Details:</h6>
+                        <pre class="bg-light p-3 rounded">{{ error_details }}</pre>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <h6>Suggested Actions:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-arrow-right text-primary me-2"></i>
+                                <a href="{{ url_for('admin.dashboard') }}" class="text-decoration-none">Return to Dashboard</a>
+                            </li>
+                            <li><i class="fas fa-arrow-right text-primary me-2"></i>
+                                <a href="javascript:history.back()" class="text-decoration-none">Go Back</a>
+                            </li>
+                            <li><i class="fas fa-arrow-right text-primary me-2"></i>
+                                <a href="{{ url_for('admin.system_health') }}" class="text-decoration-none">Check System Health</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

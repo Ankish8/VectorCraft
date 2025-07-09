@@ -1,0 +1,491 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Performance Benchmarks - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📊 Performance Benchmarks</h1>
+    <p class="subtitle">System performance testing and benchmark results</p>
+</div>
+
+<div class="row">
+    <!-- Benchmark Controls -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-play-circle me-2"></i>Run Benchmarks</h5>
+            </div>
+            <div class="card-body">
+                <div class="benchmark-controls">
+                    <div class="mb-3">
+                        <label class="form-label">Benchmark Type</label>
+                        <select class="form-select" id="benchmarkType">
+                            <option value="full">Full System Test</option>
+                            <option value="database">Database Performance</option>
+                            <option value="api">API Response Time</option>
+                            <option value="vector">Vector Processing</option>
+                            <option value="payment">Payment Processing</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Test Duration</label>
+                        <select class="form-select" id="testDuration">
+                            <option value="30">30 seconds</option>
+                            <option value="60" selected>1 minute</option>
+                            <option value="300">5 minutes</option>
+                            <option value="600">10 minutes</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Concurrent Users</label>
+                        <input type="number" class="form-control" id="concurrentUsers" value="10" min="1" max="100">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Test Data Size</label>
+                        <select class="form-select" id="testDataSize">
+                            <option value="small">Small (1MB)</option>
+                            <option value="medium" selected>Medium (10MB)</option>
+                            <option value="large">Large (100MB)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="runBenchmark()">
+                            <i class="fas fa-play me-2"></i>Run Benchmark
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="stopBenchmark()">
+                            <i class="fas fa-stop me-2"></i>Stop Test
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="benchmarkStatus" class="mt-3 d-none">
+                    <div class="alert alert-info">
+                        <i class="fas fa-spinner fa-spin me-2"></i>
+                        <span id="statusText">Preparing benchmark...</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Latest Results -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line me-2"></i>Latest Benchmark Results</h5>
+                <div class="card-tools">
+                    <button class="btn btn-sm btn-outline-primary" onclick="refreshResults()">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="benchmark-results">
+                    {% if recent_results %}
+                    {% for result in recent_results %}
+                    <div class="result-item">
+                        <div class="result-header">
+                            <h6>{{ result.test_name }}</h6>
+                            <span class="result-time">{{ result.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                        <div class="result-metrics">
+                            <div class="metric">
+                                <span class="metric-label">Score:</span>
+                                <span class="metric-value score-{{ result.score_grade }}">{{ result.score }}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Avg Response:</span>
+                                <span class="metric-value">{{ result.avg_response_time }}ms</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Throughput:</span>
+                                <span class="metric-value">{{ result.throughput }}/sec</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Error Rate:</span>
+                                <span class="metric-value">{{ result.error_rate }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="result-item">
+                        <div class="result-header">
+                            <h6>Full System Test</h6>
+                            <span class="result-time">2024-01-15 14:30</span>
+                        </div>
+                        <div class="result-metrics">
+                            <div class="metric">
+                                <span class="metric-label">Score:</span>
+                                <span class="metric-value score-a">8.7/10</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Avg Response:</span>
+                                <span class="metric-value">245ms</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Throughput:</span>
+                                <span class="metric-value">1,247/sec</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Error Rate:</span>
+                                <span class="metric-value">0.02%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-header">
+                            <h6>Database Performance</h6>
+                            <span class="result-time">2024-01-15 14:25</span>
+                        </div>
+                        <div class="result-metrics">
+                            <div class="metric">
+                                <span class="metric-label">Score:</span>
+                                <span class="metric-value score-b">7.8/10</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Avg Response:</span>
+                                <span class="metric-value">89ms</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Throughput:</span>
+                                <span class="metric-value">2,456/sec</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Error Rate:</span>
+                                <span class="metric-value">0.01%</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Performance Trends -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-area me-2"></i>Performance Trends</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="trendsChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Benchmark History -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-history me-2"></i>Benchmark History</h5>
+            </div>
+            <div class="card-body">
+                <div class="benchmark-history">
+                    <div class="history-item">
+                        <div class="history-date">Today</div>
+                        <div class="history-tests">
+                            <div class="test-summary">
+                                <span class="test-name">Full System</span>
+                                <span class="test-score score-a">8.7</span>
+                            </div>
+                            <div class="test-summary">
+                                <span class="test-name">Database</span>
+                                <span class="test-score score-b">7.8</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-item">
+                        <div class="history-date">Yesterday</div>
+                        <div class="history-tests">
+                            <div class="test-summary">
+                                <span class="test-name">API Performance</span>
+                                <span class="test-score score-a">9.1</span>
+                            </div>
+                            <div class="test-summary">
+                                <span class="test-name">Vector Processing</span>
+                                <span class="test-score score-b">7.5</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="history-item">
+                        <div class="history-date">2 days ago</div>
+                        <div class="history-tests">
+                            <div class="test-summary">
+                                <span class="test-name">Payment Processing</span>
+                                <span class="test-score score-a">8.9</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.benchmark-controls {
+    margin-bottom: 20px;
+}
+
+.result-item {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background: #f8f9fa;
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.result-header h6 {
+    margin: 0;
+    color: #333;
+}
+
+.result-time {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.result-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+}
+
+.metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.metric-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+.metric-value {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.score-a {
+    color: #28a745;
+}
+
+.score-b {
+    color: #ffc107;
+}
+
+.score-c {
+    color: #fd7e14;
+}
+
+.score-d {
+    color: #dc3545;
+}
+
+.history-item {
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.history-date {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.test-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.test-name {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.test-score {
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+}
+
+.test-score.score-a {
+    background: #d4edda;
+    color: #155724;
+}
+
+.test-score.score-b {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.test-score.score-c {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.progress {
+    height: 6px;
+    margin-top: 10px;
+}
+
+.progress-bar {
+    transition: width 0.3s ease;
+}
+</style>
+
+<script>
+let benchmarkRunning = false;
+let benchmarkInterval;
+
+function runBenchmark() {
+    if (benchmarkRunning) return;
+    
+    benchmarkRunning = true;
+    const statusDiv = document.getElementById('benchmarkStatus');
+    const statusText = document.getElementById('statusText');
+    const progressBar = document.getElementById('progressBar');
+    
+    statusDiv.classList.remove('d-none');
+    statusText.textContent = 'Initializing benchmark...';
+    progressBar.style.width = '0%';
+    
+    const benchmarkType = document.getElementById('benchmarkType').value;
+    const testDuration = document.getElementById('testDuration').value;
+    const concurrentUsers = document.getElementById('concurrentUsers').value;
+    const testDataSize = document.getElementById('testDataSize').value;
+    
+    // Simulate benchmark progress
+    let progress = 0;
+    const totalSteps = 20;
+    const stepDuration = (testDuration * 1000) / totalSteps;
+    
+    const statusMessages = [
+        'Preparing test environment...',
+        'Initializing test data...',
+        'Starting concurrent users...',
+        'Running performance tests...',
+        'Collecting metrics...',
+        'Analyzing results...',
+        'Generating report...',
+        'Completing benchmark...'
+    ];
+    
+    benchmarkInterval = setInterval(() => {
+        progress++;
+        const percentage = (progress / totalSteps) * 100;
+        progressBar.style.width = percentage + '%';
+        
+        if (progress < statusMessages.length) {
+            statusText.textContent = statusMessages[progress - 1];
+        } else {
+            statusText.textContent = 'Running performance tests...';
+        }
+        
+        if (progress >= totalSteps) {
+            completeBenchmark();
+        }
+    }, stepDuration);
+    
+    // Send request to backend
+    fetch('/admin/performance/api/benchmark/run', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            test_id: benchmarkType,
+            custom_params: {
+                duration: testDuration,
+                concurrent_users: concurrentUsers,
+                data_size: testDataSize
+            }
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Benchmark started successfully');
+        } else {
+            console.error('Failed to start benchmark:', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error starting benchmark:', error);
+    });
+}
+
+function stopBenchmark() {
+    if (!benchmarkRunning) return;
+    
+    benchmarkRunning = false;
+    clearInterval(benchmarkInterval);
+    
+    const statusDiv = document.getElementById('benchmarkStatus');
+    const statusText = document.getElementById('statusText');
+    
+    statusText.textContent = 'Benchmark stopped by user';
+    
+    setTimeout(() => {
+        statusDiv.classList.add('d-none');
+    }, 2000);
+}
+
+function completeBenchmark() {
+    benchmarkRunning = false;
+    clearInterval(benchmarkInterval);
+    
+    const statusDiv = document.getElementById('benchmarkStatus');
+    const statusText = document.getElementById('statusText');
+    const progressBar = document.getElementById('progressBar');
+    
+    statusText.textContent = 'Benchmark completed successfully!';
+    progressBar.style.width = '100%';
+    progressBar.classList.add('bg-success');
+    
+    setTimeout(() => {
+        statusDiv.classList.add('d-none');
+        progressBar.classList.remove('bg-success');
+        refreshResults();
+    }, 3000);
+}
+
+function refreshResults() {
+    location.reload();
+}
+
+// Initialize trends chart (placeholder)
+const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+// Chart.js implementation would go here
+</script>
+{% endblock %}

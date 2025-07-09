@@ -1,0 +1,426 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Create Pricing Tier - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>💰 Create New Pricing Tier</h1>
+    <p class="subtitle">Add a new pricing tier to your VectorCraft offering</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-plus me-2"></i>Tier Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form id="createTierForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tier Name *</label>
+                                <input type="text" class="form-control" id="tierName" placeholder="e.g., Standard Access" required>
+                                <div class="form-text">Display name for this pricing tier</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Price *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="tierPrice" step="0.01" min="0" placeholder="29.99" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Billing Period</label>
+                                <select class="form-select" id="billingPeriod">
+                                    <option value="one-time" selected>One-time Payment</option>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="yearly">Yearly</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Currency</label>
+                                <select class="form-select" id="currency">
+                                    <option value="USD" selected>USD ($)</option>
+                                    <option value="EUR">EUR (€)</option>
+                                    <option value="GBP">GBP (£)</option>
+                                    <option value="CAD">CAD ($)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="tierDescription" rows="3" placeholder="Brief description of what this tier includes"></textarea>
+                        <div class="form-text">This will be displayed to customers</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Features</label>
+                        <div id="featuresContainer">
+                            <div class="feature-input mb-2">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="Enter a feature" name="features[]">
+                                    <button class="btn btn-outline-danger" type="button" onclick="removeFeature(this)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addFeature()">
+                            <i class="fas fa-plus me-2"></i>Add Feature
+                        </button>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Trial Period (days)</label>
+                                <input type="number" class="form-control" id="trialPeriod" min="0" max="365" value="0">
+                                <div class="form-text">0 = No trial period</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Max Users</label>
+                                <input type="number" class="form-control" id="maxUsers" min="1" value="1">
+                                <div class="form-text">Maximum users for this tier</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                    <label class="form-check-label" for="isActive">
+                                        Active Tier
+                                    </label>
+                                </div>
+                                <div class="form-text">Make this tier available for purchase</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="isPopular">
+                                    <label class="form-check-label" for="isPopular">
+                                        Popular/Recommended
+                                    </label>
+                                </div>
+                                <div class="form-text">Highlight this tier as recommended</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Create Tier
+                        </button>
+                        <a href="/admin/pricing/tiers" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-eye me-2"></i>Live Preview</h5>
+            </div>
+            <div class="card-body">
+                <div class="tier-preview" id="tierPreview">
+                    <div class="preview-header">
+                        <h5 id="previewName">Tier Name</h5>
+                        <span class="badge bg-success" id="previewPopular" style="display: none;">Popular</span>
+                    </div>
+                    <div class="preview-price">
+                        <span class="price" id="previewPrice">$0.00</span>
+                        <span class="period" id="previewPeriod">one-time</span>
+                    </div>
+                    <div class="preview-description" id="previewDescription">
+                        Enter a description...
+                    </div>
+                    <div class="preview-features">
+                        <h6>Features:</h6>
+                        <ul id="previewFeaturesList">
+                            <li>No features added yet</li>
+                        </ul>
+                    </div>
+                    <div class="preview-trial" id="previewTrial" style="display: none;">
+                        <small class="text-muted">Includes <span id="previewTrialDays">0</span> day trial</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-lightbulb me-2"></i>Tips</h5>
+            </div>
+            <div class="card-body">
+                <ul class="tips-list">
+                    <li>Use clear, benefit-focused feature descriptions</li>
+                    <li>Price competitively based on value provided</li>
+                    <li>Consider offering a trial period for higher tiers</li>
+                    <li>Mark your best value tier as "Popular"</li>
+                    <li>Keep descriptions concise but informative</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.tier-preview {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    background: #f8f9fa;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 10px;
+}
+
+.preview-price {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.preview-price .price {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.preview-price .period {
+    color: #6c757d;
+}
+
+.preview-description {
+    color: #666;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+.preview-features ul {
+    list-style: none;
+    padding: 0;
+}
+
+.preview-features li {
+    padding: 2px 0;
+    color: #555;
+}
+
+.preview-features li:before {
+    content: "✓";
+    color: #28a745;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.feature-input {
+    margin-bottom: 10px;
+}
+
+.form-actions {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.tips-list {
+    list-style: none;
+    padding: 0;
+}
+
+.tips-list li {
+    padding: 5px 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.tips-list li:before {
+    content: "💡";
+    margin-right: 8px;
+}
+</style>
+
+<script>
+// Live preview updates
+function updatePreview() {
+    const name = document.getElementById('tierName').value || 'Tier Name';
+    const price = document.getElementById('tierPrice').value || '0.00';
+    const period = document.getElementById('billingPeriod').value;
+    const description = document.getElementById('tierDescription').value || 'Enter a description...';
+    const isPopular = document.getElementById('isPopular').checked;
+    const trialPeriod = document.getElementById('trialPeriod').value;
+    const currency = document.getElementById('currency').value;
+    
+    // Currency symbols
+    const currencySymbols = {
+        'USD': '$',
+        'EUR': '€',
+        'GBP': '£',
+        'CAD': '$'
+    };
+    
+    document.getElementById('previewName').textContent = name;
+    document.getElementById('previewPrice').textContent = currencySymbols[currency] + price;
+    document.getElementById('previewPeriod').textContent = period;
+    document.getElementById('previewDescription').textContent = description;
+    
+    // Popular badge
+    const popularBadge = document.getElementById('previewPopular');
+    if (isPopular) {
+        popularBadge.style.display = 'inline';
+    } else {
+        popularBadge.style.display = 'none';
+    }
+    
+    // Trial period
+    const trialElement = document.getElementById('previewTrial');
+    const trialDaysElement = document.getElementById('previewTrialDays');
+    if (trialPeriod && trialPeriod > 0) {
+        trialDaysElement.textContent = trialPeriod;
+        trialElement.style.display = 'block';
+    } else {
+        trialElement.style.display = 'none';
+    }
+    
+    // Features
+    const featureInputs = document.querySelectorAll('input[name="features[]"]');
+    const featuresList = document.getElementById('previewFeaturesList');
+    featuresList.innerHTML = '';
+    
+    let hasFeatures = false;
+    featureInputs.forEach(input => {
+        if (input.value.trim()) {
+            const li = document.createElement('li');
+            li.textContent = input.value.trim();
+            featuresList.appendChild(li);
+            hasFeatures = true;
+        }
+    });
+    
+    if (!hasFeatures) {
+        const li = document.createElement('li');
+        li.textContent = 'No features added yet';
+        li.style.fontStyle = 'italic';
+        li.style.color = '#999';
+        featuresList.appendChild(li);
+    }
+}
+
+// Add feature input
+function addFeature() {
+    const container = document.getElementById('featuresContainer');
+    const div = document.createElement('div');
+    div.className = 'feature-input mb-2';
+    div.innerHTML = `
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="Enter a feature" name="features[]">
+            <button class="btn btn-outline-danger" type="button" onclick="removeFeature(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    container.appendChild(div);
+    
+    // Add event listener to new input
+    const newInput = div.querySelector('input');
+    newInput.addEventListener('input', updatePreview);
+}
+
+// Remove feature input
+function removeFeature(button) {
+    const featureInputs = document.querySelectorAll('.feature-input');
+    if (featureInputs.length > 1) {
+        button.closest('.feature-input').remove();
+        updatePreview();
+    }
+}
+
+// Form submission
+document.getElementById('createTierForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const features = [];
+    document.querySelectorAll('input[name="features[]"]').forEach(input => {
+        if (input.value.trim()) {
+            features.push(input.value.trim());
+        }
+    });
+    
+    const formData = {
+        name: document.getElementById('tierName').value,
+        price: parseFloat(document.getElementById('tierPrice').value),
+        currency: document.getElementById('currency').value,
+        billing_period: document.getElementById('billingPeriod').value,
+        description: document.getElementById('tierDescription').value,
+        features: features,
+        trial_period: parseInt(document.getElementById('trialPeriod').value) || 0,
+        max_users: parseInt(document.getElementById('maxUsers').value) || 1,
+        is_active: document.getElementById('isActive').checked,
+        is_popular: document.getElementById('isPopular').checked
+    };
+    
+    makeSecureRequest('/admin/pricing/api/tiers', {
+        method: 'POST',
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Pricing tier created successfully!');
+            window.location.href = '/admin/pricing/tiers';
+        } else {
+            alert('Failed to create tier: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error creating tier');
+    });
+});
+
+// Add event listeners for live preview
+document.getElementById('tierName').addEventListener('input', updatePreview);
+document.getElementById('tierPrice').addEventListener('input', updatePreview);
+document.getElementById('billingPeriod').addEventListener('change', updatePreview);
+document.getElementById('currency').addEventListener('change', updatePreview);
+document.getElementById('tierDescription').addEventListener('input', updatePreview);
+document.getElementById('isPopular').addEventListener('change', updatePreview);
+document.getElementById('trialPeriod').addEventListener('input', updatePreview);
+
+// Add event listener to existing feature input
+document.querySelector('input[name="features[]"]').addEventListener('input', updatePreview);
+
+// Initial preview update
+updatePreview();
+</script>
+{% endblock %}

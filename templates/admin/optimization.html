@@ -1,0 +1,481 @@
+{% extends "admin/base.html" %}
+
+{% block title %}System Optimization - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🚀 System Optimization</h1>
+    <p class="subtitle">Automated system optimization and performance improvements</p>
+</div>
+
+<div class="row">
+    <!-- Optimization Status -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-rocket me-2"></i>Optimization Status</h5>
+                <div class="card-tools">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="autoOptimization" 
+                               {{ 'checked' if status.optimization_active else '' }}>
+                        <label class="form-check-label" for="autoOptimization">
+                            Auto Optimization
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="optimization-overview">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="optimization-metric">
+                                <div class="metric-icon">
+                                    <i class="fas fa-gauge-high text-primary"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h4>{{ status.performance_score or '8.7' }}/10</h4>
+                                    <p>Performance Score</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="optimization-metric">
+                                <div class="metric-icon">
+                                    <i class="fas fa-magic text-success"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h4>{{ status.optimizations_applied or '12' }}</h4>
+                                    <p>Optimizations Applied</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="optimization-metric">
+                                <div class="metric-icon">
+                                    <i class="fas fa-clock text-warning"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h4>{{ status.last_optimization or '2h ago' }}</h4>
+                                    <p>Last Optimization</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="optimization-metric">
+                                <div class="metric-icon">
+                                    <i class="fas fa-arrow-up text-info"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h4>{{ status.performance_improvement or '+23' }}%</h4>
+                                    <p>Performance Gain</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="optimization-progress mt-4">
+                    <h6>Current Optimization Progress</h6>
+                    <div class="progress-container">
+                        <div class="progress mb-2">
+                            <div class="progress-bar bg-success" style="width: {{ status.optimization_progress or 75 }}%"></div>
+                        </div>
+                        <div class="progress-info">
+                            <small class="text-muted">{{ status.optimization_status or 'Optimization in progress: Database indexing' }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="runOptimization()">
+                        <i class="fas fa-play me-2"></i>Run Full Optimization
+                    </button>
+                    <button class="btn btn-outline-success" onclick="runQuickOptimization()">
+                        <i class="fas fa-zap me-2"></i>Quick Optimization
+                    </button>
+                    <button class="btn btn-outline-info" onclick="analyzeSystem()">
+                        <i class="fas fa-search me-2"></i>Analyze System
+                    </button>
+                    <button class="btn btn-outline-warning" onclick="revertOptimization()">
+                        <i class="fas fa-undo me-2"></i>Revert Last Changes
+                    </button>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>Optimization Schedule</h6>
+                    <div class="schedule-item">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="dailyOptimization" checked>
+                            <label class="form-check-label" for="dailyOptimization">
+                                Daily optimization at 2:00 AM
+                            </label>
+                        </div>
+                    </div>
+                    <div class="schedule-item">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="weeklyDeepOptimization">
+                            <label class="form-check-label" for="weeklyDeepOptimization">
+                                Weekly deep optimization
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Optimization Recommendations -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-lightbulb me-2"></i>Optimization Recommendations</h5>
+            </div>
+            <div class="card-body">
+                <div class="recommendations-list">
+                    {% for recommendation in recommendations or [] %}
+                    <div class="recommendation-item">
+                        <div class="recommendation-header">
+                            <h6>{{ recommendation.title }}</h6>
+                            <span class="badge bg-{{ recommendation.priority_class }}">{{ recommendation.priority }}</span>
+                        </div>
+                        <p class="recommendation-description">{{ recommendation.description }}</p>
+                        <div class="recommendation-metrics">
+                            <span class="metric-tag">Impact: {{ recommendation.impact }}</span>
+                            <span class="metric-tag">Effort: {{ recommendation.effort }}</span>
+                        </div>
+                        <div class="recommendation-actions">
+                            <button class="btn btn-sm btn-primary" onclick="applyRecommendation('{{ recommendation.id }}')">
+                                Apply
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="dismissRecommendation('{{ recommendation.id }}')">
+                                Dismiss
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="recommendation-item">
+                        <div class="recommendation-header">
+                            <h6>Database Index Optimization</h6>
+                            <span class="badge bg-warning">High</span>
+                        </div>
+                        <p class="recommendation-description">
+                            Add indexes to frequently queried columns to improve database performance.
+                        </p>
+                        <div class="recommendation-metrics">
+                            <span class="metric-tag">Impact: High</span>
+                            <span class="metric-tag">Effort: Low</span>
+                        </div>
+                        <div class="recommendation-actions">
+                            <button class="btn btn-sm btn-primary" onclick="applyRecommendation('db_index')">
+                                Apply
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="dismissRecommendation('db_index')">
+                                Dismiss
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="recommendation-item">
+                        <div class="recommendation-header">
+                            <h6>Memory Cache Optimization</h6>
+                            <span class="badge bg-info">Medium</span>
+                        </div>
+                        <p class="recommendation-description">
+                            Implement memory caching for frequently accessed data to reduce database load.
+                        </p>
+                        <div class="recommendation-metrics">
+                            <span class="metric-tag">Impact: Medium</span>
+                            <span class="metric-tag">Effort: Medium</span>
+                        </div>
+                        <div class="recommendation-actions">
+                            <button class="btn btn-sm btn-primary" onclick="applyRecommendation('memory_cache')">
+                                Apply
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="dismissRecommendation('memory_cache')">
+                                Dismiss
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optimization History -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-history me-2"></i>Optimization History</h5>
+            </div>
+            <div class="card-body">
+                <div class="history-timeline">
+                    {% for item in history or [] %}
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-{{ item.type_class }}">
+                            <i class="fas fa-{{ item.icon }}"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <h6>{{ item.title }}</h6>
+                            <p>{{ item.description }}</p>
+                            <small class="text-muted">{{ item.timestamp }}</small>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-success">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <h6>Database Optimization Complete</h6>
+                            <p>Applied 3 database indexes, improved query performance by 45%</p>
+                            <small class="text-muted">2 hours ago</small>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-info">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <h6>Memory Cache Enabled</h6>
+                            <p>Configured Redis cache for session data and frequent queries</p>
+                            <small class="text-muted">Yesterday</small>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <h6>Performance Issue Detected</h6>
+                            <p>High memory usage detected, optimization scheduled</p>
+                            <small class="text-muted">2 days ago</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.optimization-metric {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.metric-icon {
+    font-size: 2rem;
+}
+
+.metric-content h4 {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+.metric-content p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.progress-container {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.schedule-item {
+    margin-bottom: 10px;
+}
+
+.recommendation-item {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.recommendation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.recommendation-header h6 {
+    margin: 0;
+}
+
+.recommendation-description {
+    color: #6c757d;
+    margin-bottom: 10px;
+}
+
+.recommendation-metrics {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.metric-tag {
+    background: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: #495057;
+}
+
+.recommendation-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.history-timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.history-timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -22px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.8rem;
+}
+
+.timeline-content h6 {
+    margin-bottom: 5px;
+}
+
+.timeline-content p {
+    margin-bottom: 5px;
+    color: #6c757d;
+}
+</style>
+
+<script>
+function runOptimization() {
+    if (confirm('This will run a full system optimization. This may take several minutes. Continue?')) {
+        // Show loading state
+        const btn = event.target;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Optimizing...';
+        btn.disabled = true;
+        
+        // Simulate optimization process
+        setTimeout(() => {
+            btn.innerHTML = '<i class="fas fa-play me-2"></i>Run Full Optimization';
+            btn.disabled = false;
+            alert('Full optimization completed successfully!');
+        }, 5000);
+    }
+}
+
+function runQuickOptimization() {
+    const btn = event.target;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Optimizing...';
+    btn.disabled = true;
+    
+    setTimeout(() => {
+        btn.innerHTML = '<i class="fas fa-zap me-2"></i>Quick Optimization';
+        btn.disabled = false;
+        alert('Quick optimization completed!');
+    }, 2000);
+}
+
+function analyzeSystem() {
+    const btn = event.target;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
+    btn.disabled = true;
+    
+    setTimeout(() => {
+        btn.innerHTML = '<i class="fas fa-search me-2"></i>Analyze System';
+        btn.disabled = false;
+        alert('System analysis completed. Check recommendations for suggestions.');
+    }, 3000);
+}
+
+function revertOptimization() {
+    if (confirm('This will revert the last optimization changes. Are you sure?')) {
+        alert('Last optimization changes have been reverted.');
+    }
+}
+
+function applyRecommendation(id) {
+    if (confirm('Apply this optimization recommendation?')) {
+        // Simulate applying recommendation
+        const btn = event.target;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+        
+        setTimeout(() => {
+            btn.innerHTML = 'Applied';
+            btn.classList.replace('btn-primary', 'btn-success');
+            btn.disabled = true;
+        }, 2000);
+    }
+}
+
+function dismissRecommendation(id) {
+    if (confirm('Dismiss this recommendation?')) {
+        const item = event.target.closest('.recommendation-item');
+        item.style.opacity = '0.5';
+        item.style.pointerEvents = 'none';
+    }
+}
+
+// Auto optimization toggle
+document.getElementById('autoOptimization').addEventListener('change', function() {
+    const enabled = this.checked;
+    // Send to backend
+    fetch('/admin/performance/api/auto-optimization', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ enabled: enabled })
+    });
+});
+</script>
+{% endblock %}

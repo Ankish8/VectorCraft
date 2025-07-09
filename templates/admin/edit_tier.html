@@ -1,0 +1,576 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Edit Pricing Tier - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>💰 Edit Pricing Tier</h1>
+    <p class="subtitle">Modify existing pricing tier configuration</p>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-edit me-2"></i>Tier Configuration</h5>
+                <div class="card-tools">
+                    <span class="badge bg-info">ID: {{ tier.id or 'N/A' }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <form id="editTierForm">
+                    <input type="hidden" id="tierId" value="{{ tier.id or '' }}">
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tier Name *</label>
+                                <input type="text" class="form-control" id="tierName" value="{{ tier.name or 'Standard Access' }}" required>
+                                <div class="form-text">Display name for this pricing tier</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Price *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="tierPrice" step="0.01" min="0" value="{{ tier.price or '29.99' }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Billing Period</label>
+                                <select class="form-select" id="billingPeriod">
+                                    <option value="one-time" {{ 'selected' if (tier.billing_period or 'one-time') == 'one-time' else '' }}>One-time Payment</option>
+                                    <option value="monthly" {{ 'selected' if (tier.billing_period or 'one-time') == 'monthly' else '' }}>Monthly</option>
+                                    <option value="yearly" {{ 'selected' if (tier.billing_period or 'one-time') == 'yearly' else '' }}>Yearly</option>
+                                    <option value="weekly" {{ 'selected' if (tier.billing_period or 'one-time') == 'weekly' else '' }}>Weekly</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Currency</label>
+                                <select class="form-select" id="currency">
+                                    <option value="USD" {{ 'selected' if (tier.currency or 'USD') == 'USD' else '' }}>USD ($)</option>
+                                    <option value="EUR" {{ 'selected' if (tier.currency or 'USD') == 'EUR' else '' }}>EUR (€)</option>
+                                    <option value="GBP" {{ 'selected' if (tier.currency or 'USD') == 'GBP' else '' }}>GBP (£)</option>
+                                    <option value="CAD" {{ 'selected' if (tier.currency or 'USD') == 'CAD' else '' }}>CAD ($)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="tierDescription" rows="3">{{ tier.description or 'Full access to VectorCraft with all features included' }}</textarea>
+                        <div class="form-text">This will be displayed to customers</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Features</label>
+                        <div id="featuresContainer">
+                            {% for feature in tier.features or ['Unlimited vector conversions', 'High-quality output formats', 'Batch processing', '24/7 support access'] %}
+                            <div class="feature-input mb-2">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" value="{{ feature }}" name="features[]">
+                                    <button class="btn btn-outline-danger" type="button" onclick="removeFeature(this)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addFeature()">
+                            <i class="fas fa-plus me-2"></i>Add Feature
+                        </button>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Trial Period (days)</label>
+                                <input type="number" class="form-control" id="trialPeriod" min="0" max="365" value="{{ tier.trial_period or 0 }}">
+                                <div class="form-text">0 = No trial period</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Max Users</label>
+                                <input type="number" class="form-control" id="maxUsers" min="1" value="{{ tier.max_users or 1 }}">
+                                <div class="form-text">Maximum users for this tier</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="isActive" {{ 'checked' if tier.is_active != False else '' }}>
+                                    <label class="form-check-label" for="isActive">
+                                        Active Tier
+                                    </label>
+                                </div>
+                                <div class="form-text">Make this tier available for purchase</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="isPopular" {{ 'checked' if tier.is_popular else '' }}>
+                                    <label class="form-check-label" for="isPopular">
+                                        Popular/Recommended
+                                    </label>
+                                </div>
+                                <div class="form-text">Highlight this tier as recommended</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tier-stats mt-4">
+                        <h6>Tier Statistics</h6>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="stat-box">
+                                    <div class="stat-value">{{ tier.total_purchases or '0' }}</div>
+                                    <div class="stat-label">Total Purchases</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-box">
+                                    <div class="stat-value">${{ tier.total_revenue or '0.00' }}</div>
+                                    <div class="stat-label">Total Revenue</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-box">
+                                    <div class="stat-value">{{ tier.conversion_rate or '0' }}%</div>
+                                    <div class="stat-label">Conversion Rate</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-box">
+                                    <div class="stat-value">{{ tier.created_at.strftime('%m/%d/%Y') if tier.created_at else 'N/A' }}</div>
+                                    <div class="stat-label">Created</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Update Tier
+                        </button>
+                        <a href="/admin/pricing/tiers" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Tiers
+                        </a>
+                        <button type="button" class="btn btn-danger" onclick="deleteTier()">
+                            <i class="fas fa-trash me-2"></i>Delete Tier
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-eye me-2"></i>Live Preview</h5>
+            </div>
+            <div class="card-body">
+                <div class="tier-preview" id="tierPreview">
+                    <div class="preview-header">
+                        <h5 id="previewName">{{ tier.name or 'Tier Name' }}</h5>
+                        <span class="badge bg-success" id="previewPopular" style="{{ 'display: inline;' if tier.is_popular else 'display: none;' }}">Popular</span>
+                    </div>
+                    <div class="preview-price">
+                        <span class="price" id="previewPrice">${{ tier.price or '0.00' }}</span>
+                        <span class="period" id="previewPeriod">{{ tier.billing_period or 'one-time' }}</span>
+                    </div>
+                    <div class="preview-description" id="previewDescription">
+                        {{ tier.description or 'Enter a description...' }}
+                    </div>
+                    <div class="preview-features">
+                        <h6>Features:</h6>
+                        <ul id="previewFeaturesList">
+                            {% for feature in tier.features or ['No features added yet'] %}
+                            <li>{{ feature }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="preview-trial" id="previewTrial" style="{{ 'display: block;' if (tier.trial_period and tier.trial_period > 0) else 'display: none;' }}">
+                        <small class="text-muted">Includes <span id="previewTrialDays">{{ tier.trial_period or 0 }}</span> day trial</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line me-2"></i>Performance</h5>
+            </div>
+            <div class="card-body">
+                <div class="performance-metrics">
+                    <div class="metric-item">
+                        <span class="metric-label">Monthly Purchases:</span>
+                        <span class="metric-value">{{ tier.monthly_purchases or '0' }}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Avg. Revenue/Month:</span>
+                        <span class="metric-value">${{ tier.avg_monthly_revenue or '0.00' }}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Customer Satisfaction:</span>
+                        <span class="metric-value">{{ tier.satisfaction_rate or '95' }}%</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Refund Rate:</span>
+                        <span class="metric-value">{{ tier.refund_rate or '1.2' }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-history me-2"></i>Recent Activity</h5>
+            </div>
+            <div class="card-body">
+                <div class="activity-list">
+                    <div class="activity-item">
+                        <div class="activity-time">2 hours ago</div>
+                        <div class="activity-desc">Tier purchased by user@example.com</div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-time">1 day ago</div>
+                        <div class="activity-desc">Price updated to ${{ tier.price or '29.99' }}</div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-time">3 days ago</div>
+                        <div class="activity-desc">Feature "24/7 support" added</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.tier-preview {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    background: #f8f9fa;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 10px;
+}
+
+.preview-price {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.preview-price .price {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.preview-price .period {
+    color: #6c757d;
+}
+
+.preview-description {
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.preview-features ul {
+    list-style: none;
+    padding: 0;
+}
+
+.preview-features li {
+    padding: 2px 0;
+    color: #555;
+}
+
+.preview-features li:before {
+    content: "✓";
+    color: #28a745;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.feature-input {
+    margin-bottom: 10px;
+}
+
+.form-actions {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.tier-stats {
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.stat-box {
+    text-align: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+.stat-value {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.performance-metrics {
+    display: grid;
+    gap: 10px;
+}
+
+.metric-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.metric-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.metric-value {
+    font-weight: 600;
+    color: #333;
+}
+
+.activity-list {
+    display: grid;
+    gap: 10px;
+}
+
+.activity-item {
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.activity-time {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+.activity-desc {
+    font-size: 0.9rem;
+    color: #333;
+}
+</style>
+
+<script>
+// Live preview updates
+function updatePreview() {
+    const name = document.getElementById('tierName').value || 'Tier Name';
+    const price = document.getElementById('tierPrice').value || '0.00';
+    const period = document.getElementById('billingPeriod').value;
+    const description = document.getElementById('tierDescription').value || 'Enter a description...';
+    const isPopular = document.getElementById('isPopular').checked;
+    const trialPeriod = document.getElementById('trialPeriod').value;
+    const currency = document.getElementById('currency').value;
+    
+    // Currency symbols
+    const currencySymbols = {
+        'USD': '$',
+        'EUR': '€',
+        'GBP': '£',
+        'CAD': '$'
+    };
+    
+    document.getElementById('previewName').textContent = name;
+    document.getElementById('previewPrice').textContent = currencySymbols[currency] + price;
+    document.getElementById('previewPeriod').textContent = period;
+    document.getElementById('previewDescription').textContent = description;
+    
+    // Popular badge
+    const popularBadge = document.getElementById('previewPopular');
+    if (isPopular) {
+        popularBadge.style.display = 'inline';
+    } else {
+        popularBadge.style.display = 'none';
+    }
+    
+    // Trial period
+    const trialElement = document.getElementById('previewTrial');
+    const trialDaysElement = document.getElementById('previewTrialDays');
+    if (trialPeriod && trialPeriod > 0) {
+        trialDaysElement.textContent = trialPeriod;
+        trialElement.style.display = 'block';
+    } else {
+        trialElement.style.display = 'none';
+    }
+    
+    // Features
+    const featureInputs = document.querySelectorAll('input[name="features[]"]');
+    const featuresList = document.getElementById('previewFeaturesList');
+    featuresList.innerHTML = '';
+    
+    let hasFeatures = false;
+    featureInputs.forEach(input => {
+        if (input.value.trim()) {
+            const li = document.createElement('li');
+            li.textContent = input.value.trim();
+            featuresList.appendChild(li);
+            hasFeatures = true;
+        }
+    });
+    
+    if (!hasFeatures) {
+        const li = document.createElement('li');
+        li.textContent = 'No features added yet';
+        li.style.fontStyle = 'italic';
+        li.style.color = '#999';
+        featuresList.appendChild(li);
+    }
+}
+
+// Add feature input
+function addFeature() {
+    const container = document.getElementById('featuresContainer');
+    const div = document.createElement('div');
+    div.className = 'feature-input mb-2';
+    div.innerHTML = `
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="Enter a feature" name="features[]">
+            <button class="btn btn-outline-danger" type="button" onclick="removeFeature(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    container.appendChild(div);
+    
+    // Add event listener to new input
+    const newInput = div.querySelector('input');
+    newInput.addEventListener('input', updatePreview);
+}
+
+// Remove feature input
+function removeFeature(button) {
+    const featureInputs = document.querySelectorAll('.feature-input');
+    if (featureInputs.length > 1) {
+        button.closest('.feature-input').remove();
+        updatePreview();
+    }
+}
+
+// Delete tier
+function deleteTier() {
+    if (confirm('Are you sure you want to delete this pricing tier? This action cannot be undone.')) {
+        const tierId = document.getElementById('tierId').value;
+        
+        makeSecureRequest(`/admin/pricing/api/tiers/${tierId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Pricing tier deleted successfully!');
+                window.location.href = '/admin/pricing/tiers';
+            } else {
+                alert('Failed to delete tier: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting tier');
+        });
+    }
+}
+
+// Form submission
+document.getElementById('editTierForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const features = [];
+    document.querySelectorAll('input[name="features[]"]').forEach(input => {
+        if (input.value.trim()) {
+            features.push(input.value.trim());
+        }
+    });
+    
+    const tierId = document.getElementById('tierId').value;
+    const formData = {
+        name: document.getElementById('tierName').value,
+        price: parseFloat(document.getElementById('tierPrice').value),
+        currency: document.getElementById('currency').value,
+        billing_period: document.getElementById('billingPeriod').value,
+        description: document.getElementById('tierDescription').value,
+        features: features,
+        trial_period: parseInt(document.getElementById('trialPeriod').value) || 0,
+        max_users: parseInt(document.getElementById('maxUsers').value) || 1,
+        is_active: document.getElementById('isActive').checked,
+        is_popular: document.getElementById('isPopular').checked
+    };
+    
+    makeSecureRequest(`/admin/pricing/api/tiers/${tierId}`, {
+        method: 'PUT',
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Pricing tier updated successfully!');
+            // Optionally redirect or stay on page
+        } else {
+            alert('Failed to update tier: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating tier');
+    });
+});
+
+// Add event listeners for live preview
+document.getElementById('tierName').addEventListener('input', updatePreview);
+document.getElementById('tierPrice').addEventListener('input', updatePreview);
+document.getElementById('billingPeriod').addEventListener('change', updatePreview);
+document.getElementById('currency').addEventListener('change', updatePreview);
+document.getElementById('tierDescription').addEventListener('input', updatePreview);
+document.getElementById('isPopular').addEventListener('change', updatePreview);
+document.getElementById('trialPeriod').addEventListener('input', updatePreview);
+
+// Add event listeners to existing feature inputs
+document.querySelectorAll('input[name="features[]"]').forEach(input => {
+    input.addEventListener('input', updatePreview);
+});
+</script>
+{% endblock %}

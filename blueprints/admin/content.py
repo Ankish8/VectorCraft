@@ -17,9 +17,11 @@ from services.seo_manager import seo_manager
 
 # Import admin blueprint
 from . import admin_bp
+from blueprints.auth.utils import admin_required
 
 @admin_bp.route('/content')
-def dashboard():
+@admin_required
+def content_dashboard():
     """Content management dashboard"""
     try:
         # Get content analytics
@@ -45,6 +47,7 @@ def dashboard():
         return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/content/pages')
+@admin_required
 def pages():
     """List all pages"""
     try:
@@ -73,6 +76,7 @@ def pages():
         return redirect(url_for('admin_content.dashboard'))
 
 @admin_bp.route('/content/pages/create')
+@admin_required
 def create_page():
     """Create new page form"""
     try:

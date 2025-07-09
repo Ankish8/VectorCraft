@@ -14,18 +14,10 @@ from . import admin_bp
 from services.system_config_manager import system_config_manager
 from services.auth_service import require_admin_auth
 from services.paypal_service import paypal_service
+from blueprints.auth.utils import admin_required
 import os
 
 logger = logging.getLogger(__name__)
-
-def admin_required(f):
-    """Decorator to require admin authentication"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not session.get('admin_logged_in'):
-            return redirect(url_for('admin.login'))
-        return f(*args, **kwargs)
-    return decorated_function
 
 @admin_bp.route('/system-config')
 @admin_required

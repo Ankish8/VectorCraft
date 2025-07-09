@@ -50,7 +50,7 @@ def api_response(success=True, data=None, error=None, message=None):
 # Main System Control Dashboard
 @admin_bp.route('/system-control')
 @admin_required
-def dashboard():
+def system_control():
     """Main system control dashboard"""
     return render_template('admin/system_control.html')
 
@@ -554,23 +554,18 @@ def bulk_update_features():
         return api_response(success=False, error=str(e))
 
 # Error handlers
-@system_control_bp.errorhandler(400)
+@admin_bp.errorhandler(400)
 def bad_request(error):
     return api_response(success=False, error="Bad request")
 
-@system_control_bp.errorhandler(403)
+@admin_bp.errorhandler(403)
 def forbidden(error):
     return api_response(success=False, error="Forbidden")
 
-@system_control_bp.errorhandler(404)
+@admin_bp.errorhandler(404)
 def not_found(error):
     return api_response(success=False, error="Not found")
 
-@system_control_bp.errorhandler(500)
+@admin_bp.errorhandler(500)
 def internal_error(error):
     return api_response(success=False, error="Internal server error")
-
-# Register blueprint functions
-def register_system_control_blueprint(app):
-    """Register the system control blueprint with the Flask app"""
-    app.register_blueprint(system_control_bp)

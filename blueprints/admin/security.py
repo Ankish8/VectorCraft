@@ -21,15 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Import admin blueprint
 from . import admin_bp
-
-def admin_required(f):
-    """Decorator to require admin authentication"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'admin_logged_in' not in session:
-            return redirect(url_for('auth.admin_login'))
-        return f(*args, **kwargs)
-    return decorated_function
+from blueprints.auth.utils import admin_required
 
 def log_admin_action(action: str, resource: str, details: Dict = None):
     """Log admin actions for audit trail"""
@@ -49,7 +41,7 @@ def log_admin_action(action: str, resource: str, details: Dict = None):
 
 @admin_bp.route('/security')
 @admin_required
-def dashboard():
+def security_dashboard():
     """Security dashboard main page"""
     try:
         # Get security metrics

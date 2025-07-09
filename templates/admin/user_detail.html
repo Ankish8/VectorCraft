@@ -435,11 +435,8 @@ function performUserAction(userId, action) {
     button.disabled = true;
     button.textContent = 'Processing...';
     
-    fetch('/admin/users/bulk-action', {
+    makeSecureRequest('/admin/users/bulk-action', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
             user_ids: [userId],
             action: action

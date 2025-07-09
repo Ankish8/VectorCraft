@@ -1,0 +1,276 @@
+{
+  "timestamp": "2025-07-09T20:46:33.367344",
+  "summary": {
+    "total_tests": 51,
+    "passed_tests": 51,
+    "failed_tests": 0,
+    "success_rate": 100.0
+  },
+  "detailed_results": {
+    "navigation_tests": [
+      {
+        "name": "Navigation: admin.admin_dashboard",
+        "passed": true,
+        "message": "Route handler function exists"
+      },
+      {
+        "name": "Navigation: admin.system_config",
+        "passed": true,
+        "message": "Route handler function exists"
+      },
+      {
+        "name": "Navigation: admin.system_control",
+        "passed": true,
+        "message": "Route handler function exists"
+      },
+      {
+        "name": "Navigation: admin.pricing_dashboard",
+        "passed": true,
+        "message": "Route handler function exists"
+      },
+      {
+        "name": "Navigation: admin.email_campaigns",
+        "passed": true,
+        "message": "Route handler function exists"
+      },
+      {
+        "name": "Navigation: admin.marketing_dashboard",
+        "passed": true,
+        "message": "Route handler function exists"
+      },
+      {
+        "name": "Navigation: admin.permissions_dashboard",
+        "passed": true,
+        "message": "Route handler function exists"
+      },
+      {
+        "name": "Navigation: admin.security_dashboard",
+        "passed": true,
+        "message": "Route handler function exists"
+      },
+      {
+        "name": "Navigation: admin.content_dashboard",
+        "passed": true,
+        "message": "Route handler function exists"
+      },
+      {
+        "name": "Navigation: admin.performance_dashboard",
+        "passed": true,
+        "message": "Route handler function exists"
+      },
+      {
+        "name": "Navigation: admin.business_logic_dashboard",
+        "passed": true,
+        "message": "Route handler function exists"
+      }
+    ],
+    "template_tests": [
+      {
+        "name": "Template: admin/base.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/dashboard.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/system_config.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/system_control.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/pricing_dashboard.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/email_campaigns.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/marketing/dashboard.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/permissions/dashboard.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/security/dashboard.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/content/dashboard.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/performance.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/business_logic.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/error.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/architecture.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/performance_tuning.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/benchmarks.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/optimization.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/pricing_tiers.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/create_tier.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/edit_tier.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/pricing_analytics.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/discount_codes.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/revenue_reports.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/subscription_management.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/payment_gateway.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      },
+      {
+        "name": "Template: admin/billing_settings.html",
+        "passed": true,
+        "message": "Template exists and has valid syntax"
+      }
+    ],
+    "form_tests": [
+      {
+        "name": "Form: admin/system_config.html - paypal-config-form",
+        "passed": true,
+        "message": "Form exists without validation"
+      },
+      {
+        "name": "Form: admin/system_config.html - email-config-form",
+        "passed": true,
+        "message": "Form exists without validation"
+      },
+      {
+        "name": "Form: admin/create_tier.html - createTierForm",
+        "passed": true,
+        "message": "Form exists without validation"
+      },
+      {
+        "name": "Form: admin/edit_tier.html - editTierForm",
+        "passed": true,
+        "message": "Form exists without validation"
+      },
+      {
+        "name": "Form: admin/discount_codes.html - discountCodeForm",
+        "passed": true,
+        "message": "Form exists without validation"
+      },
+      {
+        "name": "Form: admin/billing_settings.html - billingConfigForm",
+        "passed": true,
+        "message": "Form exists without validation"
+      },
+      {
+        "name": "Form: admin/billing_settings.html - invoiceSettingsForm",
+        "passed": true,
+        "message": "Form exists without validation"
+      },
+      {
+        "name": "Form: admin/permissions/dashboard.html - create-permission-form",
+        "passed": true,
+        "message": "Form exists without validation"
+      },
+      {
+        "name": "Form: admin/permissions/dashboard.html - create-role-form",
+        "passed": true,
+        "message": "Form exists without validation"
+      }
+    ],
+    "integration_tests": [
+      {
+        "name": "Integration: Blueprint Registration",
+        "passed": true,
+        "message": "All required modules imported"
+      }
+    ],
+    "ui_consistency_tests": [
+      {
+        "name": "UI: Design System CSS",
+        "passed": true,
+        "message": "Design system CSS included in base template"
+      },
+      {
+        "name": "UI Consistency: admin/system_config.html",
+        "passed": true,
+        "message": "Consistent button styling found"
+      },
+      {
+        "name": "UI Consistency: admin/pricing_dashboard.html",
+        "passed": true,
+        "message": "Consistent button styling found"
+      },
+      {
+        "name": "UI Consistency: admin/create_tier.html",
+        "passed": true,
+        "message": "Consistent button styling found"
+      }
+    ]
+  }
+}

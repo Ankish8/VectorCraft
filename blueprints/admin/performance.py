@@ -36,7 +36,7 @@ def require_performance_services(f):
 
 @admin_bp.route('/performance')
 @require_performance_services
-def dashboard():
+def performance_dashboard():
     """Main performance dashboard"""
     try:
         # Get real-time metrics

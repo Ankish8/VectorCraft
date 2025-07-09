@@ -22,7 +22,7 @@ from . import admin_bp
 
 @admin_bp.route('/business-logic')
 @login_required
-def dashboard():
+def business_logic_dashboard():
     """Main business logic dashboard"""
     try:
         # Get overview statistics

@@ -565,14 +565,14 @@ def cleanup_expired():
 
 
 # Error handlers
-@pricing_bp.errorhandler(404)
+@admin_bp.errorhandler(404)
 def not_found(error):
     flash('Page not found', 'error')
-    return redirect(url_for('pricing.pricing_dashboard'))
+    return redirect(url_for('admin.pricing_dashboard'))
 
 
-@pricing_bp.errorhandler(500)
+@admin_bp.errorhandler(500)
 def internal_error(error):
     logger.error(f"Internal error in pricing module: {error}")
     flash('Internal server error', 'error')
-    return redirect(url_for('pricing.pricing_dashboard'))
+    return redirect(url_for('admin.pricing_dashboard'))

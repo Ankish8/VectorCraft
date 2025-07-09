@@ -12,7 +12,7 @@ from flask_login import current_user
 import uuid
 
 from . import admin_bp
-from middleware import require_permission, require_role, admin_only
+from blueprints.auth.utils import admin_required
 from services.permission_manager import permission_manager
 from services.role_manager import role_manager
 from database import db
@@ -22,8 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 @admin_bp.route('/permissions')
-@admin_only('admin')
-@require_permission('permission.read')
+@admin_required
 def permissions_dashboard():
     """Permission management dashboard"""
     try:
@@ -59,8 +58,7 @@ def permissions_dashboard():
 
 
 @admin_bp.route('/permissions/roles')
-@admin_only('admin')
-@require_permission('role.read')
+@admin_required
 def roles_management():
     """Role management interface"""
     try:
@@ -80,8 +78,7 @@ def roles_management():
 
 
 @admin_bp.route('/permissions/users')
-@admin_only('admin')
-@require_permission('user.read')
+@admin_required
 def users_permissions():
     """User permissions management"""
     try:
@@ -123,8 +120,7 @@ def users_permissions():
 
 
 @admin_bp.route('/permissions/matrix')
-@admin_only('admin')
-@require_permission('permission.read')
+@admin_required
 def permissions_matrix():
     """Permission matrix view"""
     try:
@@ -152,8 +148,7 @@ def permissions_matrix():
 
 
 @admin_bp.route('/permissions/audit')
-@admin_only('admin')
-@require_permission('permission.read')
+@admin_required
 def permissions_audit():
     """Permission audit log"""
     try:
@@ -204,8 +199,7 @@ def permissions_audit():
 # API Routes for Permission Management
 
 @admin_bp.route('/api/permissions/create', methods=['POST'])
-@admin_only('admin')
-@require_permission('permission.admin')
+@admin_required
 def create_permission():
     """Create a new permission"""
     try:
@@ -240,8 +234,7 @@ def create_permission():
 
 
 @admin_bp.route('/api/roles/create', methods=['POST'])
-@admin_only('admin')
-@require_permission('role.admin')
+@admin_required
 def create_role():
     """Create a new role"""
     try:
@@ -273,8 +266,7 @@ def create_role():
 
 
 @admin_bp.route('/api/roles/<int:role_id>/permissions', methods=['POST'])
-@admin_only('admin')
-@require_permission('role.admin')
+@admin_required
 def assign_permission_to_role(role_id):
     """Assign permission to role"""
     try:
@@ -308,8 +300,7 @@ def assign_permission_to_role(role_id):
 
 
 @admin_bp.route('/api/roles/<int:role_id>/permissions/<int:permission_id>', methods=['DELETE'])
-@admin_only('admin')
-@require_permission('role.admin')
+@admin_required
 def revoke_permission_from_role(role_id, permission_id):
     """Revoke permission from role"""
     try:
@@ -333,8 +324,7 @@ def revoke_permission_from_role(role_id, permission_id):
 
 
 @admin_bp.route('/api/users/<int:user_id>/roles', methods=['POST'])
-@admin_only('admin')
-@require_permission('user.admin')
+@admin_required
 def assign_role_to_user(user_id):
     """Assign role to user"""
     try:
@@ -368,8 +358,7 @@ def assign_role_to_user(user_id):
 
 
 @admin_bp.route('/api/users/<int:user_id>/roles/<int:role_id>', methods=['DELETE'])
-@admin_only('admin')
-@require_permission('user.admin')
+@admin_required
 def revoke_role_from_user(user_id, role_id):
     """Revoke role from user"""
     try:
@@ -393,8 +382,7 @@ def revoke_role_from_user(user_id, role_id):
 
 
 @admin_bp.route('/api/users/<int:user_id>/permissions', methods=['POST'])
-@admin_only('admin')
-@require_permission('user.admin')
+@admin_required
 def grant_permission_to_user(user_id):
     """Grant direct permission to user"""
     try:
@@ -428,8 +416,7 @@ def grant_permission_to_user(user_id):
 
 
 @admin_bp.route('/api/users/<int:user_id>/permissions/<int:permission_id>', methods=['DELETE'])
-@admin_only('admin')
-@require_permission('user.admin')
+@admin_required
 def revoke_permission_from_user(user_id, permission_id):
     """Revoke direct permission from user"""
     try:
@@ -453,8 +440,7 @@ def revoke_permission_from_user(user_id, permission_id):
 
 
 @admin_bp.route('/api/roles/<int:role_id>/clone', methods=['POST'])
-@admin_only('admin')
-@require_permission('role.admin')
+@admin_required
 def clone_role(role_id):
     """Clone a role"""
     try:
@@ -485,8 +471,7 @@ def clone_role(role_id):
 
 
 @admin_bp.route('/api/roles/<int:role_id>/hierarchy', methods=['PUT'])
-@admin_only('admin')
-@require_permission('role.admin')
+@admin_required
 def update_role_hierarchy(role_id):
     """Update role hierarchy"""
     try:
@@ -520,8 +505,7 @@ def update_role_hierarchy(role_id):
 
 
 @admin_bp.route('/api/roles/<int:role_id>/effective-permissions')
-@admin_only('admin')
-@require_permission('role.read')
+@admin_required
 def get_role_effective_permissions(role_id):
     """Get effective permissions for a role"""
     try:
@@ -541,8 +525,7 @@ def get_role_effective_permissions(role_id):
 
 
 @admin_bp.route('/api/users/<int:user_id>/effective-permissions')
-@admin_only('admin')
-@require_permission('user.read')
+@admin_required
 def get_user_effective_permissions(user_id):
     """Get effective permissions for a user"""
     try:
@@ -564,8 +547,7 @@ def get_user_effective_permissions(user_id):
 
 
 @admin_bp.route('/api/role-templates/create', methods=['POST'])
-@admin_only('admin')
-@require_permission('role.admin')
+@admin_required
 def create_role_template():
     """Create a role template"""
     try:
@@ -598,8 +580,7 @@ def create_role_template():
 
 
 @admin_bp.route('/api/role-templates/<template_id>/create-role', methods=['POST'])
-@admin_only('admin')
-@require_permission('role.admin')
+@admin_required
 def create_role_from_template(template_id):
     """Create a role from template"""
     try:

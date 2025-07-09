@@ -318,7 +318,7 @@ input:checked + .slider:before {
         </div>
         <div class="pricing-controls">
             <input type="number" class="price-input" placeholder="New price" step="0.01" min="0">
-            <button class="btn-update" onclick="updatePrice('main')">Update</button>
+            <button class="btn btn-primary" onclick="updatePrice('main')">Update</button>
         </div>
         <div style="margin-top: 15px; font-size: 0.9rem; color: #7f8c8d;">
             Last updated: 2 hours ago
@@ -335,7 +335,7 @@ input:checked + .slider:before {
         </div>
         <div class="pricing-controls">
             <input type="number" class="price-input" placeholder="Flash sale price" step="0.01" min="0">
-            <button class="btn-update" onclick="updatePrice('flash')">Activate</button>
+            <button class="btn btn-success" onclick="updatePrice('flash')">Activate</button>
         </div>
         <div style="margin-top: 15px; font-size: 0.9rem; color: #7f8c8d;">
             Duration: 24 hours
@@ -352,7 +352,7 @@ input:checked + .slider:before {
         </div>
         <div class="pricing-controls">
             <input type="number" class="price-input" placeholder="Bulk price" step="0.01" min="0">
-            <button class="btn-update" onclick="updatePrice('bulk')">Update</button>
+            <button class="btn btn-primary" onclick="updatePrice('bulk')">Update</button>
         </div>
         <div style="margin-top: 15px; font-size: 0.9rem; color: #7f8c8d;">
             Min quantity: 5+
@@ -392,7 +392,7 @@ input:checked + .slider:before {
 <div class="pricing-rules">
     <div class="pricing-header">
         <h3>📋 Pricing Rules</h3>
-        <button class="btn-update" onclick="addRule()">Add Rule</button>
+        <button class="btn btn-primary" onclick="addRule()">Add Rule</button>
     </div>
     
     <div class="rule-item">
@@ -401,8 +401,8 @@ input:checked + .slider:before {
             <span style="color: #7f8c8d;">Apply 15% discount on weekends</span>
         </div>
         <div class="rule-actions">
-            <button class="btn-small btn-edit">Edit</button>
-            <button class="btn-small btn-delete">Delete</button>
+            <button class="btn btn-sm btn-outline-primary">Edit</button>
+            <button class="btn btn-sm btn-outline-danger">Delete</button>
         </div>
     </div>
 
@@ -412,8 +412,8 @@ input:checked + .slider:before {
             <span style="color: #7f8c8d;">Bulk discounts for 5+ purchases</span>
         </div>
         <div class="rule-actions">
-            <button class="btn-small btn-edit">Edit</button>
-            <button class="btn-small btn-delete">Delete</button>
+            <button class="btn btn-sm btn-outline-primary">Edit</button>
+            <button class="btn btn-sm btn-outline-danger">Delete</button>
         </div>
     </div>
 
@@ -423,8 +423,8 @@ input:checked + .slider:before {
             <span style="color: #7f8c8d;">20% off for new customers</span>
         </div>
         <div class="rule-actions">
-            <button class="btn-small btn-edit">Edit</button>
-            <button class="btn-small btn-delete">Delete</button>
+            <button class="btn btn-sm btn-outline-primary">Edit</button>
+            <button class="btn btn-sm btn-outline-danger">Delete</button>
         </div>
     </div>
 </div>

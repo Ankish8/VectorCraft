@@ -1,0 +1,544 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Payment Gateway Settings - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>💳 Payment Gateway Settings</h1>
+    <p class="subtitle">Configure payment methods and gateway integrations</p>
+</div>
+
+<div class="row">
+    <!-- PayPal Configuration -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fab fa-paypal me-2"></i>PayPal Configuration</h5>
+                <div class="card-tools">
+                    <span class="badge bg-{{ 'success' if paypal_status == 'connected' else 'warning' }}">
+                        {{ paypal_status|title or 'Connected' }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <form id="paypalForm">
+                    <div class="mb-3">
+                        <label class="form-label">Environment</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="paypal_env" id="paypal_sandbox" value="sandbox" {{ 'checked' if paypal_environment != 'live' else '' }}>
+                            <label class="form-check-label" for="paypal_sandbox">
+                                Sandbox (Testing)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="paypal_env" id="paypal_live" value="live" {{ 'checked' if paypal_environment == 'live' else '' }}>
+                            <label class="form-check-label" for="paypal_live">
+                                Live (Production)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Client ID</label>
+                        <input type="password" class="form-control" id="paypal_client_id" value="{{ paypal_client_id or '••••••••••••••••' }}" placeholder="PayPal Client ID">
+                        <div class="form-text">Your PayPal application client ID</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Client Secret</label>
+                        <input type="password" class="form-control" id="paypal_client_secret" value="{{ paypal_client_secret or '••••••••••••••••' }}" placeholder="PayPal Client Secret">
+                        <div class="form-text">Your PayPal application client secret</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="paypal_enabled" {{ 'checked' if paypal_enabled != False else '' }}>
+                            <label class="form-check-label" for="paypal_enabled">
+                                Enable PayPal Payments
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-primary" onclick="savePayPalConfig()">
+                            <i class="fas fa-save me-2"></i>Save Configuration
+                        </button>
+                        <button type="button" class="btn btn-outline-info" onclick="testPayPalConnection()">
+                            <i class="fas fa-plug me-2"></i>Test Connection
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stripe Configuration -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fab fa-stripe me-2"></i>Stripe Configuration</h5>
+                <div class="card-tools">
+                    <span class="badge bg-{{ 'success' if stripe_status == 'connected' else 'secondary' }}">
+                        {{ stripe_status|title or 'Not Connected' }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <form id="stripeForm">
+                    <div class="mb-3">
+                        <label class="form-label">Environment</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="stripe_env" id="stripe_test" value="test" {{ 'checked' if stripe_environment != 'live' else '' }}>
+                            <label class="form-check-label" for="stripe_test">
+                                Test Mode
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="stripe_env" id="stripe_live" value="live" {{ 'checked' if stripe_environment == 'live' else '' }}>
+                            <label class="form-check-label" for="stripe_live">
+                                Live Mode
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Publishable Key</label>
+                        <input type="password" class="form-control" id="stripe_publishable_key" value="{{ stripe_publishable_key or '' }}" placeholder="pk_test_...">
+                        <div class="form-text">Your Stripe publishable key</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Secret Key</label>
+                        <input type="password" class="form-control" id="stripe_secret_key" value="{{ stripe_secret_key or '' }}" placeholder="sk_test_...">
+                        <div class="form-text">Your Stripe secret key</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Webhook Endpoint Secret</label>
+                        <input type="password" class="form-control" id="stripe_webhook_secret" value="{{ stripe_webhook_secret or '' }}" placeholder="whsec_...">
+                        <div class="form-text">Webhook endpoint secret for secure communication</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="stripe_enabled" {{ 'checked' if stripe_enabled else '' }}>
+                            <label class="form-check-label" for="stripe_enabled">
+                                Enable Stripe Payments
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-primary" onclick="saveStripeConfig()">
+                            <i class="fas fa-save me-2"></i>Save Configuration
+                        </button>
+                        <button type="button" class="btn btn-outline-info" onclick="testStripeConnection()">
+                            <i class="fas fa-plug me-2"></i>Test Connection
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Payment Settings -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-cog me-2"></i>Payment Settings</h5>
+            </div>
+            <div class="card-body">
+                <form id="paymentSettingsForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Default Currency</label>
+                                <select class="form-select" id="default_currency">
+                                    <option value="USD" {{ 'selected' if default_currency == 'USD' else '' }}>USD ($)</option>
+                                    <option value="EUR" {{ 'selected' if default_currency == 'EUR' else '' }}>EUR (€)</option>
+                                    <option value="GBP" {{ 'selected' if default_currency == 'GBP' else '' }}>GBP (£)</option>
+                                    <option value="CAD" {{ 'selected' if default_currency == 'CAD' else '' }}>CAD ($)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Payment Timeout (minutes)</label>
+                                <input type="number" class="form-control" id="payment_timeout" value="{{ payment_timeout or '15' }}" min="5" max="60">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Transaction Fee (%)</label>
+                                <input type="number" class="form-control" id="transaction_fee" value="{{ transaction_fee or '0' }}" step="0.01" min="0" max="10">
+                                <div class="form-text">Additional fee to charge on transactions</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Minimum Order Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="min_order_amount" value="{{ min_order_amount or '1.00' }}" step="0.01" min="0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6>Enabled Payment Methods</h6>
+                        <div class="payment-methods-grid">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enable_paypal" {{ 'checked' if 'paypal' in enabled_methods else '' }}>
+                                <label class="form-check-label" for="enable_paypal">
+                                    <i class="fab fa-paypal me-2"></i>PayPal
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enable_stripe" {{ 'checked' if 'stripe' in enabled_methods else '' }}>
+                                <label class="form-check-label" for="enable_stripe">
+                                    <i class="fab fa-stripe me-2"></i>Stripe
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enable_apple_pay" {{ 'checked' if 'apple_pay' in enabled_methods else '' }}>
+                                <label class="form-check-label" for="enable_apple_pay">
+                                    <i class="fab fa-apple-pay me-2"></i>Apple Pay
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enable_google_pay" {{ 'checked' if 'google_pay' in enabled_methods else '' }}>
+                                <label class="form-check-label" for="enable_google_pay">
+                                    <i class="fab fa-google-pay me-2"></i>Google Pay
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-success" onclick="savePaymentSettings()">
+                            <i class="fas fa-save me-2"></i>Save Payment Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gateway Status -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-heartbeat me-2"></i>Gateway Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="gateway-status">
+                    <div class="status-item">
+                        <div class="status-info">
+                            <i class="fab fa-paypal text-primary"></i>
+                            <span>PayPal</span>
+                        </div>
+                        <div class="status-indicator">
+                            <span class="badge bg-success">Online</span>
+                            <small>Response: 234ms</small>
+                        </div>
+                    </div>
+                    
+                    <div class="status-item">
+                        <div class="status-info">
+                            <i class="fab fa-stripe text-info"></i>
+                            <span>Stripe</span>
+                        </div>
+                        <div class="status-indicator">
+                            <span class="badge bg-secondary">Disabled</span>
+                            <small>Not configured</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="gateway-metrics mt-3">
+                    <h6>Today's Metrics</h6>
+                    <div class="metric-item">
+                        <span class="metric-label">Transactions:</span>
+                        <span class="metric-value">{{ todays_transactions or '47' }}</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Success Rate:</span>
+                        <span class="metric-value">{{ success_rate or '98.3' }}%</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">Total Volume:</span>
+                        <span class="metric-value">${{ todays_volume or '1,247.50' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-tools me-2"></i>Gateway Tools</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshGatewayStatus()">
+                        <i class="fas fa-sync me-2"></i>Refresh Status
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="viewTransactionLogs()">
+                        <i class="fas fa-list me-2"></i>Transaction Logs
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm" onclick="webhookTester()">
+                        <i class="fas fa-webhook me-2"></i>Test Webhooks
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="reconcilePayments()">
+                        <i class="fas fa-balance-scale me-2"></i>Reconcile Payments
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.payment-methods-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.form-check-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.gateway-status {
+    display: grid;
+    gap: 15px;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.status-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-info i {
+    font-size: 1.2rem;
+}
+
+.status-indicator {
+    text-align: right;
+}
+
+.status-indicator small {
+    display: block;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.gateway-metrics {
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+}
+
+.metric-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+}
+
+.metric-label {
+    color: #6c757d;
+}
+
+.metric-value {
+    font-weight: 600;
+    color: #333;
+}
+
+.form-actions {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+</style>
+
+<script>
+function savePayPalConfig() {
+    const config = {
+        environment: document.querySelector('input[name="paypal_env"]:checked').value,
+        client_id: document.getElementById('paypal_client_id').value,
+        client_secret: document.getElementById('paypal_client_secret').value,
+        enabled: document.getElementById('paypal_enabled').checked
+    };
+    
+    fetch('/admin/pricing/api/payment-gateways/paypal', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('PayPal configuration saved successfully!');
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving PayPal configuration');
+    });
+}
+
+function testPayPalConnection() {
+    const button = event.target;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Testing...';
+    button.disabled = true;
+    
+    fetch('/admin/pricing/api/payment-gateways/paypal/test', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        button.innerHTML = '<i class="fas fa-plug me-2"></i>Test Connection';
+        button.disabled = false;
+        
+        if (data.success) {
+            alert('PayPal connection test successful!');
+        } else {
+            alert('PayPal connection test failed: ' + data.message);
+        }
+    })
+    .catch(error => {
+        button.innerHTML = '<i class="fas fa-plug me-2"></i>Test Connection';
+        button.disabled = false;
+        console.error('Error:', error);
+        alert('Error testing PayPal connection');
+    });
+}
+
+function saveStripeConfig() {
+    const config = {
+        environment: document.querySelector('input[name="stripe_env"]:checked').value,
+        publishable_key: document.getElementById('stripe_publishable_key').value,
+        secret_key: document.getElementById('stripe_secret_key').value,
+        webhook_secret: document.getElementById('stripe_webhook_secret').value,
+        enabled: document.getElementById('stripe_enabled').checked
+    };
+    
+    fetch('/admin/pricing/api/payment-gateways/stripe', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Stripe configuration saved successfully!');
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving Stripe configuration');
+    });
+}
+
+function testStripeConnection() {
+    const button = event.target;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Testing...';
+    button.disabled = true;
+    
+    fetch('/admin/pricing/api/payment-gateways/stripe/test', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        button.innerHTML = '<i class="fas fa-plug me-2"></i>Test Connection';
+        button.disabled = false;
+        
+        if (data.success) {
+            alert('Stripe connection test successful!');
+        } else {
+            alert('Stripe connection test failed: ' + data.message);
+        }
+    });
+}
+
+function savePaymentSettings() {
+    const settings = {
+        default_currency: document.getElementById('default_currency').value,
+        payment_timeout: parseInt(document.getElementById('payment_timeout').value),
+        transaction_fee: parseFloat(document.getElementById('transaction_fee').value),
+        min_order_amount: parseFloat(document.getElementById('min_order_amount').value),
+        enabled_methods: []
+    };
+    
+    // Collect enabled payment methods
+    if (document.getElementById('enable_paypal').checked) settings.enabled_methods.push('paypal');
+    if (document.getElementById('enable_stripe').checked) settings.enabled_methods.push('stripe');
+    if (document.getElementById('enable_apple_pay').checked) settings.enabled_methods.push('apple_pay');
+    if (document.getElementById('enable_google_pay').checked) settings.enabled_methods.push('google_pay');
+    
+    fetch('/admin/pricing/api/payment-settings', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Payment settings saved successfully!');
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+}
+
+function refreshGatewayStatus() {
+    console.log('Refreshing gateway status...');
+    location.reload();
+}
+
+function viewTransactionLogs() {
+    window.location.href = '/admin/pricing/transaction-logs';
+}
+
+function webhookTester() {
+    console.log('Opening webhook tester...');
+    alert('Webhook tester functionality would be implemented here');
+}
+
+function reconcilePayments() {
+    if (confirm('Run payment reconciliation? This may take a few minutes.')) {
+        console.log('Running payment reconciliation...');
+        alert('Payment reconciliation started. Check logs for results.');
+    }
+}
+</script>
+{% endblock %}

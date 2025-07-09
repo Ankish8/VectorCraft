@@ -1,0 +1,397 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Pricing Tiers - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>💰 Pricing Tiers Management</h1>
+    <p class="subtitle">Configure and manage pricing tiers and subscription plans</p>
+</div>
+
+<div class="row">
+    <!-- Pricing Tiers List -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-list me-2"></i>Current Pricing Tiers</h5>
+                <div class="card-tools">
+                    <a href="/admin/pricing/create" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-2"></i>Add New Tier
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="pricing-tiers">
+                    {% for tier in pricing_tiers or [] %}
+                    <div class="tier-card">
+                        <div class="tier-header">
+                            <h5>{{ tier.name }}</h5>
+                            <div class="tier-status">
+                                <span class="badge bg-{{ 'success' if tier.is_active else 'secondary' }}">
+                                    {{ 'Active' if tier.is_active else 'Inactive' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="tier-details">
+                            <div class="tier-price">
+                                <span class="price">${{ tier.price }}</span>
+                                <span class="period">{{ tier.billing_period or 'one-time' }}</span>
+                            </div>
+                            <div class="tier-description">
+                                {{ tier.description }}
+                            </div>
+                            <div class="tier-features">
+                                <h6>Features:</h6>
+                                <ul>
+                                    {% for feature in tier.features or [] %}
+                                    <li>{{ feature }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="tier-actions">
+                            <a href="/admin/pricing/edit/{{ tier.id }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteTier('{{ tier.id }}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="duplicateTier('{{ tier.id }}')">
+                                <i class="fas fa-copy"></i> Duplicate
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Default pricing tiers when none exist -->
+                    <div class="tier-card">
+                        <div class="tier-header">
+                            <h5>Standard Access</h5>
+                            <div class="tier-status">
+                                <span class="badge bg-success">Active</span>
+                            </div>
+                        </div>
+                        <div class="tier-details">
+                            <div class="tier-price">
+                                <span class="price">$29.99</span>
+                                <span class="period">one-time</span>
+                            </div>
+                            <div class="tier-description">
+                                Full access to VectorCraft with all features included
+                            </div>
+                            <div class="tier-features">
+                                <h6>Features:</h6>
+                                <ul>
+                                    <li>Unlimited vector conversions</li>
+                                    <li>High-quality output formats</li>
+                                    <li>Batch processing</li>
+                                    <li>24/7 support access</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="tier-actions">
+                            <a href="/admin/pricing/edit/1" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteTier('1')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="duplicateTier('1')">
+                                <i class="fas fa-copy"></i> Duplicate
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="tier-card">
+                        <div class="tier-header">
+                            <h5>Premium Access</h5>
+                            <div class="tier-status">
+                                <span class="badge bg-secondary">Inactive</span>
+                            </div>
+                        </div>
+                        <div class="tier-details">
+                            <div class="tier-price">
+                                <span class="price">$49.99</span>
+                                <span class="period">one-time</span>
+                            </div>
+                            <div class="tier-description">
+                                Premium access with advanced features and priority support
+                            </div>
+                            <div class="tier-features">
+                                <h6>Features:</h6>
+                                <ul>
+                                    <li>Everything in Standard</li>
+                                    <li>Advanced AI optimization</li>
+                                    <li>Custom branding options</li>
+                                    <li>Priority support</li>
+                                    <li>API access</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="tier-actions">
+                            <a href="/admin/pricing/edit/2" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteTier('2')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="duplicateTier('2')">
+                                <i class="fas fa-copy"></i> Duplicate
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pricing Statistics -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie me-2"></i>Pricing Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="pricing-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ total_tiers or '2' }}</div>
+                        <div class="stat-label">Total Tiers</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ active_tiers or '1' }}</div>
+                        <div class="stat-label">Active Tiers</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${{ avg_price or '29.99' }}</div>
+                        <div class="stat-label">Average Price</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ conversion_rate or '94.2' }}%</div>
+                        <div class="stat-label">Conversion Rate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-cog me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm" onclick="bulkActivate()">
+                        <i class="fas fa-play me-2"></i>Activate All
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="bulkDeactivate()">
+                        <i class="fas fa-pause me-2"></i>Deactivate All
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="exportPricing()">
+                        <i class="fas fa-download me-2"></i>Export Pricing
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="previewPricing()">
+                        <i class="fas fa-eye me-2"></i>Preview Public
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.pricing-tiers {
+    display: grid;
+    gap: 20px;
+}
+
+.tier-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.tier-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.tier-header h5 {
+    margin: 0;
+    color: #333;
+}
+
+.tier-price {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.price {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.period {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.tier-description {
+    color: #666;
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+.tier-features h6 {
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.tier-features ul {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 15px;
+}
+
+.tier-features li {
+    padding: 3px 0;
+    color: #555;
+}
+
+.tier-features li:before {
+    content: "✓";
+    color: #28a745;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.tier-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.pricing-stats {
+    display: grid;
+    gap: 15px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+</style>
+
+<script>
+function deleteTier(tierId) {
+    if (confirm('Are you sure you want to delete this pricing tier?')) {
+        fetch(`/admin/pricing/api/tiers/${tierId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to delete tier: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting tier');
+        });
+    }
+}
+
+function duplicateTier(tierId) {
+    fetch(`/admin/pricing/api/tiers/${tierId}/duplicate`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Failed to duplicate tier: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error duplicating tier');
+    });
+}
+
+function bulkActivate() {
+    if (confirm('Activate all pricing tiers?')) {
+        fetch('/admin/pricing/api/tiers/bulk-activate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to activate tiers: ' + data.message);
+            }
+        });
+    }
+}
+
+function bulkDeactivate() {
+    if (confirm('Deactivate all pricing tiers?')) {
+        fetch('/admin/pricing/api/tiers/bulk-deactivate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to deactivate tiers: ' + data.message);
+            }
+        });
+    }
+}
+
+function exportPricing() {
+    window.location.href = '/admin/pricing/api/export';
+}
+
+function previewPricing() {
+    window.open('/pricing-preview', '_blank');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,493 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Discount Codes - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🎫 Discount Codes Management</h1>
+    <p class="subtitle">Create and manage promotional discount codes</p>
+</div>
+
+<div class="row">
+    <!-- Active Discount Codes -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-percent me-2"></i>Active Discount Codes</h5>
+                <div class="card-tools">
+                    <button class="btn btn-primary btn-sm" onclick="createDiscountCode()">
+                        <i class="fas fa-plus me-2"></i>Create New Code
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="discount-codes-list">
+                    {% for code in discount_codes or [] %}
+                    <div class="discount-code-item">
+                        <div class="code-header">
+                            <h6>{{ code.code }}</h6>
+                            <span class="badge bg-{{ 'success' if code.is_active else 'secondary' }}">
+                                {{ 'Active' if code.is_active else 'Inactive' }}
+                            </span>
+                        </div>
+                        <div class="code-details">
+                            <div class="detail-item">
+                                <span class="label">Discount:</span>
+                                <span class="value">
+                                    {% if code.discount_type == 'percentage' %}
+                                        {{ code.discount_value }}%
+                                    {% else %}
+                                        ${{ code.discount_value }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Uses:</span>
+                                <span class="value">{{ code.uses_count }}/{{ code.max_uses or '∞' }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Expires:</span>
+                                <span class="value">{{ code.expires_at.strftime('%Y-%m-%d') if code.expires_at else 'Never' }}</span>
+                            </div>
+                        </div>
+                        <div class="code-actions">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editDiscountCode('{{ code.id }}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="copyCodeUrl('{{ code.code }}')">
+                                <i class="fas fa-copy"></i> Copy URL
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteDiscountCode('{{ code.id }}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Sample discount codes when none exist -->
+                    <div class="discount-code-item">
+                        <div class="code-header">
+                            <h6>WELCOME20</h6>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <div class="code-details">
+                            <div class="detail-item">
+                                <span class="label">Discount:</span>
+                                <span class="value">20%</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Uses:</span>
+                                <span class="value">43/100</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Expires:</span>
+                                <span class="value">2024-12-31</span>
+                            </div>
+                        </div>
+                        <div class="code-actions">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editDiscountCode('1')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="copyCodeUrl('WELCOME20')">
+                                <i class="fas fa-copy"></i> Copy URL
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteDiscountCode('1')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="discount-code-item">
+                        <div class="code-header">
+                            <h6>SAVE10</h6>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <div class="code-details">
+                            <div class="detail-item">
+                                <span class="label">Discount:</span>
+                                <span class="value">$10</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Uses:</span>
+                                <span class="value">12/50</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="label">Expires:</span>
+                                <span class="value">2024-06-30</span>
+                            </div>
+                        </div>
+                        <div class="code-actions">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editDiscountCode('2')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="copyCodeUrl('SAVE10')">
+                                <i class="fas fa-copy"></i> Copy URL
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteDiscountCode('2')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Discount Statistics -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar me-2"></i>Discount Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="discount-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ total_codes or '5' }}</div>
+                        <div class="stat-label">Total Codes</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ active_codes or '3' }}</div>
+                        <div class="stat-label">Active Codes</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ total_uses or '127' }}</div>
+                        <div class="stat-label">Total Uses</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${{ total_savings or '487.50' }}</div>
+                        <div class="stat-label">Total Savings</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-magic me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm" onclick="generateRandomCode()">
+                        <i class="fas fa-random me-2"></i>Generate Code
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="bulkActivate()">
+                        <i class="fas fa-play me-2"></i>Activate All
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="bulkDeactivate()">
+                        <i class="fas fa-pause me-2"></i>Deactivate All
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="exportCodes()">
+                        <i class="fas fa-download me-2"></i>Export Codes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="modal fade" id="discountCodeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Create Discount Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="discountCodeForm">
+                    <input type="hidden" id="codeId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Code *</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="codeValue" placeholder="e.g., WELCOME20" required>
+                            <button class="btn btn-outline-secondary" type="button" onclick="generateCode()">
+                                <i class="fas fa-magic"></i> Generate
+                            </button>
+                        </div>
+                        <div class="form-text">Code must be unique and contain only letters and numbers</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Discount Type</label>
+                                <select class="form-select" id="discountType">
+                                    <option value="percentage">Percentage (%)</option>
+                                    <option value="fixed">Fixed Amount ($)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Discount Value *</label>
+                                <input type="number" class="form-control" id="discountValue" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Max Uses</label>
+                                <input type="number" class="form-control" id="maxUses" min="1" placeholder="Unlimited">
+                                <div class="form-text">Leave empty for unlimited uses</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Expiry Date</label>
+                                <input type="date" class="form-control" id="expiryDate">
+                                <div class="form-text">Leave empty for no expiry</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Minimum Order Value</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="minOrderValue" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="form-text">Minimum order value required to use this code</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="isActive" checked>
+                            <label class="form-check-label" for="isActive">
+                                Active Code
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveDiscountCode()">Save Code</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.discount-code-item {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.code-header h6 {
+    margin: 0;
+    color: #333;
+    font-family: monospace;
+    font-size: 1.2rem;
+}
+
+.code-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.detail-item .label {
+    color: #6c757d;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.detail-item .value {
+    color: #333;
+    font-weight: 500;
+}
+
+.code-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.discount-stats {
+    display: grid;
+    gap: 15px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+</style>
+
+<script>
+function createDiscountCode() {
+    document.getElementById('modalTitle').textContent = 'Create Discount Code';
+    document.getElementById('discountCodeForm').reset();
+    document.getElementById('codeId').value = '';
+    new bootstrap.Modal(document.getElementById('discountCodeModal')).show();
+}
+
+function editDiscountCode(codeId) {
+    document.getElementById('modalTitle').textContent = 'Edit Discount Code';
+    document.getElementById('codeId').value = codeId;
+    
+    // Fetch code details and populate form
+    fetch(`/admin/pricing/api/discount-codes/${codeId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const code = data.code;
+                document.getElementById('codeValue').value = code.code;
+                document.getElementById('discountType').value = code.discount_type;
+                document.getElementById('discountValue').value = code.discount_value;
+                document.getElementById('maxUses').value = code.max_uses || '';
+                document.getElementById('expiryDate').value = code.expires_at ? code.expires_at.split('T')[0] : '';
+                document.getElementById('minOrderValue').value = code.min_order_value || '';
+                document.getElementById('isActive').checked = code.is_active;
+                
+                new bootstrap.Modal(document.getElementById('discountCodeModal')).show();
+            }
+        });
+}
+
+function generateCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById('codeValue').value = result;
+}
+
+function saveDiscountCode() {
+    const form = document.getElementById('discountCodeForm');
+    const formData = new FormData(form);
+    const codeId = document.getElementById('codeId').value;
+    
+    const data = {
+        code: document.getElementById('codeValue').value,
+        discount_type: document.getElementById('discountType').value,
+        discount_value: parseFloat(document.getElementById('discountValue').value),
+        max_uses: document.getElementById('maxUses').value ? parseInt(document.getElementById('maxUses').value) : null,
+        expires_at: document.getElementById('expiryDate').value || null,
+        min_order_value: document.getElementById('minOrderValue').value ? parseFloat(document.getElementById('minOrderValue').value) : null,
+        is_active: document.getElementById('isActive').checked
+    };
+    
+    const url = codeId ? `/admin/pricing/api/discount-codes/${codeId}` : '/admin/pricing/api/discount-codes';
+    const method = codeId ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving discount code');
+    });
+}
+
+function deleteDiscountCode(codeId) {
+    if (confirm('Are you sure you want to delete this discount code?')) {
+        fetch(`/admin/pricing/api/discount-codes/${codeId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+}
+
+function copyCodeUrl(code) {
+    const url = `${window.location.origin}/buy?discount=${code}`;
+    navigator.clipboard.writeText(url).then(() => {
+        alert('Discount URL copied to clipboard!');
+    });
+}
+
+function generateRandomCode() {
+    generateCode();
+    createDiscountCode();
+}
+
+function bulkActivate() {
+    if (confirm('Activate all discount codes?')) {
+        fetch('/admin/pricing/api/discount-codes/bulk-activate', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
+    }
+}
+
+function bulkDeactivate() {
+    if (confirm('Deactivate all discount codes?')) {
+        fetch('/admin/pricing/api/discount-codes/bulk-deactivate', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
+    }
+}
+
+function exportCodes() {
+    window.location.href = '/admin/pricing/api/discount-codes/export';
+}
+</script>
+{% endblock %}

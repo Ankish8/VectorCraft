@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}VectorCraft Admin{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
@@ -17,6 +18,8 @@
     <!-- Enhanced UI/UX System -->
     <link href="{{ url_for('static', filename='css/vectorcraft.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/responsive-dashboard.css') }}" rel="stylesheet">
+    <!-- VectorCraft Design System -->
+    <link href="{{ url_for('static', filename='css/admin-design-system.css') }}" rel="stylesheet">
     
     <!-- Theme System CSS Variables -->
     <style>
@@ -603,6 +606,49 @@
             } else {
                 startAutoRefresh(30);
             }
+        });
+    </script>
+    
+    <!-- CSRF Protection Utility -->
+    <script>
+        // CSRF Token utility functions
+        function getCSRFToken() {
+            return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        }
+        
+        function getCSRFHeaders() {
+            return {
+                'X-CSRFToken': getCSRFToken()
+            };
+        }
+        
+        function makeSecureRequest(url, options = {}) {
+            const defaultOptions = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getCSRFHeaders()
+                }
+            };
+            
+            return fetch(url, {...defaultOptions, ...options});
+        }
+        
+        // Add CSRF token to all forms automatically
+        document.addEventListener('DOMContentLoaded', function() {
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                if (form.method.toLowerCase() === 'post') {
+                    let csrfInput = form.querySelector('input[name="csrf_token"]');
+                    if (!csrfInput) {
+                        csrfInput = document.createElement('input');
+                        csrfInput.type = 'hidden';
+                        csrfInput.name = 'csrf_token';
+                        csrfInput.value = getCSRFToken();
+                        form.appendChild(csrfInput);
+                    }
+                }
+            });
         });
     </script>
     

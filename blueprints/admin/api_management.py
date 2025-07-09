@@ -11,25 +11,11 @@ from typing import Dict, Any
 
 from services.api_service import api_service
 from services.monitoring.system_logger import system_logger
+from blueprints.auth.utils import admin_required
 
 logger = logging.getLogger(__name__)
 
 api_management_bp = Blueprint('api_management', __name__)
-
-
-def admin_required(f):
-    """Decorator to require admin access"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated:
-            return jsonify({'error': 'Authentication required'}), 401
-        
-        # Check if user is admin (you may need to adjust this based on your user model)
-        if not hasattr(current_user, 'is_admin') or not current_user.is_admin:
-            return jsonify({'error': 'Admin access required'}), 403
-        
-        return f(*args, **kwargs)
-    return decorated_function
 
 
 @api_management_bp.route('/admin/api-management')

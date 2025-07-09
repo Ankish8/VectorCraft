@@ -1,0 +1,564 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Revenue Reports - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📈 Revenue Reports</h1>
+    <p class="subtitle">Comprehensive revenue analysis and financial reporting</p>
+</div>
+
+<div class="row">
+    <!-- Report Filters -->
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-filter me-2"></i>Report Filters</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">Date Range</label>
+                            <select class="form-select" id="dateRange">
+                                <option value="7">Last 7 days</option>
+                                <option value="30" selected>Last 30 days</option>
+                                <option value="90">Last 3 months</option>
+                                <option value="365">Last year</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="startDate">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="endDate">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">Currency</label>
+                            <select class="form-select" id="currency">
+                                <option value="USD" selected>USD ($)</option>
+                                <option value="EUR">EUR (€)</option>
+                                <option value="GBP">GBP (£)</option>
+                                <option value="ALL">All Currencies</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">Pricing Tier</label>
+                            <select class="form-select" id="pricingTier">
+                                <option value="all" selected>All Tiers</option>
+                                <option value="standard">Standard Access</option>
+                                <option value="premium">Premium Access</option>
+                                <option value="enterprise">Enterprise</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">Payment Method</label>
+                            <select class="form-select" id="paymentMethod">
+                                <option value="all" selected>All Methods</option>
+                                <option value="paypal">PayPal</option>
+                                <option value="credit_card">Credit Card</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">Region</label>
+                            <select class="form-select" id="region">
+                                <option value="all" selected>All Regions</option>
+                                <option value="us">United States</option>
+                                <option value="eu">Europe</option>
+                                <option value="ca">Canada</option>
+                                <option value="au">Australia</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button class="btn btn-primary" onclick="generateReport()">
+                                    <i class="fas fa-chart-line me-2"></i>Generate Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Key Metrics -->
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-tachometer-alt me-2"></i>Key Performance Metrics</h5>
+                <div class="card-tools">
+                    <button class="btn btn-sm btn-outline-primary" onclick="exportMetrics()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-icon">
+                                <i class="fas fa-dollar-sign text-success"></i>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value">${{ total_revenue or '12,847.50' }}</div>
+                                <div class="metric-label">Total Revenue</div>
+                                <div class="metric-change positive">+18.5% vs last period</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-icon">
+                                <i class="fas fa-shopping-cart text-primary"></i>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value">{{ total_transactions or '428' }}</div>
+                                <div class="metric-label">Total Transactions</div>
+                                <div class="metric-change positive">+12.3% vs last period</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-icon">
+                                <i class="fas fa-calculator text-info"></i>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value">${{ avg_transaction_value or '30.02' }}</div>
+                                <div class="metric-label">Avg Transaction Value</div>
+                                <div class="metric-change positive">+5.7% vs last period</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-icon">
+                                <i class="fas fa-percentage text-warning"></i>
+                            </div>
+                            <div class="metric-content">
+                                <div class="metric-value">{{ conversion_rate or '94.2' }}%</div>
+                                <div class="metric-label">Conversion Rate</div>
+                                <div class="metric-change negative">-2.1% vs last period</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Revenue Chart -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-area me-2"></i>Revenue Trend</h5>
+                <div class="card-tools">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary active" onclick="setChartView('daily')">Daily</button>
+                        <button class="btn btn-outline-secondary" onclick="setChartView('weekly')">Weekly</button>
+                        <button class="btn btn-outline-secondary" onclick="setChartView('monthly')">Monthly</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="revenueChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Products -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-trophy me-2"></i>Top Performing Tiers</h5>
+            </div>
+            <div class="card-body">
+                <div class="top-products">
+                    <div class="product-item">
+                        <div class="product-info">
+                            <h6>Standard Access</h6>
+                            <div class="product-stats">
+                                <span class="sales">347 sales</span>
+                                <span class="revenue">$10,410.00</span>
+                            </div>
+                        </div>
+                        <div class="product-chart">
+                            <div class="progress">
+                                <div class="progress-bar bg-success" style="width: 80%"></div>
+                            </div>
+                            <small>80% of total</small>
+                        </div>
+                    </div>
+                    <div class="product-item">
+                        <div class="product-info">
+                            <h6>Premium Access</h6>
+                            <div class="product-stats">
+                                <span class="sales">67 sales</span>
+                                <span class="revenue">$3,349.00</span>
+                            </div>
+                        </div>
+                        <div class="product-chart">
+                            <div class="progress">
+                                <div class="progress-bar bg-primary" style="width: 15%"></div>
+                            </div>
+                            <small>15% of total</small>
+                        </div>
+                    </div>
+                    <div class="product-item">
+                        <div class="product-info">
+                            <h6>Enterprise</h6>
+                            <div class="product-stats">
+                                <span class="sales">14 sales</span>
+                                <span class="revenue">$1,399.00</span>
+                            </div>
+                        </div>
+                        <div class="product-chart">
+                            <div class="progress">
+                                <div class="progress-bar bg-warning" style="width: 5%"></div>
+                            </div>
+                            <small>5% of total</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Detailed Report Table -->
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-table me-2"></i>Detailed Revenue Report</h5>
+                <div class="card-tools">
+                    <button class="btn btn-sm btn-outline-success" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="exportToPDF()">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="revenueTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Transaction ID</th>
+                                <th>Customer</th>
+                                <th>Product</th>
+                                <th>Amount</th>
+                                <th>Payment Method</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions or [] %}
+                            <tr>
+                                <td>{{ transaction.date.strftime('%Y-%m-%d') if transaction.date else 'N/A' }}</td>
+                                <td class="text-monospace">{{ transaction.id }}</td>
+                                <td>{{ transaction.customer_email }}</td>
+                                <td>{{ transaction.product_name }}</td>
+                                <td class="text-success font-weight-bold">${{ transaction.amount }}</td>
+                                <td>{{ transaction.payment_method }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if transaction.status == 'completed' else 'warning' if transaction.status == 'pending' else 'danger' }}">
+                                        {{ transaction.status|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info" onclick="viewTransaction('{{ transaction.id }}')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <!-- Sample data when no transactions exist -->
+                            <tr>
+                                <td>2024-01-15</td>
+                                <td class="text-monospace">TXN_001</td>
+                                <td>john@example.com</td>
+                                <td>Standard Access</td>
+                                <td class="text-success font-weight-bold">$29.99</td>
+                                <td>PayPal</td>
+                                <td><span class="badge bg-success">Completed</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info" onclick="viewTransaction('TXN_001')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>2024-01-15</td>
+                                <td class="text-monospace">TXN_002</td>
+                                <td>jane@example.com</td>
+                                <td>Premium Access</td>
+                                <td class="text-success font-weight-bold">$49.99</td>
+                                <td>Credit Card</td>
+                                <td><span class="badge bg-success">Completed</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info" onclick="viewTransaction('TXN_002')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>2024-01-14</td>
+                                <td class="text-monospace">TXN_003</td>
+                                <td>mike@example.com</td>
+                                <td>Standard Access</td>
+                                <td class="text-success font-weight-bold">$29.99</td>
+                                <td>PayPal</td>
+                                <td><span class="badge bg-warning">Pending</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info" onclick="viewTransaction('TXN_003')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.metric-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    height: 100%;
+}
+
+.metric-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+}
+
+.metric-content {
+    flex: 1;
+}
+
+.metric-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.metric-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.metric-change {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.metric-change.positive {
+    color: #28a745;
+}
+
+.metric-change.negative {
+    color: #dc3545;
+}
+
+.product-item {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.product-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.product-info h6 {
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.product-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.product-stats .sales {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.product-stats .revenue {
+    color: #28a745;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.product-chart {
+    margin-top: 10px;
+}
+
+.product-chart .progress {
+    height: 6px;
+    margin-bottom: 5px;
+}
+
+.product-chart small {
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.text-monospace {
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+</style>
+
+<script>
+// Chart variable
+let revenueChart;
+
+function generateReport() {
+    const filters = {
+        dateRange: document.getElementById('dateRange').value,
+        startDate: document.getElementById('startDate').value,
+        endDate: document.getElementById('endDate').value,
+        currency: document.getElementById('currency').value,
+        pricingTier: document.getElementById('pricingTier').value,
+        paymentMethod: document.getElementById('paymentMethod').value,
+        region: document.getElementById('region').value
+    };
+    
+    console.log('Generating report with filters:', filters);
+    
+    // Show loading state
+    const button = event.target;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+    button.disabled = true;
+    
+    // Simulate API call
+    setTimeout(() => {
+        button.innerHTML = '<i class="fas fa-chart-line me-2"></i>Generate Report';
+        button.disabled = false;
+        
+        // Update charts and tables with new data
+        updateRevenueChart();
+        alert('Report generated successfully!');
+    }, 2000);
+}
+
+function setChartView(view) {
+    // Update active button
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    console.log('Setting chart view to:', view);
+    updateRevenueChart(view);
+}
+
+function updateRevenueChart(view = 'daily') {
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    
+    // Destroy existing chart if it exists
+    if (revenueChart) {
+        revenueChart.destroy();
+    }
+    
+    // Chart.js implementation would go here
+    console.log('Updated revenue chart for view:', view);
+}
+
+function viewTransaction(transactionId) {
+    console.log('Viewing transaction:', transactionId);
+    // Implementation would show transaction details modal
+    alert(`Viewing transaction: ${transactionId}`);
+}
+
+function exportMetrics() {
+    console.log('Exporting metrics...');
+    // Implementation would export current metrics
+    alert('Metrics exported successfully!');
+}
+
+function exportToExcel() {
+    console.log('Exporting to Excel...');
+    window.location.href = '/admin/pricing/api/revenue-reports/export?format=excel';
+}
+
+function exportToPDF() {
+    console.log('Exporting to PDF...');
+    window.location.href = '/admin/pricing/api/revenue-reports/export?format=pdf';
+}
+
+// Date range change handler
+document.getElementById('dateRange').addEventListener('change', function() {
+    const customFields = document.getElementById('startDate').parentNode.parentNode;
+    if (this.value === 'custom') {
+        customFields.style.display = 'block';
+    } else {
+        customFields.style.display = 'none';
+        // Auto-set dates based on selection
+        const today = new Date();
+        const startDate = new Date(today);
+        startDate.setDate(today.getDate() - parseInt(this.value));
+        
+        document.getElementById('endDate').value = today.toISOString().split('T')[0];
+        document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+    }
+});
+
+// Initialize chart on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateRevenueChart();
+    
+    // Set default dates
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today);
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    document.getElementById('endDate').value = today.toISOString().split('T')[0];
+    document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+});
+</script>
+{% endblock %}

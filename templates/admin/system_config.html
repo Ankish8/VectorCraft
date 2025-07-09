@@ -304,6 +304,7 @@ input:checked + .slider:before {
             Configure PayPal payment processing settings and API credentials
         </div>
         
+        <form id="paypal-config-form">
         <div class="form-group">
             <label class="form-label">Environment</label>
             <select class="form-select" id="paypal-environment" onchange="togglePayPalEnvironment()">
@@ -357,16 +358,17 @@ input:checked + .slider:before {
         <div class="connection-test">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <strong>Connection Test</strong>
-                <button class="btn-secondary" onclick="testPayPal()">Test Connection</button>
+                <button class="btn btn-secondary" onclick="testPayPal()">Test Connection</button>
             </div>
             <div class="test-result" id="paypal-test-result" style="display: none;">
                 Testing PayPal connection...
             </div>
         </div>
+        </form>
         
         <div class="config-actions">
-            <button class="btn-primary" onclick="savePayPalConfig()">Save Configuration</button>
-            <button class="btn-secondary" onclick="resetPayPalConfig()">Reset</button>
+            <button class="btn btn-primary" onclick="savePayPalConfig()">Save Configuration</button>
+            <button class="btn btn-secondary" onclick="resetPayPalConfig()">Reset</button>
         </div>
     </div>
 
@@ -382,6 +384,7 @@ input:checked + .slider:before {
             Configure SMTP settings for email delivery and notifications
         </div>
         
+        <form id="email-config-form">
         <div class="form-group">
             <label class="form-label">SMTP Server</label>
             <input type="text" class="form-input" value="smtpout.secureserver.net">
@@ -410,16 +413,17 @@ input:checked + .slider:before {
         <div class="connection-test">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <strong>Email Test</strong>
-                <button class="btn-secondary" onclick="testEmail()">Send Test Email</button>
+                <button class="btn btn-secondary" onclick="testEmail()">Send Test Email</button>
             </div>
             <div class="test-result" id="email-test-result" style="display: none;">
                 Sending test email...
             </div>
         </div>
+        </form>
         
         <div class="config-actions">
-            <button class="btn-primary" onclick="saveEmailConfig()">Save Configuration</button>
-            <button class="btn-secondary" onclick="resetEmailConfig()">Reset</button>
+            <button class="btn btn-primary" onclick="saveEmailConfig()">Save Configuration</button>
+            <button class="btn btn-secondary" onclick="resetEmailConfig()">Reset</button>
         </div>
     </div>
 
@@ -471,8 +475,8 @@ input:checked + .slider:before {
         </div>
         
         <div class="config-actions">
-            <button class="btn-primary" onclick="saveAppConfig()">Save Configuration</button>
-            <button class="btn-secondary" onclick="resetAppConfig()">Reset</button>
+            <button class="btn btn-primary" onclick="saveAppConfig()">Save Configuration</button>
+            <button class="btn btn-secondary" onclick="resetAppConfig()">Reset</button>
         </div>
     </div>
 
@@ -515,7 +519,7 @@ input:checked + .slider:before {
         <div class="connection-test">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <strong>Database Test</strong>
-                <button class="btn-secondary" onclick="testDatabase()">Test Connection</button>
+                <button class="btn btn-secondary" onclick="testDatabase()">Test Connection</button>
             </div>
             <div class="test-result" id="database-test-result" style="display: none;">
                 Testing database connection...
@@ -523,8 +527,8 @@ input:checked + .slider:before {
         </div>
         
         <div class="config-actions">
-            <button class="btn-primary" onclick="saveDbConfig()">Save Configuration</button>
-            <button class="btn-secondary" onclick="backupDatabase()">Backup Database</button>
+            <button class="btn btn-primary" onclick="saveDbConfig()">Save Configuration</button>
+            <button class="btn btn-secondary" onclick="backupDatabase()">Backup Database</button>
         </div>
     </div>
 
@@ -557,7 +561,7 @@ input:checked + .slider:before {
                 vc_api_key_2025_a9b8c7d6e5f4g3h2i1j0k9l8m7n6o5p4
             </div>
             <div style="margin-top: 10px;">
-                <button class="btn-secondary" onclick="regenerateApiKey()">Regenerate Key</button>
+                <button class="btn btn-secondary" onclick="regenerateApiKey()">Regenerate Key</button>
             </div>
         </div>
         
@@ -572,8 +576,8 @@ input:checked + .slider:before {
         </div>
         
         <div class="config-actions">
-            <button class="btn-primary" onclick="saveApiConfig()">Save Configuration</button>
-            <button class="btn-secondary" onclick="viewApiDocs()">View API Docs</button>
+            <button class="btn btn-primary" onclick="saveApiConfig()">Save Configuration</button>
+            <button class="btn btn-secondary" onclick="viewApiDocs()">View API Docs</button>
         </div>
     </div>
 
@@ -621,8 +625,8 @@ input:checked + .slider:before {
         </div>
         
         <div class="config-actions">
-            <button class="btn-primary" onclick="saveSecurityConfig()">Save Configuration</button>
-            <button class="btn-secondary" onclick="auditLog()">View Audit Log</button>
+            <button class="btn btn-primary" onclick="saveSecurityConfig()">Save Configuration</button>
+            <button class="btn btn-secondary" onclick="auditLog()">View Audit Log</button>
         </div>
     </div>
 </div>
@@ -649,11 +653,8 @@ function savePayPalConfig() {
     button.textContent = 'Saving...';
     button.disabled = true;
     
-    fetch('/admin/system-config/paypal', {
+    makeSecureRequest('/admin/system-config/paypal', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
         body: JSON.stringify(configData)
     })
     .then(response => response.json())
@@ -719,11 +720,8 @@ function testPayPal() {
     resultDiv.className = 'test-result';
     resultDiv.textContent = 'Testing PayPal connection...';
     
-    fetch('/admin/system-config/paypal/test', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
+    makeSecureRequest('/admin/system-config/paypal/test', {
+        method: 'POST'
     })
     .then(response => response.json())
     .then(data => {

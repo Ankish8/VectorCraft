@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 @admin_bp.route('/')
 @admin_bp.route('/dashboard')
 @admin_required
-def dashboard():
+def admin_dashboard():
     """Admin dashboard overview"""
     try:
         # Get system health status
@@ -618,13 +618,14 @@ def generate_report():
         return jsonify({'success': False, 'error': str(e)})
 
 @admin_bp.route('/test')
+@admin_required
 def test():
     """Test page to verify admin monitoring system"""
     return render_template('admin_test.html')
 
 
 # User Management Routes (temporarily disabled)
-# @admin_bp.route('/users')
+@admin_bp.route('/users')
 @admin_required
 def users():
     """User management page"""

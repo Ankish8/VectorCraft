@@ -1,0 +1,354 @@
+{% extends "admin/base.html" %}
+
+{% block title %}System Architecture - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🏗️ System Architecture</h1>
+    <p class="subtitle">VectorCraft system overview and component details</p>
+</div>
+
+<div class="row">
+    <!-- System Overview -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-sitemap me-2"></i>System Architecture Overview</h5>
+            </div>
+            <div class="card-body">
+                <div class="architecture-diagram">
+                    <div class="layer frontend-layer">
+                        <h6>Frontend Layer</h6>
+                        <div class="components">
+                            <span class="component">Landing Page</span>
+                            <span class="component">Admin Dashboard</span>
+                            <span class="component">User Dashboard</span>
+                            <span class="component">VectorCraft App</span>
+                        </div>
+                    </div>
+                    
+                    <div class="layer api-layer">
+                        <h6>API Layer</h6>
+                        <div class="components">
+                            <span class="component">Admin API</span>
+                            <span class="component">Payment API</span>
+                            <span class="component">Vector API</span>
+                            <span class="component">Auth API</span>
+                        </div>
+                    </div>
+                    
+                    <div class="layer business-layer">
+                        <h6>Business Logic Layer</h6>
+                        <div class="components">
+                            <span class="component">Payment Service</span>
+                            <span class="component">Email Service</span>
+                            <span class="component">Vector Service</span>
+                            <span class="component">Auth Service</span>
+                        </div>
+                    </div>
+                    
+                    <div class="layer data-layer">
+                        <h6>Data Layer</h6>
+                        <div class="components">
+                            <span class="component">SQLite Database</span>
+                            <span class="component">File Storage</span>
+                            <span class="component">Session Store</span>
+                            <span class="component">Cache Layer</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Stats -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle me-2"></i>System Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="system-stat">
+                    <label>Framework:</label>
+                    <span>Flask {{ flask_version or '2.3.3' }}</span>
+                </div>
+                <div class="system-stat">
+                    <label>Python Version:</label>
+                    <span>{{ python_version or '3.9+' }}</span>
+                </div>
+                <div class="system-stat">
+                    <label>Database:</label>
+                    <span>SQLite {{ db_version or '3.x' }}</span>
+                </div>
+                <div class="system-stat">
+                    <label>Admin Modules:</label>
+                    <span>{{ admin_modules or '17' }} modules</span>
+                </div>
+                <div class="system-stat">
+                    <label>Service Modules:</label>
+                    <span>{{ service_modules or '47' }} services</span>
+                </div>
+                <div class="system-stat">
+                    <label>API Endpoints:</label>
+                    <span>{{ api_endpoints or '120+' }} endpoints</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-server me-2"></i>Component Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="component-status">
+                    <div class="status-item">
+                        <span class="status-indicator bg-success"></span>
+                        <span>Database</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-indicator bg-success"></span>
+                        <span>PayPal API</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-indicator bg-success"></span>
+                        <span>Email Service</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-indicator bg-success"></span>
+                        <span>Vector Engine</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-indicator bg-success"></span>
+                        <span>Admin System</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Data Flow -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-exchange-alt me-2"></i>Data Flow</h5>
+            </div>
+            <div class="card-body">
+                <div class="data-flow">
+                    <div class="flow-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h6>User Payment</h6>
+                            <p>User completes PayPal payment</p>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h6>User Creation</h6>
+                            <p>System creates user account</p>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h6>Email Delivery</h6>
+                            <p>Credentials sent via email</p>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h6>System Access</h6>
+                            <p>User accesses VectorCraft</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Architecture -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-shield-alt me-2"></i>Security Architecture</h5>
+            </div>
+            <div class="card-body">
+                <div class="security-layers">
+                    <div class="security-layer">
+                        <h6>Application Security</h6>
+                        <ul>
+                            <li>CSRF Protection</li>
+                            <li>Session Management</li>
+                            <li>Rate Limiting</li>
+                            <li>Input Validation</li>
+                        </ul>
+                    </div>
+                    <div class="security-layer">
+                        <h6>Data Security</h6>
+                        <ul>
+                            <li>Password Hashing</li>
+                            <li>Secure Storage</li>
+                            <li>Data Encryption</li>
+                            <li>Access Control</li>
+                        </ul>
+                    </div>
+                    <div class="security-layer">
+                        <h6>Network Security</h6>
+                        <ul>
+                            <li>HTTPS Enforcement</li>
+                            <li>IP Whitelisting</li>
+                            <li>Secure Headers</li>
+                            <li>API Security</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.architecture-diagram {
+    text-align: center;
+    padding: 20px;
+}
+
+.layer {
+    background: #f8f9fa;
+    margin: 10px 0;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.layer h6 {
+    color: #007bff;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.components {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+}
+
+.component {
+    background: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    margin: 2px;
+    font-size: 0.9rem;
+}
+
+.system-stat {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding: 5px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.system-stat label {
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.component-status {
+    display: grid;
+    gap: 10px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.data-flow {
+    text-align: center;
+}
+
+.flow-step {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 10px 0;
+}
+
+.step-number {
+    width: 30px;
+    height: 30px;
+    background: #007bff;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.step-content {
+    text-align: left;
+}
+
+.step-content h6 {
+    margin-bottom: 5px;
+}
+
+.step-content p {
+    margin-bottom: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.flow-arrow {
+    text-align: center;
+    font-size: 1.5rem;
+    color: #007bff;
+    margin: 5px 0;
+}
+
+.security-layers {
+    display: grid;
+    gap: 20px;
+}
+
+.security-layer h6 {
+    color: #28a745;
+    margin-bottom: 10px;
+}
+
+.security-layer ul {
+    list-style: none;
+    padding: 0;
+}
+
+.security-layer li {
+    padding: 2px 0;
+    color: #6c757d;
+}
+
+.security-layer li:before {
+    content: "✓";
+    color: #28a745;
+    font-weight: bold;
+    margin-right: 8px;
+}
+</style>
+{% endblock %}

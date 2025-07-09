@@ -1,0 +1,452 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Billing Settings - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🧾 Billing Settings</h1>
+    <p class="subtitle">Configure billing cycles, invoicing, and payment terms</p>
+</div>
+
+<div class="row">
+    <!-- Billing Configuration -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-calendar-alt me-2"></i>Billing Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form id="billingConfigForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Default Billing Cycle</label>
+                                <select class="form-select" id="default_billing_cycle">
+                                    <option value="one-time" {{ 'selected' if default_billing_cycle == 'one-time' else '' }}>One-time Payment</option>
+                                    <option value="monthly" {{ 'selected' if default_billing_cycle == 'monthly' else '' }}>Monthly</option>
+                                    <option value="quarterly" {{ 'selected' if default_billing_cycle == 'quarterly' else '' }}>Quarterly</option>
+                                    <option value="yearly" {{ 'selected' if default_billing_cycle == 'yearly' else '' }}>Yearly</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Billing Date</label>
+                                <select class="form-select" id="billing_date">
+                                    <option value="subscription_date">On Subscription Date</option>
+                                    <option value="1">1st of Month</option>
+                                    <option value="15">15th of Month</option>
+                                    <option value="last">Last Day of Month</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Grace Period (days)</label>
+                                <input type="number" class="form-control" id="grace_period" value="{{ grace_period or '3' }}" min="0" max="30">
+                                <div class="form-text">Days to allow after failed payment before suspension</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Retry Attempts</label>
+                                <input type="number" class="form-control" id="retry_attempts" value="{{ retry_attempts or '3' }}" min="1" max="10">
+                                <div class="form-text">Number of automatic payment retry attempts</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Proration Policy</label>
+                        <select class="form-select" id="proration_policy">
+                            <option value="none" {{ 'selected' if proration_policy == 'none' else '' }}>No Proration</option>
+                            <option value="daily" {{ 'selected' if proration_policy == 'daily' else '' }}>Daily Proration</option>
+                            <option value="monthly" {{ 'selected' if proration_policy == 'monthly' else '' }}>Monthly Proration</option>
+                        </select>
+                        <div class="form-text">How to handle mid-cycle plan changes</div>
+                    </div>
+                    
+                    <div class="billing-features">
+                        <h6>Billing Features</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="auto_invoice" {{ 'checked' if auto_invoice else '' }}>
+                                    <label class="form-check-label" for="auto_invoice">
+                                        Automatic Invoice Generation
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="email_invoices" {{ 'checked' if email_invoices else '' }}>
+                                    <label class="form-check-label" for="email_invoices">
+                                        Email Invoices to Customers
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="payment_reminders" {{ 'checked' if payment_reminders else '' }}>
+                                    <label class="form-check-label" for="payment_reminders">
+                                        Send Payment Reminders
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="dunning_management" {{ 'checked' if dunning_management else '' }}>
+                                    <label class="form-check-label" for="dunning_management">
+                                        Dunning Management
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="tax_calculation" {{ 'checked' if tax_calculation else '' }}>
+                                    <label class="form-check-label" for="tax_calculation">
+                                        Automatic Tax Calculation
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="usage_billing" {{ 'checked' if usage_billing else '' }}>
+                                    <label class="form-check-label" for="usage_billing">
+                                        Usage-Based Billing
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Invoice Settings -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-file-invoice me-2"></i>Invoice Settings</h5>
+            </div>
+            <div class="card-body">
+                <form id="invoiceSettingsForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Invoice Number Format</label>
+                                <input type="text" class="form-control" id="invoice_format" value="{{ invoice_format or 'INV-{YYYY}-{MM}-{####}' }}" placeholder="INV-{YYYY}-{MM}-{####}">
+                                <div class="form-text">Use {YYYY}, {MM}, {DD}, {####} as placeholders</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Payment Terms (days)</label>
+                                <select class="form-select" id="payment_terms">
+                                    <option value="0">Due Immediately</option>
+                                    <option value="7" {{ 'selected' if payment_terms == '7' else '' }}>Net 7</option>
+                                    <option value="15" {{ 'selected' if payment_terms == '15' else '' }}>Net 15</option>
+                                    <option value="30" {{ 'selected' if payment_terms == '30' else '' }}>Net 30</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Invoice Footer</label>
+                        <textarea class="form-control" id="invoice_footer" rows="3" placeholder="Thank you for your business!">{{ invoice_footer or 'Thank you for choosing VectorCraft. For support, contact us at support@vectorcraft.com' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Company Information</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <input type="text" class="form-control mb-2" id="company_name" value="{{ company_name or 'VectorCraft' }}" placeholder="Company Name">
+                                <input type="text" class="form-control mb-2" id="company_address" value="{{ company_address or '' }}" placeholder="Address Line 1">
+                                <input type="text" class="form-control" id="company_address2" value="{{ company_address2 or '' }}" placeholder="Address Line 2">
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" class="form-control mb-2" id="company_city" value="{{ company_city or '' }}" placeholder="City">
+                                <input type="text" class="form-control mb-2" id="company_tax_id" value="{{ company_tax_id or '' }}" placeholder="Tax ID / VAT Number">
+                                <input type="email" class="form-control" id="company_email" value="{{ company_email or 'billing@vectorcraft.com' }}" placeholder="Billing Email">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Billing Summary -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar me-2"></i>Billing Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="billing-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ active_subscriptions or '234' }}</div>
+                        <div class="stat-label">Active Subscriptions</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${{ monthly_revenue or '7,847.53' }}</div>
+                        <div class="stat-label">Monthly Recurring Revenue</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ pending_invoices or '12' }}</div>
+                        <div class="stat-label">Pending Invoices</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ overdue_invoices or '3' }}</div>
+                        <div class="stat-label">Overdue Invoices</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-exclamation-triangle me-2"></i>Recent Issues</h5>
+            </div>
+            <div class="card-body">
+                <div class="billing-issues">
+                    <div class="issue-item">
+                        <div class="issue-info">
+                            <span class="issue-type">Failed Payment</span>
+                            <span class="issue-date">2 hours ago</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger">View</button>
+                    </div>
+                    <div class="issue-item">
+                        <div class="issue-info">
+                            <span class="issue-type">Overdue Invoice</span>
+                            <span class="issue-date">1 day ago</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-warning">View</button>
+                    </div>
+                    <div class="issue-item">
+                        <div class="issue-info">
+                            <span class="issue-type">Subscription Cancelled</span>
+                            <span class="issue-date">3 days ago</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-info">View</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-tools me-2"></i>Billing Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="saveBillingSettings()">
+                        <i class="fas fa-save me-2"></i>Save All Settings
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="generateReport()">
+                        <i class="fas fa-chart-line me-2"></i>Generate Report
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="exportInvoices()">
+                        <i class="fas fa-download me-2"></i>Export Invoices
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm" onclick="reconcileBilling()">
+                        <i class="fas fa-balance-scale me-2"></i>Reconcile Billing
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.billing-features {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.billing-features h6 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.form-check-switch {
+    margin-bottom: 10px;
+}
+
+.billing-stats {
+    display: grid;
+    gap: 15px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.billing-issues {
+    display: grid;
+    gap: 10px;
+}
+
+.issue-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.issue-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.issue-type {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+.issue-date {
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+</style>
+
+<script>
+function saveBillingSettings() {
+    const billingConfig = {
+        default_billing_cycle: document.getElementById('default_billing_cycle').value,
+        billing_date: document.getElementById('billing_date').value,
+        grace_period: parseInt(document.getElementById('grace_period').value),
+        retry_attempts: parseInt(document.getElementById('retry_attempts').value),
+        proration_policy: document.getElementById('proration_policy').value,
+        auto_invoice: document.getElementById('auto_invoice').checked,
+        email_invoices: document.getElementById('email_invoices').checked,
+        payment_reminders: document.getElementById('payment_reminders').checked,
+        dunning_management: document.getElementById('dunning_management').checked,
+        tax_calculation: document.getElementById('tax_calculation').checked,
+        usage_billing: document.getElementById('usage_billing').checked
+    };
+    
+    const invoiceSettings = {
+        invoice_format: document.getElementById('invoice_format').value,
+        payment_terms: document.getElementById('payment_terms').value,
+        invoice_footer: document.getElementById('invoice_footer').value,
+        company_name: document.getElementById('company_name').value,
+        company_address: document.getElementById('company_address').value,
+        company_address2: document.getElementById('company_address2').value,
+        company_city: document.getElementById('company_city').value,
+        company_tax_id: document.getElementById('company_tax_id').value,
+        company_email: document.getElementById('company_email').value
+    };
+    
+    const button = event.target;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+    button.disabled = true;
+    
+    // Save billing configuration
+    Promise.all([
+        fetch('/admin/pricing/api/billing-config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(billingConfig)
+        }),
+        fetch('/admin/pricing/api/invoice-settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(invoiceSettings)
+        })
+    ])
+    .then(responses => Promise.all(responses.map(r => r.json())))
+    .then(data => {
+        button.innerHTML = '<i class="fas fa-save me-2"></i>Save All Settings';
+        button.disabled = false;
+        
+        if (data.every(d => d.success)) {
+            alert('Billing settings saved successfully!');
+        } else {
+            alert('Error saving some settings. Please check and try again.');
+        }
+    })
+    .catch(error => {
+        button.innerHTML = '<i class="fas fa-save me-2"></i>Save All Settings';
+        button.disabled = false;
+        console.error('Error:', error);
+        alert('Error saving billing settings');
+    });
+}
+
+function generateReport() {
+    console.log('Generating billing report...');
+    window.location.href = '/admin/pricing/billing-report';
+}
+
+function exportInvoices() {
+    console.log('Exporting invoices...');
+    window.location.href = '/admin/pricing/api/invoices/export';
+}
+
+function reconcileBilling() {
+    if (confirm('Run billing reconciliation? This may take a few minutes.')) {
+        const button = event.target;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Reconciling...';
+        button.disabled = true;
+        
+        fetch('/admin/pricing/api/billing/reconcile', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            button.innerHTML = '<i class="fas fa-balance-scale me-2"></i>Reconcile Billing';
+            button.disabled = false;
+            
+            if (data.success) {
+                alert('Billing reconciliation completed successfully!');
+            } else {
+                alert('Billing reconciliation failed: ' + data.message);
+            }
+        })
+        .catch(error => {
+            button.innerHTML = '<i class="fas fa-balance-scale me-2"></i>Reconcile Billing';
+            button.disabled = false;
+            console.error('Error:', error);
+            alert('Error running billing reconciliation');
+        });
+    }
+}
+
+// Preview invoice format
+document.getElementById('invoice_format').addEventListener('input', function() {
+    const format = this.value;
+    const today = new Date();
+    const preview = format
+        .replace('{YYYY}', today.getFullYear())
+        .replace('{MM}', String(today.getMonth() + 1).padStart(2, '0'))
+        .replace('{DD}', String(today.getDate()).padStart(2, '0'))
+        .replace('{####}', '0001');
+    
+    this.parentNode.querySelector('.form-text').textContent = `Preview: ${preview}`;
+});
+
+// Trigger initial preview
+document.getElementById('invoice_format').dispatchEvent(new Event('input'));
+</script>
+{% endblock %}
