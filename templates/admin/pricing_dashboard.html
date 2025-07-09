@@ -1,0 +1,541 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Pricing Management - VectorCraft Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.pricing-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #e1e5e9;
+    transition: all 0.3s ease;
+}
+
+.pricing-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.pricing-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.price-display {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 15px 0;
+}
+
+.price-currency {
+    font-size: 1.2rem;
+    color: #7f8c8d;
+    margin-right: 5px;
+}
+
+.pricing-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.price-input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.price-input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.btn-update {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-update:hover {
+    background: linear-gradient(135deg, #2980b9, #21618c);
+    transform: translateY(-1px);
+}
+
+.pricing-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pricing-history {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.history-table th,
+.history-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e1e5e9;
+}
+
+.history-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.dynamic-pricing {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.pricing-rules {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.rule-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    background: #f8f9fa;
+}
+
+.rule-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-small {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.btn-edit {
+    background: #f39c12;
+    color: white;
+}
+
+.btn-delete {
+    background: #e74c3c;
+    color: white;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-active {
+    background: #27ae60;
+}
+
+.status-inactive {
+    background: #e74c3c;
+}
+
+.flash-message {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.flash-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.flash-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>💰 Pricing Management</h1>
+    <p class="subtitle">Dynamic pricing control with real-time updates</p>
+</div>
+
+<div class="flash-messages">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+<!-- Pricing Stats -->
+<div class="pricing-stats">
+    <div class="stat-card">
+        <div class="stat-value">$49.99</div>
+        <div class="stat-label">Current Price</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">$52,450</div>
+        <div class="stat-label">Monthly Revenue</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">1,051</div>
+        <div class="stat-label">Total Sales</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">94.3%</div>
+        <div class="stat-label">Conversion Rate</div>
+    </div>
+</div>
+
+<!-- Main Pricing Controls -->
+<div class="pricing-grid">
+    <div class="pricing-card">
+        <div class="pricing-header">
+            <h3>🎯 Main Product Price</h3>
+            <span class="status-indicator status-active"></span>
+        </div>
+        <div class="price-display">
+            <span class="price-currency">$</span>49.99
+        </div>
+        <div class="pricing-controls">
+            <input type="number" class="price-input" placeholder="New price" step="0.01" min="0">
+            <button class="btn-update" onclick="updatePrice('main')">Update</button>
+        </div>
+        <div style="margin-top: 15px; font-size: 0.9rem; color: #7f8c8d;">
+            Last updated: 2 hours ago
+        </div>
+    </div>
+
+    <div class="pricing-card">
+        <div class="pricing-header">
+            <h3>⚡ Flash Sale Price</h3>
+            <span class="status-indicator status-inactive"></span>
+        </div>
+        <div class="price-display">
+            <span class="price-currency">$</span>39.99
+        </div>
+        <div class="pricing-controls">
+            <input type="number" class="price-input" placeholder="Flash sale price" step="0.01" min="0">
+            <button class="btn-update" onclick="updatePrice('flash')">Activate</button>
+        </div>
+        <div style="margin-top: 15px; font-size: 0.9rem; color: #7f8c8d;">
+            Duration: 24 hours
+        </div>
+    </div>
+
+    <div class="pricing-card">
+        <div class="pricing-header">
+            <h3>🎁 Bulk Discount</h3>
+            <span class="status-indicator status-active"></span>
+        </div>
+        <div class="price-display">
+            <span class="price-currency">$</span>44.99
+        </div>
+        <div class="pricing-controls">
+            <input type="number" class="price-input" placeholder="Bulk price" step="0.01" min="0">
+            <button class="btn-update" onclick="updatePrice('bulk')">Update</button>
+        </div>
+        <div style="margin-top: 15px; font-size: 0.9rem; color: #7f8c8d;">
+            Min quantity: 5+
+        </div>
+    </div>
+</div>
+
+<!-- Dynamic Pricing Engine -->
+<div class="dynamic-pricing">
+    <div class="pricing-header">
+        <h3>🤖 Dynamic Pricing Engine</h3>
+        <label class="toggle-switch">
+            <input type="checkbox" id="dynamicPricing" checked>
+            <span class="slider"></span>
+        </label>
+    </div>
+    <p style="color: #7f8c8d; margin-bottom: 20px;">
+        AI-powered pricing adjustments based on market conditions and demand
+    </p>
+    <div class="pricing-grid">
+        <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <strong>Market Analysis</strong><br>
+            <span style="color: #27ae60;">↗ Trending Up</span> - Demand increased 23%
+        </div>
+        <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <strong>Competitor Pricing</strong><br>
+            <span style="color: #f39c12;">→ Stable</span> - Average: $47.50
+        </div>
+        <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <strong>Recommendation</strong><br>
+            <span style="color: #2196F3;">↑ Increase</span> - Optimal: $52.99
+        </div>
+    </div>
+</div>
+
+<!-- Pricing Rules -->
+<div class="pricing-rules">
+    <div class="pricing-header">
+        <h3>📋 Pricing Rules</h3>
+        <button class="btn-update" onclick="addRule()">Add Rule</button>
+    </div>
+    
+    <div class="rule-item">
+        <div>
+            <strong>Weekend Discount</strong><br>
+            <span style="color: #7f8c8d;">Apply 15% discount on weekends</span>
+        </div>
+        <div class="rule-actions">
+            <button class="btn-small btn-edit">Edit</button>
+            <button class="btn-small btn-delete">Delete</button>
+        </div>
+    </div>
+
+    <div class="rule-item">
+        <div>
+            <strong>Volume Pricing</strong><br>
+            <span style="color: #7f8c8d;">Bulk discounts for 5+ purchases</span>
+        </div>
+        <div class="rule-actions">
+            <button class="btn-small btn-edit">Edit</button>
+            <button class="btn-small btn-delete">Delete</button>
+        </div>
+    </div>
+
+    <div class="rule-item">
+        <div>
+            <strong>First-Time Customer</strong><br>
+            <span style="color: #7f8c8d;">20% off for new customers</span>
+        </div>
+        <div class="rule-actions">
+            <button class="btn-small btn-edit">Edit</button>
+            <button class="btn-small btn-delete">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- Pricing History -->
+<div class="pricing-history">
+    <h3>📊 Pricing History</h3>
+    <table class="history-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Previous Price</th>
+                <th>New Price</th>
+                <th>Change</th>
+                <th>Reason</th>
+                <th>Sales Impact</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>2025-01-08</td>
+                <td>$44.99</td>
+                <td>$49.99</td>
+                <td style="color: #27ae60;">+$5.00</td>
+                <td>Market demand increase</td>
+                <td style="color: #27ae60;">+12% sales</td>
+            </tr>
+            <tr>
+                <td>2025-01-05</td>
+                <td>$49.99</td>
+                <td>$44.99</td>
+                <td style="color: #e74c3c;">-$5.00</td>
+                <td>Weekend promotion</td>
+                <td style="color: #27ae60;">+35% sales</td>
+            </tr>
+            <tr>
+                <td>2025-01-01</td>
+                <td>$47.99</td>
+                <td>$49.99</td>
+                <td style="color: #27ae60;">+$2.00</td>
+                <td>New Year adjustment</td>
+                <td style="color: #e74c3c;">-3% sales</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+function updatePrice(type) {
+    const inputs = document.querySelectorAll('.price-input');
+    const price = inputs[type === 'main' ? 0 : type === 'flash' ? 1 : 2].value;
+    
+    if (!price || price <= 0) {
+        alert('Please enter a valid price');
+        return;
+    }
+    
+    // Show loading state
+    const button = event.target;
+    button.textContent = 'Updating...';
+    button.disabled = true;
+    
+    // Simulate API call
+    setTimeout(() => {
+        // Reset button
+        button.textContent = 'Update';
+        button.disabled = false;
+        
+        // Show success message
+        showFlashMessage('Price updated successfully!', 'success');
+        
+        // Update display
+        const priceDisplay = button.closest('.pricing-card').querySelector('.price-display');
+        priceDisplay.innerHTML = `<span class="price-currency">$</span>${price}`;
+        
+        // Clear input
+        button.previousElementSibling.value = '';
+    }, 1000);
+}
+
+function addRule() {
+    const ruleName = prompt('Enter rule name:');
+    if (ruleName) {
+        // Add rule logic here
+        showFlashMessage('Rule added successfully!', 'success');
+    }
+}
+
+function showFlashMessage(message, type) {
+    const flashContainer = document.querySelector('.flash-messages');
+    const flashDiv = document.createElement('div');
+    flashDiv.className = `flash-message flash-${type}`;
+    flashDiv.textContent = message;
+    flashContainer.appendChild(flashDiv);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+        flashDiv.remove();
+    }, 5000);
+}
+
+// Dynamic pricing toggle
+document.getElementById('dynamicPricing').addEventListener('change', function() {
+    const status = this.checked ? 'enabled' : 'disabled';
+    showFlashMessage(`Dynamic pricing ${status}`, 'success');
+});
+
+// Auto-refresh pricing stats every 30 seconds
+setInterval(() => {
+    // Refresh stats logic here
+    console.log('Refreshing pricing stats...');
+}, 30000);
+</script>
+{% endblock %}

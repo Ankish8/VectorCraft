@@ -1,0 +1,380 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Pages - Content Management{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .page-table th {
+        background: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        padding: 15px;
+    }
+    .page-table td {
+        padding: 15px;
+        vertical-align: middle;
+        border-bottom: 1px solid #eee;
+    }
+    .page-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    .page-status {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+    }
+    .status-published {
+        background: #d4edda;
+        color: #155724;
+    }
+    .status-draft {
+        background: #fff3cd;
+        color: #856404;
+    }
+    .page-actions {
+        display: flex;
+        gap: 5px;
+    }
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 0.8em;
+    }
+    .filters {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .filters .form-control {
+        border-radius: 4px;
+        border: 1px solid #ddd;
+    }
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        font-weight: 500;
+    }
+    .btn-primary {
+        background: #667eea;
+        color: white;
+    }
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+    .btn-warning {
+        background: #ffc107;
+        color: #212529;
+    }
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+    .seo-score {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .seo-score-circle {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: bold;
+        color: white;
+    }
+    .seo-excellent { background: #28a745; }
+    .seo-good { background: #17a2b8; }
+    .seo-fair { background: #ffc107; }
+    .seo-poor { background: #dc3545; }
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+    }
+    .empty-state i {
+        font-size: 4em;
+        margin-bottom: 20px;
+        color: #ddd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">Pages</h1>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('admin_content.create_page') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create Page
+                    </a>
+                    <a href="{{ url_for('admin_content.dashboard') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label for="search" class="form-label">Search</label>
+                <input type="text" class="form-control" id="search" name="search" value="{{ search }}" placeholder="Search pages...">
+            </div>
+            <div class="col-md-3">
+                <label for="type" class="form-label">Page Type</label>
+                <select class="form-control" id="type" name="type">
+                    <option value="">All Types</option>
+                    {% for page_type in page_types %}
+                    <option value="{{ page_type }}" {{ 'selected' if page_type == current_type else '' }}>
+                        {{ page_type.title() }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-control" id="status" name="status">
+                    <option value="">All Status</option>
+                    <option value="published" {{ 'selected' if current_status == 'published' else '' }}>Published</option>
+                    <option value="draft" {{ 'selected' if current_status == 'draft' else '' }}>Draft</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a href="{{ url_for('admin_content.pages') }}" class="btn btn-secondary">Reset</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Pages Table -->
+    {% if pages %}
+    <div class="page-table">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>SEO Score</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for page in pages %}
+                <tr>
+                    <td>
+                        <div>
+                            <h6 class="mb-1">{{ page.name }}</h6>
+                            <small class="text-muted">{{ page.title }}</small>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">{{ page.page_type }}</span>
+                    </td>
+                    <td>
+                        <span class="page-status {{ 'status-published' if page.is_published else 'status-draft' }}">
+                            {{ 'Published' if page.is_published else 'Draft' }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="seo-score">
+                            <div class="seo-score-circle seo-good">B</div>
+                            <span>75</span>
+                        </div>
+                    </td>
+                    <td>
+                        <small class="text-muted">{{ page.updated_at|datetime_format }}</small>
+                    </td>
+                    <td>
+                        <div class="page-actions">
+                            <a href="{{ url_for('admin_content.edit_page', page_id=page.page_id) }}" 
+                               class="btn btn-primary btn-sm" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{{ url_for('admin_content.preview_page', page_id=page.page_id) }}" 
+                               class="btn btn-success btn-sm" title="Preview" target="_blank">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <button class="btn btn-warning btn-sm" title="Duplicate" 
+                                    onclick="duplicatePage('{{ page.page_id }}')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm" title="Delete" 
+                                    onclick="deletePage('{{ page.page_id }}', '{{ page.name }}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-file-alt"></i>
+        <h4>No pages found</h4>
+        <p>{% if search or current_type or current_status %}
+            No pages match your current filters.
+        {% else %}
+            You haven't created any pages yet.
+        {% endif %}</p>
+        <a href="{{ url_for('admin_content.create_page') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create Your First Page
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Duplicate Modal -->
+<div class="modal fade" id="duplicateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Duplicate Page</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="duplicateForm">
+                    <div class="mb-3">
+                        <label for="duplicateName" class="form-label">New Page Name</label>
+                        <input type="text" class="form-control" id="duplicateName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="duplicateSlug" class="form-label">New Page Slug</label>
+                        <input type="text" class="form-control" id="duplicateSlug" name="slug" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmDuplicate()">Duplicate</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Page</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the page "<span id="deletePageName"></span>"?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentPageId = null;
+    let currentPageName = null;
+
+    function duplicatePage(pageId) {
+        currentPageId = pageId;
+        document.getElementById('duplicateName').value = 'Copy of Page';
+        document.getElementById('duplicateSlug').value = 'copy-of-page';
+        
+        const modal = new bootstrap.Modal(document.getElementById('duplicateModal'));
+        modal.show();
+    }
+
+    function confirmDuplicate() {
+        if (!currentPageId) return;
+        
+        const formData = new FormData(document.getElementById('duplicateForm'));
+        
+        fetch(`{{ url_for('admin_content.duplicate_page', page_id='') }}${currentPageId}`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = `{{ url_for('admin_content.edit_page', page_id='') }}${data.page_id}`;
+            } else {
+                alert('Error: ' + (data.error || 'Failed to duplicate page'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error duplicating page');
+        });
+    }
+
+    function deletePage(pageId, pageName) {
+        currentPageId = pageId;
+        currentPageName = pageName;
+        document.getElementById('deletePageName').textContent = pageName;
+        
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    }
+
+    function confirmDelete() {
+        if (!currentPageId) return;
+        
+        fetch(`{{ url_for('admin_content.delete_page', page_id='') }}${currentPageId}`, {
+            method: 'POST'
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Error deleting page');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting page');
+        });
+    }
+
+    // Auto-generate slug from name
+    document.getElementById('duplicateName').addEventListener('input', function() {
+        const name = this.value;
+        const slug = name.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '')
+            .replace(/\s+/g, '-');
+        document.getElementById('duplicateSlug').value = slug;
+    });
+</script>
+{% endblock %}

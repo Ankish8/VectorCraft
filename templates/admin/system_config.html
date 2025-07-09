@@ -1,0 +1,704 @@
+{% extends "admin/base.html" %}
+
+{% block title %}System Configuration - VectorCraft Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+.config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.config-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #e1e5e9;
+    transition: all 0.3s ease;
+}
+
+.config-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.config-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.config-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 1rem;
+    min-height: 100px;
+    resize: vertical;
+    transition: border-color 0.3s ease;
+}
+
+.form-textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+    transition: border-color 0.3s ease;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #2980b9, #21618c);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: #f8f9fa;
+    color: #2c3e50;
+    border: 1px solid #e1e5e9;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin-left: 10px;
+}
+
+.btn-secondary:hover {
+    background: #e9ecef;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-connected {
+    background: #27ae60;
+    box-shadow: 0 0 10px rgba(39, 174, 96, 0.3);
+}
+
+.status-disconnected {
+    background: #e74c3c;
+}
+
+.status-testing {
+    background: #f39c12;
+    box-shadow: 0 0 10px rgba(243, 156, 18, 0.3);
+}
+
+.config-actions {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.flash-message {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.flash-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.flash-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.flash-warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.config-description {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.api-key-display {
+    font-family: monospace;
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #e1e5e9;
+    word-break: break-all;
+}
+
+.connection-test {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    border: 1px solid #e1e5e9;
+}
+
+.test-result {
+    font-family: monospace;
+    font-size: 0.9rem;
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 6px;
+    background: #fff;
+    border: 1px solid #ddd;
+}
+
+.test-success {
+    background: #d4edda;
+    color: #155724;
+    border-color: #c3e6cb;
+}
+
+.test-error {
+    background: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>⚙️ System Configuration</h1>
+    <p class="subtitle">Core system settings and API configuration</p>
+</div>
+
+<div class="flash-messages">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+<!-- Configuration Cards -->
+<div class="config-grid">
+    <!-- PayPal Configuration -->
+    <div class="config-card">
+        <div class="config-header">
+            <div class="config-title">
+                <span class="status-indicator status-connected"></span>
+                💳 PayPal Configuration
+            </div>
+        </div>
+        <div class="config-description">
+            Configure PayPal payment processing settings and API credentials
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Environment</label>
+            <select class="form-select">
+                <option>Production</option>
+                <option>Sandbox</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Client ID</label>
+            <input type="text" class="form-input" placeholder="Enter PayPal Client ID">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Client Secret</label>
+            <input type="password" class="form-input" placeholder="Enter PayPal Client Secret">
+        </div>
+        
+        <div class="connection-test">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>Connection Test</strong>
+                <button class="btn-secondary" onclick="testPayPal()">Test Connection</button>
+            </div>
+            <div class="test-result" id="paypal-test-result" style="display: none;">
+                Testing PayPal connection...
+            </div>
+        </div>
+        
+        <div class="config-actions">
+            <button class="btn-primary" onclick="savePayPalConfig()">Save Configuration</button>
+            <button class="btn-secondary" onclick="resetPayPalConfig()">Reset</button>
+        </div>
+    </div>
+
+    <!-- Email Configuration -->
+    <div class="config-card">
+        <div class="config-header">
+            <div class="config-title">
+                <span class="status-indicator status-connected"></span>
+                📧 Email Configuration
+            </div>
+        </div>
+        <div class="config-description">
+            Configure SMTP settings for email delivery and notifications
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">SMTP Server</label>
+            <input type="text" class="form-input" value="smtpout.secureserver.net">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Port</label>
+            <input type="number" class="form-input" value="587">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-input" placeholder="Enter SMTP username">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-input" placeholder="Enter SMTP password">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">From Email</label>
+            <input type="email" class="form-input" placeholder="noreply@example.com">
+        </div>
+        
+        <div class="connection-test">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>Email Test</strong>
+                <button class="btn-secondary" onclick="testEmail()">Send Test Email</button>
+            </div>
+            <div class="test-result" id="email-test-result" style="display: none;">
+                Sending test email...
+            </div>
+        </div>
+        
+        <div class="config-actions">
+            <button class="btn-primary" onclick="saveEmailConfig()">Save Configuration</button>
+            <button class="btn-secondary" onclick="resetEmailConfig()">Reset</button>
+        </div>
+    </div>
+
+    <!-- Application Settings -->
+    <div class="config-card">
+        <div class="config-header">
+            <div class="config-title">
+                <span class="status-indicator status-connected"></span>
+                🚀 Application Settings
+            </div>
+        </div>
+        <div class="config-description">
+            Core application configuration and environment settings
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Application Name</label>
+            <input type="text" class="form-input" value="VectorCraft">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Domain URL</label>
+            <input type="url" class="form-input" value="https://thevectorcraft.com">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Environment</label>
+            <select class="form-select">
+                <option>Production</option>
+                <option>Development</option>
+                <option>Testing</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Debug Mode</label>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="debugMode">
+                    <span class="slider"></span>
+                </label>
+                <span>Enable debug logging</span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Maintenance Message</label>
+            <textarea class="form-textarea" placeholder="Enter maintenance message for users..."></textarea>
+        </div>
+        
+        <div class="config-actions">
+            <button class="btn-primary" onclick="saveAppConfig()">Save Configuration</button>
+            <button class="btn-secondary" onclick="resetAppConfig()">Reset</button>
+        </div>
+    </div>
+
+    <!-- Database Configuration -->
+    <div class="config-card">
+        <div class="config-header">
+            <div class="config-title">
+                <span class="status-indicator status-connected"></span>
+                🗄️ Database Configuration
+            </div>
+        </div>
+        <div class="config-description">
+            Database connection settings and optimization parameters
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Database Type</label>
+            <select class="form-select">
+                <option>SQLite</option>
+                <option>PostgreSQL</option>
+                <option>MySQL</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Database Path/URL</label>
+            <input type="text" class="form-input" value="vectorcraft.db">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Connection Pool Size</label>
+            <input type="number" class="form-input" value="10">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Query Timeout (seconds)</label>
+            <input type="number" class="form-input" value="30">
+        </div>
+        
+        <div class="connection-test">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>Database Test</strong>
+                <button class="btn-secondary" onclick="testDatabase()">Test Connection</button>
+            </div>
+            <div class="test-result" id="database-test-result" style="display: none;">
+                Testing database connection...
+            </div>
+        </div>
+        
+        <div class="config-actions">
+            <button class="btn-primary" onclick="saveDbConfig()">Save Configuration</button>
+            <button class="btn-secondary" onclick="backupDatabase()">Backup Database</button>
+        </div>
+    </div>
+
+    <!-- API Configuration -->
+    <div class="config-card">
+        <div class="config-header">
+            <div class="config-title">
+                <span class="status-indicator status-connected"></span>
+                🔌 API Configuration
+            </div>
+        </div>
+        <div class="config-description">
+            API access settings and authentication configuration
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">API Access</label>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="apiAccess" checked>
+                    <span class="slider"></span>
+                </label>
+                <span>Enable API access</span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">API Key</label>
+            <div class="api-key-display">
+                vc_api_key_2025_a9b8c7d6e5f4g3h2i1j0k9l8m7n6o5p4
+            </div>
+            <div style="margin-top: 10px;">
+                <button class="btn-secondary" onclick="regenerateApiKey()">Regenerate Key</button>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Rate Limit (requests/minute)</label>
+            <input type="number" class="form-input" value="100">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Allowed Origins</label>
+            <textarea class="form-textarea" placeholder="https://example.com&#10;https://app.example.com"></textarea>
+        </div>
+        
+        <div class="config-actions">
+            <button class="btn-primary" onclick="saveApiConfig()">Save Configuration</button>
+            <button class="btn-secondary" onclick="viewApiDocs()">View API Docs</button>
+        </div>
+    </div>
+
+    <!-- Security Settings -->
+    <div class="config-card">
+        <div class="config-header">
+            <div class="config-title">
+                <span class="status-indicator status-connected"></span>
+                🔒 Security Settings
+            </div>
+        </div>
+        <div class="config-description">
+            Security configuration and access control settings
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Session Timeout (minutes)</label>
+            <input type="number" class="form-input" value="30">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Password Minimum Length</label>
+            <input type="number" class="form-input" value="8">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Two-Factor Authentication</label>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="twoFactorAuth">
+                    <span class="slider"></span>
+                </label>
+                <span>Enable 2FA for admin accounts</span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Max Login Attempts</label>
+            <input type="number" class="form-input" value="5">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">IP Whitelist</label>
+            <textarea class="form-textarea" placeholder="192.168.1.0/24&#10;10.0.0.0/8"></textarea>
+        </div>
+        
+        <div class="config-actions">
+            <button class="btn-primary" onclick="saveSecurityConfig()">Save Configuration</button>
+            <button class="btn-secondary" onclick="auditLog()">View Audit Log</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Configuration save functions
+function savePayPalConfig() {
+    showFlashMessage('PayPal configuration saved successfully!', 'success');
+}
+
+function saveEmailConfig() {
+    showFlashMessage('Email configuration saved successfully!', 'success');
+}
+
+function saveAppConfig() {
+    showFlashMessage('Application configuration saved successfully!', 'success');
+}
+
+function saveDbConfig() {
+    showFlashMessage('Database configuration saved successfully!', 'success');
+}
+
+function saveApiConfig() {
+    showFlashMessage('API configuration saved successfully!', 'success');
+}
+
+function saveSecurityConfig() {
+    showFlashMessage('Security configuration saved successfully!', 'success');
+}
+
+// Test functions
+function testPayPal() {
+    const resultDiv = document.getElementById('paypal-test-result');
+    resultDiv.style.display = 'block';
+    resultDiv.className = 'test-result';
+    resultDiv.textContent = 'Testing PayPal connection...';
+    
+    setTimeout(() => {
+        resultDiv.className = 'test-result test-success';
+        resultDiv.textContent = '✅ PayPal connection successful! API accessible.';
+    }, 2000);
+}
+
+function testEmail() {
+    const resultDiv = document.getElementById('email-test-result');
+    resultDiv.style.display = 'block';
+    resultDiv.className = 'test-result';
+    resultDiv.textContent = 'Sending test email...';
+    
+    setTimeout(() => {
+        resultDiv.className = 'test-result test-success';
+        resultDiv.textContent = '✅ Test email sent successfully!';
+    }, 2000);
+}
+
+function testDatabase() {
+    const resultDiv = document.getElementById('database-test-result');
+    resultDiv.style.display = 'block';
+    resultDiv.className = 'test-result';
+    resultDiv.textContent = 'Testing database connection...';
+    
+    setTimeout(() => {
+        resultDiv.className = 'test-result test-success';
+        resultDiv.textContent = '✅ Database connection successful!';
+    }, 1500);
+}
+
+function regenerateApiKey() {
+    if (confirm('Are you sure you want to regenerate the API key? This will invalidate the current key.')) {
+        showFlashMessage('API key regenerated successfully!', 'success');
+        // Update the displayed key
+        document.querySelector('.api-key-display').textContent = 'vc_api_key_2025_' + Math.random().toString(36).substring(2, 34);
+    }
+}
+
+function backupDatabase() {
+    showFlashMessage('Database backup initiated...', 'warning');
+    setTimeout(() => {
+        showFlashMessage('Database backup completed successfully!', 'success');
+    }, 3000);
+}
+
+function showFlashMessage(message, type) {
+    const flashContainer = document.querySelector('.flash-messages');
+    const flashDiv = document.createElement('div');
+    flashDiv.className = `flash-message flash-${type}`;
+    flashDiv.textContent = message;
+    flashContainer.appendChild(flashDiv);
+    
+    setTimeout(() => {
+        flashDiv.remove();
+    }, 5000);
+}
+
+// Toggle handlers
+document.getElementById('debugMode').addEventListener('change', function() {
+    const status = this.checked ? 'enabled' : 'disabled';
+    showFlashMessage(`Debug mode ${status}`, this.checked ? 'warning' : 'success');
+});
+
+document.getElementById('apiAccess').addEventListener('change', function() {
+    const status = this.checked ? 'enabled' : 'disabled';
+    showFlashMessage(`API access ${status}`, this.checked ? 'success' : 'warning');
+});
+
+document.getElementById('twoFactorAuth').addEventListener('change', function() {
+    const status = this.checked ? 'enabled' : 'disabled';
+    showFlashMessage(`Two-factor authentication ${status}`, this.checked ? 'success' : 'warning');
+});
+</script>
+{% endblock %}

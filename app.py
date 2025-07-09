@@ -1469,6 +1469,10 @@ from blueprints.api.webhook_routes import webhook_bp
 app.register_blueprint(async_bp)
 app.register_blueprint(webhook_bp)
 
+# Register admin blueprint
+from blueprints.admin import admin_bp
+app.register_blueprint(admin_bp)
+
 if __name__ == '__main__':
     # Determine debug mode based on environment
     debug_mode = os.getenv('FLASK_ENV') != 'production'

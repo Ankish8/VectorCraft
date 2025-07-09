@@ -340,6 +340,398 @@ class Database:
             conn.execute('CREATE INDEX IF NOT EXISTS idx_notification_settings_user_id ON notification_settings(user_id)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_notification_settings_type ON notification_settings(notification_type)')
             
+            # Pricing and discount management tables
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS pricing_tiers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tier_id TEXT UNIQUE NOT NULL,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    base_price DECIMAL(10,2) NOT NULL,
+                    currency TEXT DEFAULT 'USD',
+                    max_uploads INTEGER DEFAULT -1,
+                    max_file_size INTEGER DEFAULT -1,
+                    priority_processing BOOLEAN DEFAULT 0,
+                    features TEXT,
+                    is_active BOOLEAN DEFAULT 1,
+                    sort_order INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS pricing_rules (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    rule_id TEXT UNIQUE NOT NULL,
+                    name TEXT NOT NULL,
+                    rule_type TEXT NOT NULL,
+                    tier_id TEXT,
+                    condition_type TEXT NOT NULL,
+                    condition_value TEXT NOT NULL,
+                    action_type TEXT NOT NULL,
+                    action_value TEXT NOT NULL,
+                    priority INTEGER DEFAULT 0,
+                    is_active BOOLEAN DEFAULT 1,
+                    valid_from TIMESTAMP,
+                    valid_until TIMESTAMP,
+                    usage_limit INTEGER DEFAULT -1,
+                    usage_count INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (tier_id) REFERENCES pricing_tiers (tier_id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS pricing_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tier_id TEXT NOT NULL,
+                    old_price DECIMAL(10,2),
+                    new_price DECIMAL(10,2),
+                    change_reason TEXT,
+                    changed_by TEXT,
+                    effective_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (tier_id) REFERENCES pricing_tiers (tier_id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS discounts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    discount_id TEXT UNIQUE NOT NULL,
+                    name TEXT NOT NULL,
+                    code TEXT UNIQUE,
+                    description TEXT,
+                    discount_type TEXT NOT NULL,
+                    discount_value DECIMAL(10,2) NOT NULL,
+                    min_amount DECIMAL(10,2) DEFAULT 0,
+                    max_discount DECIMAL(10,2),
+                    usage_limit INTEGER DEFAULT -1,
+                    usage_count INTEGER DEFAULT 0,
+                    per_user_limit INTEGER DEFAULT -1,
+                    is_active BOOLEAN DEFAULT 1,
+                    is_public BOOLEAN DEFAULT 1,
+                    valid_from TIMESTAMP,
+                    valid_until TIMESTAMP,
+                    applicable_tiers TEXT,
+                    target_countries TEXT,
+                    target_emails TEXT,
+                    first_time_only BOOLEAN DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS discount_usage (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    discount_id TEXT NOT NULL,
+                    user_id INTEGER,
+                    user_email TEXT,
+                    transaction_id TEXT,
+                    discount_amount DECIMAL(10,2),
+                    original_amount DECIMAL(10,2),
+                    final_amount DECIMAL(10,2),
+                    used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (discount_id) REFERENCES discounts (discount_id),
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS pricing_experiments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    experiment_id TEXT UNIQUE NOT NULL,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    experiment_type TEXT NOT NULL,
+                    status TEXT DEFAULT 'draft',
+                    control_price DECIMAL(10,2),
+                    test_price DECIMAL(10,2),
+                    test_percentage INTEGER DEFAULT 50,
+                    tier_id TEXT,
+                    target_countries TEXT,
+                    target_user_types TEXT,
+                    success_metric TEXT,
+                    start_date TIMESTAMP,
+                    end_date TIMESTAMP,
+                    results TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (tier_id) REFERENCES pricing_tiers (tier_id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS pricing_analytics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date DATE NOT NULL,
+                    tier_id TEXT,
+                    discount_id TEXT,
+                    country TEXT,
+                    total_views INTEGER DEFAULT 0,
+                    total_purchases INTEGER DEFAULT 0,
+                    total_revenue DECIMAL(10,2) DEFAULT 0,
+                    avg_discount_amount DECIMAL(10,2) DEFAULT 0,
+                    conversion_rate DECIMAL(5,2) DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (tier_id) REFERENCES pricing_tiers (tier_id),
+                    FOREIGN KEY (discount_id) REFERENCES discounts (discount_id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS revenue_forecasts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    forecast_id TEXT UNIQUE NOT NULL,
+                    forecast_date DATE NOT NULL,
+                    tier_id TEXT,
+                    predicted_revenue DECIMAL(10,2),
+                    predicted_sales INTEGER,
+                    confidence_level DECIMAL(5,2),
+                    model_version TEXT,
+                    parameters TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (tier_id) REFERENCES pricing_tiers (tier_id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS subscription_plans (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    plan_id TEXT UNIQUE NOT NULL,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    billing_cycle TEXT NOT NULL,
+                    price DECIMAL(10,2) NOT NULL,
+                    currency TEXT DEFAULT 'USD',
+                    trial_days INTEGER DEFAULT 0,
+                    features TEXT,
+                    is_active BOOLEAN DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS user_subscriptions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    plan_id TEXT NOT NULL,
+                    status TEXT DEFAULT 'active',
+                    current_period_start TIMESTAMP,
+                    current_period_end TIMESTAMP,
+                    cancel_at_period_end BOOLEAN DEFAULT 0,
+                    trial_start TIMESTAMP,
+                    trial_end TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id),
+                    FOREIGN KEY (plan_id) REFERENCES subscription_plans (plan_id)
+                )
+            ''')
+            
+            # Pricing and discount indexes
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_pricing_tiers_tier_id ON pricing_tiers(tier_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_pricing_tiers_is_active ON pricing_tiers(is_active)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_pricing_rules_rule_id ON pricing_rules(rule_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_pricing_rules_tier_id ON pricing_rules(tier_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_pricing_rules_is_active ON pricing_rules(is_active)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_pricing_history_tier_id ON pricing_history(tier_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_pricing_history_effective_date ON pricing_history(effective_date)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_discounts_discount_id ON discounts(discount_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_discounts_code ON discounts(code)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_discounts_is_active ON discounts(is_active)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_discounts_valid_from ON discounts(valid_from)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_discounts_valid_until ON discounts(valid_until)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_discount_usage_discount_id ON discount_usage(discount_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_discount_usage_user_id ON discount_usage(user_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_discount_usage_transaction_id ON discount_usage(transaction_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_pricing_experiments_experiment_id ON pricing_experiments(experiment_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_pricing_experiments_status ON pricing_experiments(status)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_pricing_analytics_date ON pricing_analytics(date)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_pricing_analytics_tier_id ON pricing_analytics(tier_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_revenue_forecasts_forecast_date ON revenue_forecasts(forecast_date)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_revenue_forecasts_tier_id ON revenue_forecasts(tier_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_subscription_plans_plan_id ON subscription_plans(plan_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_id ON user_subscriptions(user_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_user_subscriptions_plan_id ON user_subscriptions(plan_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_user_subscriptions_status ON user_subscriptions(status)')
+            
+            # Advanced Permission System Tables
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS roles (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL,
+                    description TEXT,
+                    parent_role_id INTEGER,
+                    is_system_role BOOLEAN DEFAULT 0,
+                    is_active BOOLEAN DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (parent_role_id) REFERENCES roles (id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS permissions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL,
+                    description TEXT,
+                    resource TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    is_system_permission BOOLEAN DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS role_permissions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    role_id INTEGER NOT NULL,
+                    permission_id INTEGER NOT NULL,
+                    granted_by INTEGER,
+                    granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP,
+                    FOREIGN KEY (role_id) REFERENCES roles (id),
+                    FOREIGN KEY (permission_id) REFERENCES permissions (id),
+                    FOREIGN KEY (granted_by) REFERENCES users (id),
+                    UNIQUE (role_id, permission_id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS user_roles (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    role_id INTEGER NOT NULL,
+                    assigned_by INTEGER,
+                    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP,
+                    is_active BOOLEAN DEFAULT 1,
+                    approval_status TEXT DEFAULT 'approved',
+                    approved_by INTEGER,
+                    approved_at TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id),
+                    FOREIGN KEY (role_id) REFERENCES roles (id),
+                    FOREIGN KEY (assigned_by) REFERENCES users (id),
+                    FOREIGN KEY (approved_by) REFERENCES users (id),
+                    UNIQUE (user_id, role_id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS user_permissions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    permission_id INTEGER NOT NULL,
+                    granted_by INTEGER,
+                    granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP,
+                    is_active BOOLEAN DEFAULT 1,
+                    FOREIGN KEY (user_id) REFERENCES users (id),
+                    FOREIGN KEY (permission_id) REFERENCES permissions (id),
+                    FOREIGN KEY (granted_by) REFERENCES users (id),
+                    UNIQUE (user_id, permission_id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS permission_requests (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    request_id TEXT UNIQUE NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    requested_role_id INTEGER,
+                    requested_permission_id INTEGER,
+                    request_type TEXT NOT NULL,
+                    justification TEXT,
+                    status TEXT DEFAULT 'pending',
+                    requested_by INTEGER,
+                    requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    reviewed_by INTEGER,
+                    reviewed_at TIMESTAMP,
+                    review_notes TEXT,
+                    expires_at TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id),
+                    FOREIGN KEY (requested_role_id) REFERENCES roles (id),
+                    FOREIGN KEY (requested_permission_id) REFERENCES permissions (id),
+                    FOREIGN KEY (requested_by) REFERENCES users (id),
+                    FOREIGN KEY (reviewed_by) REFERENCES users (id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS permission_audit_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    action TEXT NOT NULL,
+                    resource_type TEXT NOT NULL,
+                    resource_id INTEGER,
+                    permission_name TEXT,
+                    role_name TEXT,
+                    old_value TEXT,
+                    new_value TEXT,
+                    ip_address TEXT,
+                    user_agent TEXT,
+                    performed_by INTEGER,
+                    performed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id),
+                    FOREIGN KEY (performed_by) REFERENCES users (id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS access_violations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    attempted_action TEXT NOT NULL,
+                    resource TEXT NOT NULL,
+                    required_permission TEXT,
+                    violation_type TEXT NOT NULL,
+                    severity TEXT DEFAULT 'medium',
+                    ip_address TEXT,
+                    user_agent TEXT,
+                    blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS session_permissions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    permissions_cache TEXT,
+                    roles_cache TEXT,
+                    cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            ''')
+            
+            # Permission system indexes
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_roles_parent_role_id ON roles(parent_role_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_roles_is_active ON roles(is_active)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_permissions_resource ON permissions(resource)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_permissions_action ON permissions(action)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_role_permissions_role_id ON role_permissions(role_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_id ON role_permissions(permission_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_user_roles_role_id ON user_roles(role_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_user_roles_is_active ON user_roles(is_active)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id ON user_permissions(user_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_user_permissions_permission_id ON user_permissions(permission_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_permission_requests_user_id ON permission_requests(user_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_permission_requests_status ON permission_requests(status)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_permission_audit_log_user_id ON permission_audit_log(user_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_permission_audit_log_performed_at ON permission_audit_log(performed_at)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_access_violations_user_id ON access_violations(user_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_access_violations_blocked_at ON access_violations(blocked_at)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_session_permissions_session_id ON session_permissions(session_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_session_permissions_user_id ON session_permissions(user_id)')
+            
             conn.commit()
             
         # Create default admin user if no users exist
@@ -1452,6 +1844,511 @@ class Database:
                 'recent_activity': recent_activity,
                 'upload_history': upload_history
             }
+    
+    # Pricing Management Methods
+    def create_pricing_tier(self, tier_id, name, base_price, currency='USD', description=None,
+                           max_uploads=-1, max_file_size=-1, priority_processing=False,
+                           features=None, is_active=True, sort_order=0):
+        """Create a new pricing tier"""
+        import json
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                INSERT INTO pricing_tiers 
+                (tier_id, name, description, base_price, currency, max_uploads, max_file_size,
+                 priority_processing, features, is_active, sort_order)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (tier_id, name, description, base_price, currency, max_uploads, max_file_size,
+                  int(priority_processing), json.dumps(features) if features else None,
+                  int(is_active), sort_order))
+            conn.commit()
+            return cursor.lastrowid
+    
+    def update_pricing_tier(self, tier_id, **kwargs):
+        """Update pricing tier"""
+        import json
+        valid_fields = ['name', 'description', 'base_price', 'currency', 'max_uploads',
+                       'max_file_size', 'priority_processing', 'features', 'is_active',
+                       'sort_order']
+        
+        updates = ['updated_at = CURRENT_TIMESTAMP']
+        values = []
+        
+        for field, value in kwargs.items():
+            if field in valid_fields:
+                if field == 'features' and value:
+                    value = json.dumps(value)
+                elif field in ['priority_processing', 'is_active']:
+                    value = int(value)
+                updates.append(f"{field} = ?")
+                values.append(value)
+        
+        if len(updates) > 1:
+            values.append(tier_id)
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(f'''
+                    UPDATE pricing_tiers SET {', '.join(updates)}
+                    WHERE tier_id = ?
+                ''', values)
+                conn.commit()
+    
+    def get_pricing_tiers(self, is_active=None, include_features=True):
+        """Get all pricing tiers"""
+        query = 'SELECT * FROM pricing_tiers WHERE 1=1'
+        params = []
+        
+        if is_active is not None:
+            query += ' AND is_active = ?'
+            params.append(int(is_active))
+        
+        query += ' ORDER BY sort_order ASC, created_at ASC'
+        
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(query, params)
+            tiers = [dict(row) for row in cursor.fetchall()]
+            
+            if include_features:
+                import json
+                for tier in tiers:
+                    if tier['features']:
+                        try:
+                            tier['features'] = json.loads(tier['features'])
+                        except:
+                            tier['features'] = []
+            
+            return tiers
+    
+    def get_pricing_tier(self, tier_id):
+        """Get single pricing tier"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute('''
+                SELECT * FROM pricing_tiers WHERE tier_id = ?
+            ''', (tier_id,))
+            row = cursor.fetchone()
+            if row:
+                tier = dict(row)
+                if tier['features']:
+                    import json
+                    try:
+                        tier['features'] = json.loads(tier['features'])
+                    except:
+                        tier['features'] = []
+                return tier
+            return None
+    
+    def log_pricing_change(self, tier_id, old_price, new_price, change_reason=None, changed_by=None):
+        """Log pricing change for audit trail"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                INSERT INTO pricing_history 
+                (tier_id, old_price, new_price, change_reason, changed_by)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (tier_id, old_price, new_price, change_reason, changed_by))
+            conn.commit()
+            return cursor.lastrowid
+    
+    def get_pricing_history(self, tier_id=None, limit=50):
+        """Get pricing change history"""
+        query = 'SELECT * FROM pricing_history WHERE 1=1'
+        params = []
+        
+        if tier_id:
+            query += ' AND tier_id = ?'
+            params.append(tier_id)
+        
+        query += ' ORDER BY effective_date DESC LIMIT ?'
+        params.append(limit)
+        
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(query, params)
+            return [dict(row) for row in cursor.fetchall()]
+    
+    # Discount Management Methods
+    def create_discount(self, discount_id, name, discount_type, discount_value, code=None,
+                       description=None, min_amount=0, max_discount=None, usage_limit=-1,
+                       per_user_limit=-1, is_active=True, is_public=True, valid_from=None,
+                       valid_until=None, applicable_tiers=None, target_countries=None,
+                       target_emails=None, first_time_only=False):
+        """Create a new discount"""
+        import json
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                INSERT INTO discounts 
+                (discount_id, name, code, description, discount_type, discount_value,
+                 min_amount, max_discount, usage_limit, per_user_limit, is_active,
+                 is_public, valid_from, valid_until, applicable_tiers, target_countries,
+                 target_emails, first_time_only)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (discount_id, name, code, description, discount_type, discount_value,
+                  min_amount, max_discount, usage_limit, per_user_limit, int(is_active),
+                  int(is_public), valid_from, valid_until,
+                  json.dumps(applicable_tiers) if applicable_tiers else None,
+                  json.dumps(target_countries) if target_countries else None,
+                  json.dumps(target_emails) if target_emails else None,
+                  int(first_time_only)))
+            conn.commit()
+            return cursor.lastrowid
+    
+    def update_discount(self, discount_id, **kwargs):
+        """Update discount"""
+        import json
+        valid_fields = ['name', 'code', 'description', 'discount_type', 'discount_value',
+                       'min_amount', 'max_discount', 'usage_limit', 'per_user_limit',
+                       'is_active', 'is_public', 'valid_from', 'valid_until',
+                       'applicable_tiers', 'target_countries', 'target_emails', 'first_time_only']
+        
+        updates = ['updated_at = CURRENT_TIMESTAMP']
+        values = []
+        
+        for field, value in kwargs.items():
+            if field in valid_fields:
+                if field in ['applicable_tiers', 'target_countries', 'target_emails'] and value:
+                    value = json.dumps(value)
+                elif field in ['is_active', 'is_public', 'first_time_only']:
+                    value = int(value)
+                updates.append(f"{field} = ?")
+                values.append(value)
+        
+        if len(updates) > 1:
+            values.append(discount_id)
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute(f'''
+                    UPDATE discounts SET {', '.join(updates)}
+                    WHERE discount_id = ?
+                ''', values)
+                conn.commit()
+    
+    def get_discounts(self, is_active=None, is_public=None, valid_now=False):
+        """Get all discounts"""
+        query = 'SELECT * FROM discounts WHERE 1=1'
+        params = []
+        
+        if is_active is not None:
+            query += ' AND is_active = ?'
+            params.append(int(is_active))
+        
+        if is_public is not None:
+            query += ' AND is_public = ?'
+            params.append(int(is_public))
+        
+        if valid_now:
+            query += ' AND (valid_from IS NULL OR valid_from <= CURRENT_TIMESTAMP)'
+            query += ' AND (valid_until IS NULL OR valid_until >= CURRENT_TIMESTAMP)'
+        
+        query += ' ORDER BY created_at DESC'
+        
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(query, params)
+            discounts = [dict(row) for row in cursor.fetchall()]
+            
+            import json
+            for discount in discounts:
+                for field in ['applicable_tiers', 'target_countries', 'target_emails']:
+                    if discount[field]:
+                        try:
+                            discount[field] = json.loads(discount[field])
+                        except:
+                            discount[field] = []
+            
+            return discounts
+    
+    def get_discount(self, discount_id=None, code=None):
+        """Get single discount by ID or code"""
+        if discount_id:
+            query = 'SELECT * FROM discounts WHERE discount_id = ?'
+            params = [discount_id]
+        elif code:
+            query = 'SELECT * FROM discounts WHERE code = ?'
+            params = [code]
+        else:
+            return None
+        
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(query, params)
+            row = cursor.fetchone()
+            if row:
+                discount = dict(row)
+                import json
+                for field in ['applicable_tiers', 'target_countries', 'target_emails']:
+                    if discount[field]:
+                        try:
+                            discount[field] = json.loads(discount[field])
+                        except:
+                            discount[field] = []
+                return discount
+            return None
+    
+    def validate_discount_code(self, code, user_email=None, tier_id=None, amount=None):
+        """Validate discount code and return discount details"""
+        discount = self.get_discount(code=code)
+        if not discount:
+            return None, "Invalid discount code"
+        
+        # Check if discount is active
+        if not discount['is_active']:
+            return None, "Discount code is not active"
+        
+        # Check validity period
+        from datetime import datetime
+        now = datetime.now()
+        if discount['valid_from'] and datetime.fromisoformat(discount['valid_from']) > now:
+            return None, "Discount code is not yet valid"
+        if discount['valid_until'] and datetime.fromisoformat(discount['valid_until']) < now:
+            return None, "Discount code has expired"
+        
+        # Check usage limits
+        if discount['usage_limit'] != -1 and discount['usage_count'] >= discount['usage_limit']:
+            return None, "Discount code usage limit exceeded"
+        
+        # Check minimum amount
+        if amount and amount < discount['min_amount']:
+            return None, f"Minimum order amount is ${discount['min_amount']}"
+        
+        # Check applicable tiers
+        if discount['applicable_tiers'] and tier_id:
+            if tier_id not in discount['applicable_tiers']:
+                return None, "Discount not applicable to this tier"
+        
+        # Check per-user limit
+        if discount['per_user_limit'] != -1 and user_email:
+            usage_count = self.get_user_discount_usage_count(discount['discount_id'], user_email)
+            if usage_count >= discount['per_user_limit']:
+                return None, "You have exceeded the usage limit for this discount"
+        
+        # Check first-time only
+        if discount['first_time_only'] and user_email:
+            user_transaction_count = len(self.get_transactions(email=user_email, status='completed'))
+            if user_transaction_count > 0:
+                return None, "This discount is only available for first-time customers"
+        
+        return discount, None
+    
+    def calculate_discount_amount(self, discount, original_amount):
+        """Calculate discount amount based on discount type"""
+        if discount['discount_type'] == 'percentage':
+            discount_amount = original_amount * (discount['discount_value'] / 100)
+        elif discount['discount_type'] == 'fixed':
+            discount_amount = discount['discount_value']
+        else:
+            return 0
+        
+        # Apply max discount limit
+        if discount['max_discount'] and discount_amount > discount['max_discount']:
+            discount_amount = discount['max_discount']
+        
+        # Ensure discount doesn't exceed original amount
+        if discount_amount > original_amount:
+            discount_amount = original_amount
+        
+        return discount_amount
+    
+    def apply_discount(self, discount_id, user_id, user_email, transaction_id, 
+                      original_amount, discount_amount, final_amount):
+        """Record discount usage"""
+        with sqlite3.connect(self.db_path) as conn:
+            # Record usage
+            cursor = conn.execute('''
+                INSERT INTO discount_usage 
+                (discount_id, user_id, user_email, transaction_id, discount_amount,
+                 original_amount, final_amount)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (discount_id, user_id, user_email, transaction_id, discount_amount,
+                  original_amount, final_amount))
+            
+            # Update usage count
+            conn.execute('''
+                UPDATE discounts SET usage_count = usage_count + 1
+                WHERE discount_id = ?
+            ''', (discount_id,))
+            
+            conn.commit()
+            return cursor.lastrowid
+    
+    def get_user_discount_usage_count(self, discount_id, user_email):
+        """Get discount usage count for a user"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT COUNT(*) FROM discount_usage 
+                WHERE discount_id = ? AND user_email = ?
+            ''', (discount_id, user_email))
+            return cursor.fetchone()[0]
+    
+    def get_discount_usage_stats(self, discount_id=None, days=30):
+        """Get discount usage statistics"""
+        query = '''
+            SELECT 
+                d.discount_id,
+                d.name,
+                d.code,
+                COUNT(du.id) as total_usage,
+                SUM(du.discount_amount) as total_discount_amount,
+                SUM(du.original_amount) as total_original_amount,
+                SUM(du.final_amount) as total_final_amount,
+                AVG(du.discount_amount) as avg_discount_amount
+            FROM discounts d
+            LEFT JOIN discount_usage du ON d.discount_id = du.discount_id
+            WHERE 1=1
+        '''
+        params = []
+        
+        if discount_id:
+            query += ' AND d.discount_id = ?'
+            params.append(discount_id)
+        
+        if days:
+            query += ' AND (du.used_at IS NULL OR du.used_at >= date("now", "-{} days"))'.format(days)
+        
+        query += ' GROUP BY d.discount_id ORDER BY total_usage DESC'
+        
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(query, params)
+            return [dict(row) for row in cursor.fetchall()]
+    
+    # Analytics Methods
+    def record_pricing_view(self, tier_id, country=None):
+        """Record pricing page view for analytics"""
+        from datetime import date
+        today = date.today()
+        
+        with sqlite3.connect(self.db_path) as conn:
+            # Try to update existing record
+            cursor = conn.execute('''
+                UPDATE pricing_analytics 
+                SET total_views = total_views + 1
+                WHERE date = ? AND tier_id = ? AND country = ?
+            ''', (today, tier_id, country))
+            
+            if cursor.rowcount == 0:
+                # Insert new record
+                conn.execute('''
+                    INSERT INTO pricing_analytics 
+                    (date, tier_id, country, total_views)
+                    VALUES (?, ?, ?, 1)
+                ''', (today, tier_id, country))
+            
+            conn.commit()
+    
+    def record_pricing_purchase(self, tier_id, discount_id, country, revenue, discount_amount=0):
+        """Record pricing purchase for analytics"""
+        from datetime import date
+        today = date.today()
+        
+        with sqlite3.connect(self.db_path) as conn:
+            # Update existing record or insert new one
+            cursor = conn.execute('''
+                SELECT id FROM pricing_analytics 
+                WHERE date = ? AND tier_id = ? AND discount_id = ? AND country = ?
+            ''', (today, tier_id, discount_id, country))
+            
+            if cursor.fetchone():
+                conn.execute('''
+                    UPDATE pricing_analytics 
+                    SET total_purchases = total_purchases + 1,
+                        total_revenue = total_revenue + ?,
+                        avg_discount_amount = (avg_discount_amount + ?) / 2
+                    WHERE date = ? AND tier_id = ? AND discount_id = ? AND country = ?
+                ''', (revenue, discount_amount, today, tier_id, discount_id, country))
+            else:
+                conn.execute('''
+                    INSERT INTO pricing_analytics 
+                    (date, tier_id, discount_id, country, total_purchases, total_revenue,
+                     avg_discount_amount)
+                    VALUES (?, ?, ?, ?, 1, ?, ?)
+                ''', (today, tier_id, discount_id, country, revenue, discount_amount))
+            
+            conn.commit()
+    
+    def get_pricing_analytics(self, days=30, tier_id=None, country=None):
+        """Get pricing analytics data"""
+        query = '''
+            SELECT 
+                date,
+                tier_id,
+                country,
+                SUM(total_views) as views,
+                SUM(total_purchases) as purchases,
+                SUM(total_revenue) as revenue,
+                AVG(avg_discount_amount) as avg_discount,
+                CASE 
+                    WHEN SUM(total_views) > 0 THEN 
+                        ROUND((SUM(total_purchases) * 100.0 / SUM(total_views)), 2)
+                    ELSE 0 
+                END as conversion_rate
+            FROM pricing_analytics 
+            WHERE date >= date('now', '-{} days')
+        '''.format(days)
+        params = []
+        
+        if tier_id:
+            query += ' AND tier_id = ?'
+            params.append(tier_id)
+        
+        if country:
+            query += ' AND country = ?'
+            params.append(country)
+        
+        query += ' GROUP BY date, tier_id, country ORDER BY date DESC'
+        
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute(query, params)
+            return [dict(row) for row in cursor.fetchall()]
+    
+    def get_revenue_summary(self, days=30):
+        """Get revenue summary for dashboard"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            
+            # Total revenue from transactions
+            cursor = conn.execute('''
+                SELECT 
+                    COUNT(*) as total_transactions,
+                    SUM(amount) as total_revenue,
+                    AVG(amount) as avg_order_value,
+                    COUNT(DISTINCT email) as unique_customers
+                FROM transactions 
+                WHERE status = 'completed' 
+                AND created_at >= date('now', '-{} days')
+            '''.format(days))
+            
+            summary = dict(cursor.fetchone())
+            
+            # Revenue by tier from analytics
+            cursor = conn.execute('''
+                SELECT 
+                    pt.name as tier_name,
+                    SUM(pa.total_revenue) as tier_revenue,
+                    SUM(pa.total_purchases) as tier_purchases
+                FROM pricing_analytics pa
+                JOIN pricing_tiers pt ON pa.tier_id = pt.tier_id
+                WHERE pa.date >= date('now', '-{} days')
+                GROUP BY pa.tier_id, pt.name
+                ORDER BY tier_revenue DESC
+            '''.format(days))
+            
+            summary['tier_breakdown'] = [dict(row) for row in cursor.fetchall()]
+            
+            # Daily revenue trend
+            cursor = conn.execute('''
+                SELECT 
+                    DATE(created_at) as date,
+                    COUNT(*) as transactions,
+                    SUM(amount) as revenue
+                FROM transactions 
+                WHERE status = 'completed' 
+                AND created_at >= date('now', '-{} days')
+                GROUP BY DATE(created_at)
+                ORDER BY date ASC
+            '''.format(days))
+            
+            summary['daily_trend'] = [dict(row) for row in cursor.fetchall()]
+            
+            return summary
 
 # Global database instance
 db = Database()

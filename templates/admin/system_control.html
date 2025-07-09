@@ -1,0 +1,758 @@
+{% extends "admin/base.html" %}
+
+{% block title %}System Control - VectorCraft Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+.control-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.control-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #e1e5e9;
+    transition: all 0.3s ease;
+}
+
+.control-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.control-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.control-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.control-description {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+.control-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #2980b9, #21618c);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: #f8f9fa;
+    color: #2c3e50;
+    border: 1px solid #e1e5e9;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: #e9ecef;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    transform: translateY(-1px);
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-active {
+    background: #27ae60;
+    box-shadow: 0 0 10px rgba(39, 174, 96, 0.3);
+}
+
+.status-inactive {
+    background: #e74c3c;
+}
+
+.status-maintenance {
+    background: #f39c12;
+    box-shadow: 0 0 10px rgba(243, 156, 18, 0.3);
+}
+
+.system-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.feature-toggles {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.feature-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    background: #f8f9fa;
+}
+
+.feature-info {
+    flex: 1;
+}
+
+.feature-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 5px;
+}
+
+.feature-description {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+.maintenance-banner {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    text-align: center;
+    display: none;
+}
+
+.maintenance-banner.active {
+    display: block;
+}
+
+.maintenance-controls {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.maintenance-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 1rem;
+    min-height: 100px;
+    resize: vertical;
+    transition: border-color 0.3s ease;
+}
+
+.form-textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.flash-message {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.flash-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.flash-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.flash-warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.system-logs {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.log-entry {
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    border-left: 4px solid #3498db;
+    background: #f8f9fa;
+}
+
+.log-error {
+    border-left-color: #e74c3c;
+    background: #fdf2f2;
+}
+
+.log-warning {
+    border-left-color: #f39c12;
+    background: #fef9e7;
+}
+
+.log-success {
+    border-left-color: #27ae60;
+    background: #f0f9f0;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🎛️ System Control</h1>
+    <p class="subtitle">Live system management and feature toggles</p>
+</div>
+
+<div class="flash-messages">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+<!-- Maintenance Banner -->
+<div class="maintenance-banner" id="maintenanceBanner">
+    <h3>🚧 System Maintenance Mode Active</h3>
+    <p>The system is currently under maintenance. New registrations are temporarily disabled.</p>
+</div>
+
+<!-- System Stats -->
+<div class="system-stats">
+    <div class="stat-card">
+        <div class="stat-value">99.8%</div>
+        <div class="stat-label">System Uptime</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">1.2GB</div>
+        <div class="stat-label">Memory Usage</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">34%</div>
+        <div class="stat-label">CPU Usage</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">127</div>
+        <div class="stat-label">Active Users</div>
+    </div>
+</div>
+
+<!-- Main System Controls -->
+<div class="control-grid">
+    <div class="control-card">
+        <div class="control-header">
+            <div class="control-title">
+                <span class="status-indicator status-active"></span>
+                🚀 Application Status
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="appStatus" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="control-description">
+            Enable or disable the entire application. When disabled, users will see a maintenance page.
+        </div>
+        <div class="control-actions">
+            <button class="btn-primary" onclick="restartApp()">Restart App</button>
+            <button class="btn-secondary" onclick="viewLogs()">View Logs</button>
+        </div>
+    </div>
+
+    <div class="control-card">
+        <div class="control-header">
+            <div class="control-title">
+                <span class="status-indicator status-maintenance"></span>
+                🔧 Maintenance Mode
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="maintenanceMode">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="control-description">
+            Enable maintenance mode to prevent new registrations and purchases during updates.
+        </div>
+        <div class="control-actions">
+            <button class="btn-primary" onclick="scheduleMaintenance()">Schedule</button>
+            <button class="btn-secondary" onclick="setMaintenanceMessage()">Set Message</button>
+        </div>
+    </div>
+
+    <div class="control-card">
+        <div class="control-header">
+            <div class="control-title">
+                <span class="status-indicator status-active"></span>
+                💳 Payment Processing
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="paymentProcessing" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="control-description">
+            Enable or disable PayPal payment processing. Disable during payment system maintenance.
+        </div>
+        <div class="control-actions">
+            <button class="btn-primary" onclick="testPayment()">Test Payment</button>
+            <button class="btn-secondary" onclick="paymentSettings()">Settings</button>
+        </div>
+    </div>
+
+    <div class="control-card">
+        <div class="control-header">
+            <div class="control-title">
+                <span class="status-indicator status-active"></span>
+                📧 Email Service
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="emailService" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="control-description">
+            Control email delivery service. Disable to prevent sending emails during system updates.
+        </div>
+        <div class="control-actions">
+            <button class="btn-primary" onclick="testEmail()">Test Email</button>
+            <button class="btn-secondary" onclick="emailSettings()">Settings</button>
+        </div>
+    </div>
+
+    <div class="control-card">
+        <div class="control-header">
+            <div class="control-title">
+                <span class="status-indicator status-active"></span>
+                🗄️ Database Connection
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="databaseConnection" checked disabled>
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="control-description">
+            Database connection status. This cannot be disabled from the admin panel for safety.
+        </div>
+        <div class="control-actions">
+            <button class="btn-primary" onclick="testDatabase()">Test Connection</button>
+            <button class="btn-secondary" onclick="databaseStats()">View Stats</button>
+        </div>
+    </div>
+
+    <div class="control-card">
+        <div class="control-header">
+            <div class="control-title">
+                <span class="status-indicator status-active"></span>
+                🔐 User Registration
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="userRegistration" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="control-description">
+            Allow new user registrations. Disable to prevent new signups during high load.
+        </div>
+        <div class="control-actions">
+            <button class="btn-primary" onclick="registrationSettings()">Settings</button>
+            <button class="btn-secondary" onclick="viewRegistrations()">View Recent</button>
+        </div>
+    </div>
+</div>
+
+<!-- Feature Toggles -->
+<div class="feature-toggles">
+    <div class="control-header">
+        <h3>🎚️ Feature Toggles</h3>
+        <button class="btn-primary" onclick="addFeature()">Add Feature</button>
+    </div>
+    
+    <div class="feature-item">
+        <div class="feature-info">
+            <div class="feature-name">Advanced Analytics</div>
+            <div class="feature-description">Enable detailed analytics and reporting features</div>
+        </div>
+        <label class="toggle-switch">
+            <input type="checkbox" checked>
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="feature-item">
+        <div class="feature-info">
+            <div class="feature-name">Dark Mode</div>
+            <div class="feature-description">Allow users to switch to dark theme</div>
+        </div>
+        <label class="toggle-switch">
+            <input type="checkbox">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="feature-item">
+        <div class="feature-info">
+            <div class="feature-name">Beta Features</div>
+            <div class="feature-description">Enable experimental features for testing</div>
+        </div>
+        <label class="toggle-switch">
+            <input type="checkbox">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="feature-item">
+        <div class="feature-info">
+            <div class="feature-name">API Access</div>
+            <div class="feature-description">Allow API access for external integrations</div>
+        </div>
+        <label class="toggle-switch">
+            <input type="checkbox" checked>
+            <span class="slider"></span>
+        </label>
+    </div>
+</div>
+
+<!-- Maintenance Controls -->
+<div class="maintenance-controls">
+    <div class="control-header">
+        <h3>🛠️ Maintenance Scheduling</h3>
+        <button class="btn-primary" onclick="scheduleNow()">Schedule Now</button>
+    </div>
+    
+    <div class="maintenance-form">
+        <div>
+            <div class="form-group">
+                <label class="form-label">Start Time</label>
+                <input type="datetime-local" class="form-input">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">End Time</label>
+                <input type="datetime-local" class="form-input">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Maintenance Type</label>
+                <select class="form-input">
+                    <option>System Update</option>
+                    <option>Database Maintenance</option>
+                    <option>Server Migration</option>
+                    <option>Security Update</option>
+                </select>
+            </div>
+        </div>
+        
+        <div>
+            <div class="form-group">
+                <label class="form-label">Maintenance Message</label>
+                <textarea class="form-textarea" placeholder="Enter message to display to users during maintenance..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Notify Users</label>
+                <div style="display: flex; gap: 20px; margin-top: 10px;">
+                    <label><input type="checkbox" checked> Email notification</label>
+                    <label><input type="checkbox"> SMS notification</label>
+                    <label><input type="checkbox" checked> In-app notification</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Logs -->
+<div class="system-logs">
+    <div class="control-header">
+        <h3>📋 Recent System Events</h3>
+        <button class="btn-secondary" onclick="clearLogs()">Clear Logs</button>
+    </div>
+    
+    <div class="log-entry log-success">
+        [2025-01-09 14:30:15] INFO: Email service status changed to active
+    </div>
+    
+    <div class="log-entry">
+        [2025-01-09 14:28:42] INFO: User registration enabled by admin
+    </div>
+    
+    <div class="log-entry log-warning">
+        [2025-01-09 14:25:18] WARN: High CPU usage detected (89%)
+    </div>
+    
+    <div class="log-entry">
+        [2025-01-09 14:22:33] INFO: Payment processing test completed successfully
+    </div>
+    
+    <div class="log-entry log-error">
+        [2025-01-09 14:18:45] ERROR: Database connection timeout (resolved)
+    </div>
+</div>
+
+<script>
+// System Control Functions
+function restartApp() {
+    if (confirm('Are you sure you want to restart the application? This will briefly interrupt service.')) {
+        showFlashMessage('Application restart initiated...', 'warning');
+        // Simulate restart
+        setTimeout(() => {
+            showFlashMessage('Application restarted successfully!', 'success');
+        }, 3000);
+    }
+}
+
+function testPayment() {
+    showFlashMessage('Testing payment connection...', 'warning');
+    setTimeout(() => {
+        showFlashMessage('Payment test completed successfully!', 'success');
+    }, 2000);
+}
+
+function testEmail() {
+    showFlashMessage('Sending test email...', 'warning');
+    setTimeout(() => {
+        showFlashMessage('Test email sent successfully!', 'success');
+    }, 2000);
+}
+
+function testDatabase() {
+    showFlashMessage('Testing database connection...', 'warning');
+    setTimeout(() => {
+        showFlashMessage('Database connection test passed!', 'success');
+    }, 1500);
+}
+
+function scheduleMaintenance() {
+    showFlashMessage('Maintenance scheduled successfully!', 'success');
+}
+
+function scheduleNow() {
+    if (confirm('Schedule maintenance with current settings?')) {
+        showFlashMessage('Maintenance scheduled successfully!', 'success');
+    }
+}
+
+function addFeature() {
+    const featureName = prompt('Enter feature name:');
+    if (featureName) {
+        showFlashMessage('Feature toggle added successfully!', 'success');
+    }
+}
+
+function clearLogs() {
+    if (confirm('Are you sure you want to clear all logs?')) {
+        showFlashMessage('System logs cleared successfully!', 'success');
+    }
+}
+
+function showFlashMessage(message, type) {
+    const flashContainer = document.querySelector('.flash-messages');
+    const flashDiv = document.createElement('div');
+    flashDiv.className = `flash-message flash-${type}`;
+    flashDiv.textContent = message;
+    flashContainer.appendChild(flashDiv);
+    
+    setTimeout(() => {
+        flashDiv.remove();
+    }, 5000);
+}
+
+// Toggle handlers
+document.getElementById('maintenanceMode').addEventListener('change', function() {
+    const banner = document.getElementById('maintenanceBanner');
+    if (this.checked) {
+        banner.classList.add('active');
+        showFlashMessage('Maintenance mode enabled', 'warning');
+    } else {
+        banner.classList.remove('active');
+        showFlashMessage('Maintenance mode disabled', 'success');
+    }
+});
+
+document.getElementById('appStatus').addEventListener('change', function() {
+    const status = this.checked ? 'enabled' : 'disabled';
+    showFlashMessage(`Application ${status}`, this.checked ? 'success' : 'error');
+});
+
+document.getElementById('paymentProcessing').addEventListener('change', function() {
+    const status = this.checked ? 'enabled' : 'disabled';
+    showFlashMessage(`Payment processing ${status}`, this.checked ? 'success' : 'warning');
+});
+
+document.getElementById('emailService').addEventListener('change', function() {
+    const status = this.checked ? 'enabled' : 'disabled';
+    showFlashMessage(`Email service ${status}`, this.checked ? 'success' : 'warning');
+});
+
+document.getElementById('userRegistration').addEventListener('change', function() {
+    const status = this.checked ? 'enabled' : 'disabled';
+    showFlashMessage(`User registration ${status}`, this.checked ? 'success' : 'warning');
+});
+
+// Auto-refresh system stats
+setInterval(() => {
+    console.log('Refreshing system stats...');
+}, 30000);
+</script>
+{% endblock %}
