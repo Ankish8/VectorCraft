@@ -18,8 +18,8 @@ from services.email_service import EmailService
 from services.analytics_service import AnalyticsService
 from services.monitoring.system_logger import SystemLogger
 
-# Create blueprint
-marketing_bp = Blueprint('admin_marketing', __name__, url_prefix='/admin/marketing')
+# Import admin blueprint
+from . import admin_bp
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +44,8 @@ def get_marketing_services():
 
 # Dashboard Routes
 
-@marketing_bp.route('/')
-@marketing_bp.route('/dashboard')
+@admin_bp.route('/marketing')
+@admin_bp.route('/marketing/dashboard')
 @admin_required
 def dashboard():
     """Marketing dashboard overview"""
@@ -70,7 +70,7 @@ def dashboard():
 
 # Campaign Management Routes
 
-@marketing_bp.route('/campaigns')
+@admin_bp.route('/marketing/campaigns')
 @admin_required
 def campaigns():
     """List all marketing campaigns"""
@@ -92,7 +92,7 @@ def campaigns():
         flash('Error loading campaigns', 'error')
         return redirect(url_for('admin_marketing.dashboard'))
 
-@marketing_bp.route('/campaigns/create', methods=['GET', 'POST'])
+@admin_bp.route('/marketing/campaigns/create', methods=['GET', 'POST'])
 @admin_required
 def create_campaign():
     """Create new marketing campaign"""
@@ -125,7 +125,7 @@ def create_campaign():
         flash('Error creating campaign', 'error')
         return redirect(url_for('admin_marketing.campaigns'))
 
-@marketing_bp.route('/campaigns/<campaign_id>')
+@admin_bp.route('/marketing/campaigns/<campaign_id>')
 @admin_required
 def campaign_detail(campaign_id):
     """View campaign details and performance"""
@@ -148,7 +148,7 @@ def campaign_detail(campaign_id):
         flash('Error loading campaign details', 'error')
         return redirect(url_for('admin_marketing.campaigns'))
 
-@marketing_bp.route('/campaigns/<campaign_id>/analytics')
+@admin_bp.route('/marketing/campaigns/<campaign_id>/analytics')
 @admin_required
 def campaign_analytics(campaign_id):
     """View detailed campaign analytics"""
@@ -170,7 +170,7 @@ def campaign_analytics(campaign_id):
 
 # Customer Journey Routes
 
-@marketing_bp.route('/journeys')
+@admin_bp.route('/marketing/journeys')
 @admin_required
 def customer_journeys():
     """List all customer journeys"""
@@ -188,7 +188,7 @@ def customer_journeys():
         flash('Error loading customer journeys', 'error')
         return redirect(url_for('admin_marketing.dashboard'))
 
-@marketing_bp.route('/journeys/create', methods=['GET', 'POST'])
+@admin_bp.route('/marketing/journeys/create', methods=['GET', 'POST'])
 @admin_required
 def create_journey():
     """Create new customer journey"""
@@ -217,7 +217,7 @@ def create_journey():
         flash('Error creating journey', 'error')
         return redirect(url_for('admin_marketing.customer_journeys'))
 
-@marketing_bp.route('/journeys/<journey_id>')
+@admin_bp.route('/marketing/journeys/<journey_id>')
 @admin_required
 def journey_detail(journey_id):
     """View journey details and analytics"""
@@ -241,7 +241,7 @@ def journey_detail(journey_id):
         flash('Error loading journey details', 'error')
         return redirect(url_for('admin_marketing.customer_journeys'))
 
-@marketing_bp.route('/journeys/<journey_id>/steps', methods=['GET', 'POST'])
+@admin_bp.route('/marketing/journeys/<journey_id>/steps', methods=['GET', 'POST'])
 @admin_required
 def journey_steps(journey_id):
     """Manage journey steps"""
@@ -277,7 +277,7 @@ def journey_steps(journey_id):
 
 # Lead Management Routes
 
-@marketing_bp.route('/leads')
+@admin_bp.route('/marketing/leads')
 @admin_required
 def leads():
     """List and manage leads"""
@@ -299,7 +299,7 @@ def leads():
         flash('Error loading leads', 'error')
         return redirect(url_for('admin_marketing.dashboard'))
 
-@marketing_bp.route('/leads/<lead_id>')
+@admin_bp.route('/marketing/leads/<lead_id>')
 @admin_required
 def lead_detail(lead_id):
     """View lead details and history"""
@@ -329,7 +329,7 @@ def lead_detail(lead_id):
 
 # Engagement Automation Routes
 
-@marketing_bp.route('/automation')
+@admin_bp.route('/marketing/automation')
 @admin_required
 def automation():
     """Engagement automation overview"""
@@ -348,7 +348,7 @@ def automation():
         flash('Error loading automation', 'error')
         return redirect(url_for('admin_marketing.dashboard'))
 
-@marketing_bp.route('/automation/rules')
+@admin_bp.route('/marketing/automation/rules')
 @admin_required
 def automation_rules():
     """List automation rules"""
@@ -362,7 +362,7 @@ def automation_rules():
         flash('Error loading automation rules', 'error')
         return redirect(url_for('admin_marketing.automation'))
 
-@marketing_bp.route('/automation/rules/create', methods=['GET', 'POST'])
+@admin_bp.route('/marketing/automation/rules/create', methods=['GET', 'POST'])
 @admin_required
 def create_automation_rule():
     """Create new automation rule"""
@@ -398,7 +398,7 @@ def create_automation_rule():
 
 # Customer Insights Routes
 
-@marketing_bp.route('/insights')
+@admin_bp.route('/marketing/insights')
 @admin_required
 def customer_insights():
     """Customer insights overview"""
@@ -417,7 +417,7 @@ def customer_insights():
         flash('Error loading customer insights', 'error')
         return redirect(url_for('admin_marketing.dashboard'))
 
-@marketing_bp.route('/insights/customer/<customer_id>')
+@admin_bp.route('/marketing/insights/customer/<customer_id>')
 @admin_required
 def customer_insight_detail(customer_id):
     """View detailed customer insights"""
@@ -453,7 +453,7 @@ def customer_insight_detail(customer_id):
 
 # Segments Routes
 
-@marketing_bp.route('/segments')
+@admin_bp.route('/marketing/segments')
 @admin_required
 def segments():
     """Customer segments management"""
@@ -467,7 +467,7 @@ def segments():
         flash('Error loading segments', 'error')
         return redirect(url_for('admin_marketing.dashboard'))
 
-@marketing_bp.route('/segments/create', methods=['GET', 'POST'])
+@admin_bp.route('/marketing/segments/create', methods=['GET', 'POST'])
 @admin_required
 def create_segment():
     """Create new customer segment"""
@@ -496,7 +496,7 @@ def create_segment():
 
 # A/B Testing Routes
 
-@marketing_bp.route('/ab-tests')
+@admin_bp.route('/marketing/ab-tests')
 @admin_required
 def ab_tests():
     """A/B testing management"""
@@ -509,7 +509,7 @@ def ab_tests():
         flash('Error loading A/B tests', 'error')
         return redirect(url_for('admin_marketing.dashboard'))
 
-@marketing_bp.route('/ab-tests/create', methods=['GET', 'POST'])
+@admin_bp.route('/marketing/ab-tests/create', methods=['GET', 'POST'])
 @admin_required
 def create_ab_test():
     """Create new A/B test"""
@@ -538,7 +538,7 @@ def create_ab_test():
         flash('Error creating A/B test', 'error')
         return redirect(url_for('admin_marketing.ab_tests'))
 
-@marketing_bp.route('/ab-tests/<test_id>')
+@admin_bp.route('/marketing/ab-tests/<test_id>')
 @admin_required
 def ab_test_detail(test_id):
     """View A/B test results"""
@@ -555,7 +555,7 @@ def ab_test_detail(test_id):
 
 # API Routes for AJAX/JSON responses
 
-@marketing_bp.route('/api/dashboard-data')
+@admin_bp.route('/marketing/api/dashboard-data')
 @admin_required
 def api_dashboard_data():
     """API endpoint for dashboard data"""
@@ -574,7 +574,7 @@ def api_dashboard_data():
         logger.error(f"Error getting dashboard data: {str(e)}")
         return jsonify({'error': 'Failed to load dashboard data'}), 500
 
-@marketing_bp.route('/api/trigger-engagement', methods=['POST'])
+@admin_bp.route('/marketing/api/trigger-engagement', methods=['POST'])
 @admin_required
 def api_trigger_engagement():
     """API endpoint to trigger engagement"""
@@ -598,7 +598,7 @@ def api_trigger_engagement():
         logger.error(f"Error triggering engagement: {str(e)}")
         return jsonify({'error': 'Failed to trigger engagement'}), 500
 
-@marketing_bp.route('/api/update-lead-score', methods=['POST'])
+@admin_bp.route('/marketing/api/update-lead-score', methods=['POST'])
 @admin_required
 def api_update_lead_score():
     """API endpoint to update lead score"""
@@ -625,7 +625,7 @@ def api_update_lead_score():
         logger.error(f"Error updating lead score: {str(e)}")
         return jsonify({'error': 'Failed to update lead score'}), 500
 
-@marketing_bp.route('/api/start-journey', methods=['POST'])
+@admin_bp.route('/marketing/api/start-journey', methods=['POST'])
 @admin_required
 def api_start_journey():
     """API endpoint to start customer journey"""
@@ -649,7 +649,7 @@ def api_start_journey():
         logger.error(f"Error starting journey: {str(e)}")
         return jsonify({'error': 'Failed to start journey'}), 500
 
-@marketing_bp.route('/api/process-scheduled-engagements', methods=['POST'])
+@admin_bp.route('/marketing/api/process-scheduled-engagements', methods=['POST'])
 @admin_required
 def api_process_scheduled_engagements():
     """API endpoint to process scheduled engagements"""
@@ -668,7 +668,7 @@ def api_process_scheduled_engagements():
         logger.error(f"Error processing scheduled engagements: {str(e)}")
         return jsonify({'error': 'Failed to process scheduled engagements'}), 500
 
-@marketing_bp.route('/api/campaign-performance/<campaign_id>')
+@admin_bp.route('/marketing/api/campaign-performance/<campaign_id>')
 @admin_required
 def api_campaign_performance(campaign_id):
     """API endpoint for campaign performance data"""
@@ -683,7 +683,7 @@ def api_campaign_performance(campaign_id):
         logger.error(f"Error getting campaign performance: {str(e)}")
         return jsonify({'error': 'Failed to get campaign performance'}), 500
 
-@marketing_bp.route('/api/journey-analytics/<journey_id>')
+@admin_bp.route('/marketing/api/journey-analytics/<journey_id>')
 @admin_required
 def api_journey_analytics(journey_id):
     """API endpoint for journey analytics"""
@@ -698,7 +698,7 @@ def api_journey_analytics(journey_id):
         logger.error(f"Error getting journey analytics: {str(e)}")
         return jsonify({'error': 'Failed to get journey analytics'}), 500
 
-@marketing_bp.route('/api/engagement-analytics')
+@admin_bp.route('/marketing/api/engagement-analytics')
 @admin_required
 def api_engagement_analytics():
     """API endpoint for engagement analytics"""

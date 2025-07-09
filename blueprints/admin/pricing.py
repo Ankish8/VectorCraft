@@ -21,8 +21,8 @@ from services.discount_engine import discount_engine
 from database import db
 
 
-# Create pricing blueprint
-pricing_bp = Blueprint('pricing', __name__, url_prefix='/admin/pricing')
+# Import admin blueprint
+from . import admin_bp
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +36,7 @@ def admin_required(f):
     return decorated_function
 
 
-@pricing_bp.route('/dashboard')
+@admin_bp.route('/pricing/dashboard')
 @admin_required
 def pricing_dashboard():
     """Main pricing dashboard"""
@@ -65,7 +65,7 @@ def pricing_dashboard():
         return redirect(url_for('admin.dashboard'))
 
 
-@pricing_bp.route('/tiers')
+@admin_bp.route('/pricing/tiers')
 @admin_required
 def manage_tiers():
     """Manage pricing tiers"""
@@ -80,7 +80,7 @@ def manage_tiers():
         return redirect(url_for('pricing.pricing_dashboard'))
 
 
-@pricing_bp.route('/tiers/create', methods=['GET', 'POST'])
+@admin_bp.route('/pricing/tiers/create', methods=['GET', 'POST'])
 @admin_required
 def create_tier():
     """Create new pricing tier"""
@@ -113,7 +113,7 @@ def create_tier():
     return render_template('admin/create_tier.html')
 
 
-@pricing_bp.route('/tiers/<tier_id>/edit', methods=['GET', 'POST'])
+@admin_bp.route('/pricing/tiers/<tier_id>/edit', methods=['GET', 'POST'])
 @admin_required
 def edit_tier(tier_id):
     """Edit pricing tier"""
@@ -167,7 +167,7 @@ def edit_tier(tier_id):
         return redirect(url_for('pricing.manage_tiers'))
 
 
-@pricing_bp.route('/tiers/<tier_id>/analytics')
+@admin_bp.route('/pricing/tiers/<tier_id>/analytics')
 @admin_required
 def tier_analytics(tier_id):
     """View tier analytics"""
@@ -193,7 +193,7 @@ def tier_analytics(tier_id):
         return redirect(url_for('pricing.manage_tiers'))
 
 
-@pricing_bp.route('/discounts')
+@admin_bp.route('/pricing/discounts')
 @admin_required
 def manage_discounts():
     """Manage discount codes"""
@@ -208,7 +208,7 @@ def manage_discounts():
         return redirect(url_for('pricing.pricing_dashboard'))
 
 
-@pricing_bp.route('/discounts/create', methods=['GET', 'POST'])
+@admin_bp.route('/pricing/discounts/create', methods=['GET', 'POST'])
 @admin_required
 def create_discount():
     """Create new discount code"""
@@ -259,7 +259,7 @@ def create_discount():
     return render_template('admin/create_discount.html', tiers=tiers)
 
 
-@pricing_bp.route('/discounts/bulk', methods=['GET', 'POST'])
+@admin_bp.route('/pricing/discounts/bulk', methods=['GET', 'POST'])
 @admin_required
 def bulk_create_discounts():
     """Bulk create discount codes"""
@@ -297,7 +297,7 @@ def bulk_create_discounts():
     return render_template('admin/bulk_create_discounts.html')
 
 
-@pricing_bp.route('/discounts/<discount_id>/analytics')
+@admin_bp.route('/pricing/discounts/<discount_id>/analytics')
 @admin_required
 def discount_analytics(discount_id):
     """View discount analytics"""
@@ -321,7 +321,7 @@ def discount_analytics(discount_id):
         return redirect(url_for('pricing.manage_discounts'))
 
 
-@pricing_bp.route('/analytics')
+@admin_bp.route('/pricing/analytics')
 @admin_required
 def pricing_analytics():
     """Comprehensive pricing analytics"""
@@ -354,7 +354,7 @@ def pricing_analytics():
         return redirect(url_for('pricing.pricing_dashboard'))
 
 
-@pricing_bp.route('/api/tiers/<tier_id>/price', methods=['POST'])
+@admin_bp.route('/pricing/api/tiers/<tier_id>/price', methods=['POST'])
 @admin_required
 def update_tier_price():
     """API endpoint to update tier price"""
@@ -383,7 +383,7 @@ def update_tier_price():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@pricing_bp.route('/api/discounts/validate', methods=['POST'])
+@admin_bp.route('/pricing/api/discounts/validate', methods=['POST'])
 @admin_required
 def validate_discount_api():
     """API endpoint to validate discount code"""
@@ -414,7 +414,7 @@ def validate_discount_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@pricing_bp.route('/api/analytics/revenue', methods=['GET'])
+@admin_bp.route('/pricing/api/analytics/revenue', methods=['GET'])
 @admin_required
 def revenue_analytics_api():
     """API endpoint for revenue analytics data"""
@@ -434,7 +434,7 @@ def revenue_analytics_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@pricing_bp.route('/api/forecast', methods=['GET'])
+@admin_bp.route('/pricing/api/forecast', methods=['GET'])
 @admin_required
 def forecast_api():
     """API endpoint for revenue forecast"""
@@ -451,7 +451,7 @@ def forecast_api():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@pricing_bp.route('/api/optimization/<tier_id>', methods=['GET'])
+@admin_bp.route('/pricing/api/optimization/<tier_id>', methods=['GET'])
 @admin_required
 def optimization_api(tier_id):
     """API endpoint for pricing optimization suggestions"""
@@ -465,7 +465,7 @@ def optimization_api(tier_id):
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@pricing_bp.route('/experiments')
+@admin_bp.route('/pricing/experiments')
 @admin_required
 def pricing_experiments():
     """Manage pricing experiments (A/B testing)"""
@@ -481,7 +481,7 @@ def pricing_experiments():
         return redirect(url_for('pricing.pricing_dashboard'))
 
 
-@pricing_bp.route('/settings')
+@admin_bp.route('/pricing/settings')
 @admin_required
 def pricing_settings():
     """Pricing system settings"""
@@ -502,7 +502,7 @@ def pricing_settings():
         return redirect(url_for('pricing.pricing_dashboard'))
 
 
-@pricing_bp.route('/export/discounts')
+@admin_bp.route('/pricing/export/discounts')
 @admin_required
 def export_discounts():
     """Export discount codes to CSV"""
@@ -544,7 +544,7 @@ def export_discounts():
         return redirect(url_for('pricing.manage_discounts'))
 
 
-@pricing_bp.route('/cleanup')
+@admin_bp.route('/pricing/cleanup')
 @admin_required
 def cleanup_expired():
     """Clean up expired discounts"""

@@ -15,8 +15,8 @@ from services.monitoring.health_monitor import health_monitor
 from services.monitoring.system_logger import system_logger
 from services.monitoring.alert_manager import alert_manager
 
-# Create blueprint
-system_control_bp = Blueprint('system_control', __name__, url_prefix='/admin/system-control')
+# Import admin blueprint
+from . import admin_bp
 
 def admin_required(f):
     """Decorator to require admin authentication"""
@@ -48,14 +48,14 @@ def api_response(success=True, data=None, error=None, message=None):
     return jsonify(response)
 
 # Main System Control Dashboard
-@system_control_bp.route('/')
+@admin_bp.route('/system-control')
 @admin_required
 def dashboard():
     """Main system control dashboard"""
     return render_template('admin/system_control.html')
 
 # System State Management
-@system_control_bp.route('/api/system-state')
+@admin_bp.route('/system-control/api/system-state')
 @admin_required
 def get_system_state():
     """Get current system state"""
@@ -65,7 +65,7 @@ def get_system_state():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/maintenance-mode', methods=['POST'])
+@admin_bp.route('/system-control/api/maintenance-mode', methods=['POST'])
 @admin_required
 def set_maintenance_mode():
     """Toggle maintenance mode"""
@@ -84,7 +84,7 @@ def set_maintenance_mode():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/maintenance-status')
+@admin_bp.route('/system-control/api/maintenance-status')
 @admin_required
 def get_maintenance_status():
     """Get maintenance mode status"""
@@ -95,7 +95,7 @@ def get_maintenance_status():
         return api_response(success=False, error=str(e))
 
 # Health Override Controls
-@system_control_bp.route('/api/health-override', methods=['POST'])
+@admin_bp.route('/system-control/api/health-override', methods=['POST'])
 @admin_required
 def override_health():
     """Override system health status"""
@@ -114,7 +114,7 @@ def override_health():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/health-override', methods=['DELETE'])
+@admin_bp.route('/system-control/api/health-override', methods=['DELETE'])
 @admin_required
 def clear_health_override():
     """Clear health status override"""
@@ -125,7 +125,7 @@ def clear_health_override():
         return api_response(success=False, error=str(e))
 
 # Emergency Controls
-@system_control_bp.route('/api/emergency-shutdown', methods=['POST'])
+@admin_bp.route('/system-control/api/emergency-shutdown', methods=['POST'])
 @admin_required
 def emergency_shutdown():
     """Emergency system shutdown"""
@@ -142,7 +142,7 @@ def emergency_shutdown():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/rolling-restart', methods=['POST'])
+@admin_bp.route('/system-control/api/rolling-restart', methods=['POST'])
 @admin_required
 def rolling_restart():
     """Perform rolling restart"""
@@ -160,7 +160,7 @@ def rolling_restart():
         return api_response(success=False, error=str(e))
 
 # Traffic Control
-@system_control_bp.route('/api/traffic-control', methods=['POST'])
+@admin_bp.route('/system-control/api/traffic-control', methods=['POST'])
 @admin_required
 def set_traffic_control():
     """Set traffic control parameters"""
@@ -179,7 +179,7 @@ def set_traffic_control():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/traffic-stats')
+@admin_bp.route('/system-control/api/traffic-stats')
 @admin_required
 def get_traffic_stats():
     """Get traffic statistics"""
@@ -190,7 +190,7 @@ def get_traffic_stats():
         return api_response(success=False, error=str(e))
 
 # System Metrics
-@system_control_bp.route('/api/system-metrics')
+@admin_bp.route('/system-control/api/system-metrics')
 @admin_required
 def get_system_metrics():
     """Get system performance metrics"""
@@ -201,7 +201,7 @@ def get_system_metrics():
         return api_response(success=False, error=str(e))
 
 # Configuration Management
-@system_control_bp.route('/api/system-config')
+@admin_bp.route('/system-control/api/system-config')
 @admin_required
 def get_system_config():
     """Get system configuration"""
@@ -211,7 +211,7 @@ def get_system_config():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/system-config', methods=['POST'])
+@admin_bp.route('/system-control/api/system-config', methods=['POST'])
 @admin_required
 def update_system_config():
     """Update system configuration"""
@@ -229,7 +229,7 @@ def update_system_config():
         return api_response(success=False, error=str(e))
 
 # Feature Flag Management
-@system_control_bp.route('/api/feature-flags')
+@admin_bp.route('/system-control/api/feature-flags')
 @admin_required
 def get_feature_flags():
     """Get all feature flags"""
@@ -254,7 +254,7 @@ def get_feature_flags():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/feature-flags', methods=['POST'])
+@admin_bp.route('/system-control/api/feature-flags', methods=['POST'])
 @admin_required
 def create_feature_flag():
     """Create a new feature flag"""
@@ -277,7 +277,7 @@ def create_feature_flag():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/feature-flags/<feature_name>', methods=['PUT'])
+@admin_bp.route('/system-control/api/feature-flags/<feature_name>', methods=['PUT'])
 @admin_required
 def update_feature_flag(feature_name):
     """Update a feature flag"""
@@ -290,7 +290,7 @@ def update_feature_flag(feature_name):
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/feature-flags/<feature_name>', methods=['DELETE'])
+@admin_bp.route('/system-control/api/feature-flags/<feature_name>', methods=['DELETE'])
 @admin_required
 def delete_feature_flag(feature_name):
     """Delete a feature flag"""
@@ -300,7 +300,7 @@ def delete_feature_flag(feature_name):
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/feature-flags/<feature_name>/emergency-disable', methods=['POST'])
+@admin_bp.route('/system-control/api/feature-flags/<feature_name>/emergency-disable', methods=['POST'])
 @admin_required
 def emergency_disable_feature(feature_name):
     """Emergency disable a feature flag"""
@@ -318,7 +318,7 @@ def emergency_disable_feature(feature_name):
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/feature-flags/<feature_name>/usage-stats')
+@admin_bp.route('/system-control/api/feature-flags/<feature_name>/usage-stats')
 @admin_required
 def get_feature_usage_stats(feature_name):
     """Get feature usage statistics"""
@@ -328,7 +328,7 @@ def get_feature_usage_stats(feature_name):
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/feature-flags/<feature_name>/history')
+@admin_bp.route('/system-control/api/feature-flags/<feature_name>/history')
 @admin_required
 def get_feature_history(feature_name):
     """Get feature flag history"""
@@ -339,7 +339,7 @@ def get_feature_history(feature_name):
         return api_response(success=False, error=str(e))
 
 # Deployment Management
-@system_control_bp.route('/api/releases')
+@admin_bp.route('/system-control/api/releases')
 @admin_required
 def get_releases():
     """Get all releases"""
@@ -349,7 +349,7 @@ def get_releases():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/releases', methods=['POST'])
+@admin_bp.route('/system-control/api/releases', methods=['POST'])
 @admin_required
 def create_release():
     """Create a new release"""
@@ -369,7 +369,7 @@ def create_release():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/deployments')
+@admin_bp.route('/system-control/api/deployments')
 @admin_required
 def get_deployments():
     """Get deployment history"""
@@ -379,7 +379,7 @@ def get_deployments():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/deployments/active')
+@admin_bp.route('/system-control/api/deployments/active')
 @admin_required
 def get_active_deployments():
     """Get active deployments"""
@@ -404,7 +404,7 @@ def get_active_deployments():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/deployments', methods=['POST'])
+@admin_bp.route('/system-control/api/deployments', methods=['POST'])
 @admin_required
 def start_deployment():
     """Start a new deployment"""
@@ -423,7 +423,7 @@ def start_deployment():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/deployments/<deployment_id>')
+@admin_bp.route('/system-control/api/deployments/<deployment_id>')
 @admin_required
 def get_deployment_status(deployment_id):
     """Get deployment status"""
@@ -448,7 +448,7 @@ def get_deployment_status(deployment_id):
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/deployments/<deployment_id>/logs')
+@admin_bp.route('/system-control/api/deployments/<deployment_id>/logs')
 @admin_required
 def get_deployment_logs(deployment_id):
     """Get deployment logs"""
@@ -458,7 +458,7 @@ def get_deployment_logs(deployment_id):
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/deployments/<deployment_id>/cancel', methods=['POST'])
+@admin_bp.route('/system-control/api/deployments/<deployment_id>/cancel', methods=['POST'])
 @admin_required
 def cancel_deployment(deployment_id):
     """Cancel a deployment"""
@@ -468,7 +468,7 @@ def cancel_deployment(deployment_id):
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/deployments/<deployment_id>/rollback', methods=['POST'])
+@admin_bp.route('/system-control/api/deployments/<deployment_id>/rollback', methods=['POST'])
 @admin_required
 def rollback_deployment(deployment_id):
     """Rollback a deployment"""
@@ -479,7 +479,7 @@ def rollback_deployment(deployment_id):
         return api_response(success=False, error=str(e))
 
 # Health Monitoring
-@system_control_bp.route('/api/health-status')
+@admin_bp.route('/system-control/api/health-status')
 @admin_required
 def get_health_status():
     """Get system health status"""
@@ -489,7 +489,7 @@ def get_health_status():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/health-check', methods=['POST'])
+@admin_bp.route('/system-control/api/health-check', methods=['POST'])
 @admin_required
 def run_health_check():
     """Run health check on all components"""
@@ -500,7 +500,7 @@ def run_health_check():
         return api_response(success=False, error=str(e))
 
 # Alert Management
-@system_control_bp.route('/api/alerts')
+@admin_bp.route('/system-control/api/alerts')
 @admin_required
 def get_alerts():
     """Get system alerts"""
@@ -510,7 +510,7 @@ def get_alerts():
     except Exception as e:
         return api_response(success=False, error=str(e))
 
-@system_control_bp.route('/api/alerts/<alert_id>/acknowledge', methods=['POST'])
+@admin_bp.route('/system-control/api/alerts/<alert_id>/acknowledge', methods=['POST'])
 @admin_required
 def acknowledge_alert(alert_id):
     """Acknowledge an alert"""
@@ -521,7 +521,7 @@ def acknowledge_alert(alert_id):
         return api_response(success=False, error=str(e))
 
 # WebSocket endpoint for real-time updates
-@system_control_bp.route('/api/realtime-status')
+@admin_bp.route('/system-control/api/realtime-status')
 @admin_required
 def get_realtime_status():
     """Get real-time system status for dashboard updates"""
@@ -540,7 +540,7 @@ def get_realtime_status():
         return api_response(success=False, error=str(e))
 
 # Bulk Operations
-@system_control_bp.route('/api/bulk-feature-update', methods=['POST'])
+@admin_bp.route('/system-control/api/bulk-feature-update', methods=['POST'])
 @admin_required
 def bulk_update_features():
     """Bulk update feature flags"""

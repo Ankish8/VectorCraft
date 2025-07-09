@@ -15,10 +15,10 @@ from services.content_manager import content_manager
 from services.page_builder import page_builder
 from services.seo_manager import seo_manager
 
-# Create blueprint
-content_bp = Blueprint('admin_content', __name__, url_prefix='/admin/content')
+# Import admin blueprint
+from . import admin_bp
 
-@content_bp.route('/')
+@admin_bp.route('/content')
 def dashboard():
     """Content management dashboard"""
     try:
@@ -44,7 +44,7 @@ def dashboard():
         flash('Error loading content dashboard', 'error')
         return redirect(url_for('admin.dashboard'))
 
-@content_bp.route('/pages')
+@admin_bp.route('/content/pages')
 def pages():
     """List all pages"""
     try:
@@ -72,7 +72,7 @@ def pages():
         flash('Error loading pages', 'error')
         return redirect(url_for('admin_content.dashboard'))
 
-@content_bp.route('/pages/create')
+@admin_bp.route('/content/pages/create')
 def create_page():
     """Create new page form"""
     try:
@@ -93,7 +93,7 @@ def create_page():
         flash('Error loading page creator', 'error')
         return redirect(url_for('admin_content.pages'))
 
-@content_bp.route('/pages/create', methods=['POST'])
+@admin_bp.route('/content/pages/create', methods=['POST'])
 def create_page_post():
     """Create new page"""
     try:
@@ -156,7 +156,7 @@ def create_page_post():
             flash('Error creating page', 'error')
             return redirect(url_for('admin_content.create_page'))
 
-@content_bp.route('/pages/<page_id>')
+@admin_bp.route('/content/pages/<page_id>')
 def edit_page(page_id):
     """Edit page"""
     try:
@@ -188,7 +188,7 @@ def edit_page(page_id):
         flash('Error loading page editor', 'error')
         return redirect(url_for('admin_content.pages'))
 
-@content_bp.route('/pages/<page_id>', methods=['POST'])
+@admin_bp.route('/content/pages/<page_id>', methods=['POST'])
 def update_page(page_id):
     """Update page"""
     try:
@@ -229,7 +229,7 @@ def update_page(page_id):
             flash('Error updating page', 'error')
             return redirect(url_for('admin_content.edit_page', page_id=page_id))
 
-@content_bp.route('/pages/<page_id>/delete', methods=['POST'])
+@admin_bp.route('/content/pages/<page_id>/delete', methods=['POST'])
 def delete_page(page_id):
     """Delete page"""
     try:
@@ -247,7 +247,7 @@ def delete_page(page_id):
         flash('Error deleting page', 'error')
         return redirect(url_for('admin_content.pages'))
 
-@content_bp.route('/pages/<page_id>/duplicate', methods=['POST'])
+@admin_bp.route('/content/pages/<page_id>/duplicate', methods=['POST'])
 def duplicate_page(page_id):
     """Duplicate page"""
     try:
@@ -281,7 +281,7 @@ def duplicate_page(page_id):
             flash('Error duplicating page', 'error')
             return redirect(url_for('admin_content.edit_page', page_id=page_id))
 
-@content_bp.route('/pages/<page_id>/preview')
+@admin_bp.route('/content/pages/<page_id>/preview')
 def preview_page(page_id):
     """Preview page"""
     try:
@@ -291,7 +291,7 @@ def preview_page(page_id):
         current_app.logger.error(f"Error generating preview: {e}")
         return "<p>Error generating preview</p>"
 
-@content_bp.route('/pages/<page_id>/export')
+@admin_bp.route('/content/pages/<page_id>/export')
 def export_page(page_id):
     """Export page code"""
     try:
@@ -307,7 +307,7 @@ def export_page(page_id):
         current_app.logger.error(f"Error exporting page: {e}")
         return jsonify({'error': str(e)}), 500
 
-@content_bp.route('/pages/<page_id>/versions')
+@admin_bp.route('/content/pages/<page_id>/versions')
 def page_versions(page_id):
     """Get page versions"""
     try:
@@ -317,7 +317,7 @@ def page_versions(page_id):
         current_app.logger.error(f"Error getting versions: {e}")
         return jsonify({'error': str(e)}), 500
 
-@content_bp.route('/pages/<page_id>/versions/<version_id>/restore', methods=['POST'])
+@admin_bp.route('/content/pages/<page_id>/versions/<version_id>/restore', methods=['POST'])
 def restore_version(page_id, version_id):
     """Restore page version"""
     try:
@@ -332,7 +332,7 @@ def restore_version(page_id, version_id):
         current_app.logger.error(f"Error restoring version: {e}")
         return jsonify({'error': str(e)}), 500
 
-@content_bp.route('/templates')
+@admin_bp.route('/content/templates')
 def templates():
     """List templates"""
     try:
@@ -351,7 +351,7 @@ def templates():
         flash('Error loading templates', 'error')
         return redirect(url_for('admin_content.dashboard'))
 
-@content_bp.route('/templates/create')
+@admin_bp.route('/content/templates/create')
 def create_template():
     """Create template form"""
     try:
@@ -361,7 +361,7 @@ def create_template():
         flash('Error loading template creator', 'error')
         return redirect(url_for('admin_content.templates'))
 
-@content_bp.route('/templates/create', methods=['POST'])
+@admin_bp.route('/content/templates/create', methods=['POST'])
 def create_template_post():
     """Create template"""
     try:
@@ -403,7 +403,7 @@ def create_template_post():
             flash('Error creating template', 'error')
             return redirect(url_for('admin_content.create_template'))
 
-@content_bp.route('/seo')
+@admin_bp.route('/content/seo')
 def seo_dashboard():
     """SEO dashboard"""
     try:
@@ -431,7 +431,7 @@ def seo_dashboard():
         flash('Error loading SEO dashboard', 'error')
         return redirect(url_for('admin_content.dashboard'))
 
-@content_bp.route('/seo/<page_id>')
+@admin_bp.route('/content/seo/<page_id>')
 def seo_analysis(page_id):
     """SEO analysis for specific page"""
     try:
@@ -455,7 +455,7 @@ def seo_analysis(page_id):
         flash('Error loading SEO analysis', 'error')
         return redirect(url_for('admin_content.seo_dashboard'))
 
-@content_bp.route('/seo/<page_id>/optimize', methods=['POST'])
+@admin_bp.route('/content/seo/<page_id>/optimize', methods=['POST'])
 def optimize_seo(page_id):
     """Optimize page SEO"""
     try:
@@ -465,7 +465,7 @@ def optimize_seo(page_id):
         current_app.logger.error(f"Error optimizing SEO: {e}")
         return jsonify({'error': str(e)}), 500
 
-@content_bp.route('/assets')
+@admin_bp.route('/content/assets')
 def assets():
     """Asset manager"""
     try:
@@ -484,7 +484,7 @@ def assets():
         flash('Error loading assets', 'error')
         return redirect(url_for('admin_content.dashboard'))
 
-@content_bp.route('/assets/upload', methods=['POST'])
+@admin_bp.route('/content/assets/upload', methods=['POST'])
 def upload_asset():
     """Upload asset"""
     try:
@@ -536,7 +536,7 @@ def upload_asset():
         current_app.logger.error(f"Error uploading asset: {e}")
         return jsonify({'error': str(e)}), 500
 
-@content_bp.route('/schedule')
+@admin_bp.route('/content/schedule')
 def schedule():
     """Content schedule"""
     try:
@@ -551,7 +551,7 @@ def schedule():
         flash('Error loading schedule', 'error')
         return redirect(url_for('admin_content.dashboard'))
 
-@content_bp.route('/schedule/create', methods=['POST'])
+@admin_bp.route('/content/schedule/create', methods=['POST'])
 def create_schedule():
     """Create scheduled action"""
     try:
@@ -581,7 +581,7 @@ def create_schedule():
         current_app.logger.error(f"Error creating schedule: {e}")
         return jsonify({'error': str(e)}), 500
 
-@content_bp.route('/api/validate-content', methods=['POST'])
+@admin_bp.route('/content/api/validate-content', methods=['POST'])
 def validate_content():
     """Validate page content structure"""
     try:
@@ -595,7 +595,7 @@ def validate_content():
         current_app.logger.error(f"Error validating content: {e}")
         return jsonify({'error': str(e)}), 500
 
-@content_bp.route('/api/components')
+@admin_bp.route('/content/api/components')
 def get_components():
     """Get page builder components"""
     try:
@@ -605,7 +605,7 @@ def get_components():
         current_app.logger.error(f"Error getting components: {e}")
         return jsonify({'error': str(e)}), 500
 
-@content_bp.route('/api/analytics')
+@admin_bp.route('/content/api/analytics')
 def get_analytics():
     """Get content analytics"""
     try:

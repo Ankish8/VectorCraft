@@ -314,19 +314,76 @@
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
             </li>
+            
+            <!-- Core System -->
+            <li class="nav-item">
+                <a href="{{ url_for('admin.system_config') }}" class="nav-link {% if 'system-config' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-gear"></i> System Config
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('admin.system_control') }}" class="nav-link {% if 'system-control' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-toggles"></i> System Control
+                </a>
+            </li>
+            
+            <!-- Business Management -->
+            <li class="nav-item">
+                <a href="{{ url_for('admin.pricing_dashboard') }}" class="nav-link {% if 'pricing' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-currency-dollar"></i> Pricing Management
+                </a>
+            </li>
             <li class="nav-item">
                 <a href="{{ url_for('admin_transactions') }}" class="nav-link {% if request.endpoint == 'admin_transactions' %}active{% endif %}">
                     <i class="bi bi-credit-card"></i> Transactions
                 </a>
             </li>
+            
+            <!-- Marketing & Communication -->
+            <li class="nav-item">
+                <a href="{{ url_for('admin.email_campaigns') }}" class="nav-link {% if 'email_campaigns' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-envelope"></i> Email Campaigns
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('admin.marketing_dashboard') }}" class="nav-link {% if 'marketing' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-megaphone"></i> Marketing Tools
+                </a>
+            </li>
+            
+            <!-- User & Security -->
+            <li class="nav-item">
+                <a href="{{ url_for('admin.permissions_dashboard') }}" class="nav-link {% if 'permissions' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-shield-check"></i> Permissions
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('admin.security_dashboard') }}" class="nav-link {% if 'security' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-shield-lock"></i> Security Center
+                </a>
+            </li>
+            
+            <!-- Content & Performance -->
+            <li class="nav-item">
+                <a href="{{ url_for('admin.content_dashboard') }}" class="nav-link {% if 'content' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-file-text"></i> Content Manager
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('admin.performance_dashboard') }}" class="nav-link {% if 'performance' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-speedometer"></i> Performance Tuner
+                </a>
+            </li>
+            
+            <!-- Analytics & Monitoring -->
             <li class="nav-item">
                 <a href="{{ url_for('admin_system') }}" class="nav-link {% if request.endpoint == 'admin_system' %}active{% endif %}">
                     <i class="bi bi-cpu"></i> System Health
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ url_for('admin.performance') }}" class="nav-link {% if request.endpoint == 'admin.performance' %}active{% endif %}">
-                    <i class="bi bi-speedometer"></i> Performance
+                <a href="{{ url_for('admin_analytics') }}" class="nav-link {% if request.endpoint == 'admin_analytics' %}active{% endif %}">
+                    <i class="bi bi-graph-up"></i> Analytics
                 </a>
             </li>
             <li class="nav-item">
@@ -340,34 +397,11 @@
                     <span id="alertBadge" class="badge bg-danger ms-2 alert-badge" style="display: none;"></span>
                 </a>
             </li>
+            
+            <!-- Advanced -->
             <li class="nav-item">
-                <a href="{{ url_for('admin_analytics') }}" class="nav-link {% if request.endpoint == 'admin_analytics' %}active{% endif %}">
-                    <i class="bi bi-graph-up"></i> Analytics
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ url_for('security.dashboard') }}" class="nav-link {% if request.endpoint == 'security.dashboard' %}active{% endif %}">
-                    <i class="bi bi-shield-lock"></i> Security
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ url_for('security.audit_logs') }}" class="nav-link {% if request.endpoint == 'security.audit_logs' %}active{% endif %}">
-                    <i class="bi bi-journal-check"></i> Audit Logs
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ url_for('api_management.api_management') }}" class="nav-link {% if request.endpoint == 'api_management.api_management' %}active{% endif %}">
-                    <i class="bi bi-api"></i> API Management
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ url_for('admin.users') }}" class="nav-link {% if request.endpoint == 'admin.users' %}active{% endif %}">
-                    <i class="bi bi-people"></i> User Management
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ url_for('admin.system_config') }}" class="nav-link {% if request.endpoint == 'admin.system_config' %}active{% endif %}">
-                    <i class="bi bi-gear"></i> System Configuration
+                <a href="{{ url_for('admin.business_logic_dashboard') }}" class="nav-link {% if 'business_logic' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-diagram-3"></i> Business Logic
                 </a>
             </li>
         </ul>
