@@ -759,7 +759,7 @@ def get_security_analytics():
 
 # ========== MIDDLEWARE INTEGRATION ==========
 
-@security_bp.before_request
+@admin_bp.before_request
 def security_middleware():
     """Security middleware for all admin security routes"""
     try:

@@ -409,7 +409,7 @@ def _get_performance_recommendations(analytics_data):
 
 # Error Handlers
 
-@file_management_bp.errorhandler(404)
+@admin_bp.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
     return render_template('admin/file_management/error.html', 
@@ -417,7 +417,7 @@ def not_found(error):
                          error_message="Page not found"), 404
 
 
-@file_management_bp.errorhandler(500)
+@admin_bp.errorhandler(500)
 def internal_error(error):
     """Handle 500 errors"""
     system_logger.error('admin', f'Internal error in file management: {error}')
@@ -429,5 +429,5 @@ def internal_error(error):
 if __name__ == '__main__':
     print("File Management Blueprint - VectorCraft Admin")
     print("Routes registered:")
-    for rule in file_management_bp.url_map.iter_rules():
+    for rule in admin_bp.url_map.iter_rules():
         print(f"  {rule.rule} [{', '.join(rule.methods)}]")

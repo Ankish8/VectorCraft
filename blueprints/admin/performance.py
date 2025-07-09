@@ -542,20 +542,20 @@ def _prepare_detailed_chart_data(history):
     return chart_data
 
 # Error handlers
-@performance_bp.errorhandler(404)
+@admin_bp.errorhandler(404)
 def not_found(error):
     return render_template('admin/error.html', error="Page not found"), 404
 
-@performance_bp.errorhandler(500)
+@admin_bp.errorhandler(500)
 def internal_error(error):
     return render_template('admin/error.html', error="Internal server error"), 500
 
-@performance_bp.errorhandler(503)
+@admin_bp.errorhandler(503)
 def service_unavailable(error):
     return render_template('admin/error.html', error="Performance services unavailable"), 503
 
 # Context processors
-@performance_bp.context_processor
+@admin_bp.context_processor
 def inject_performance_status():
     """Inject performance status into templates"""
     if PERFORMANCE_SERVICES_AVAILABLE:
@@ -575,5 +575,5 @@ def inject_performance_status():
 if __name__ == '__main__':
     print("🔧 Performance Blueprint - Admin Routes")
     print("Available routes:")
-    for rule in performance_bp.url_map.iter_rules():
+    for rule in admin_bp.url_map.iter_rules():
         print(f"  {rule.rule} -> {rule.endpoint}")
