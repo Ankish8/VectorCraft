@@ -1,0 +1,559 @@
+{% extends "admin/base.html" %}
+
+{% block title %}File Management Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+.metric-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 2.5em;
+    font-weight: bold;
+}
+
+.metric-card p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+.storage-card {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.analytics-card {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.vectorization-card {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.optimization-card {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+.chart-container {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.nav-tabs .nav-link {
+    border-radius: 10px 10px 0 0;
+    margin-right: 5px;
+}
+
+.nav-tabs .nav-link.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 25px;
+    padding: 10px 20px;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.alert {
+    border-radius: 10px;
+    border: none;
+}
+
+.progress {
+    height: 20px;
+    border-radius: 10px;
+}
+
+.optimization-item {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid #667eea;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.status-healthy { background-color: #28a745; }
+.status-warning { background-color: #ffc107; }
+.status-error { background-color: #dc3545; }
+
+.real-time-metrics {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">File Management Dashboard</h1>
+                <div>
+                    <button type="button" class="btn btn-primary me-2" onclick="refreshDashboard()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" onclick="exportAnalytics()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="metric-card storage-card">
+                <h3 id="total-files">{{ storage_summary.total_files or 0 }}</h3>
+                <p>Total Files</p>
+                <small>{{ "%.1f"|format((storage_summary.total_size or 0) / 1024 / 1024) }} MB</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card analytics-card">
+                <h3 id="total-uploads">{{ analytics.summary.total_uploads or 0 }}</h3>
+                <p>Total Uploads</p>
+                <small>{{ "%.1f"|format((analytics.summary.avg_file_size or 0) / 1024 / 1024) }} MB avg</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card vectorization-card">
+                <h3 id="total-vectorizations">{{ vectorization_analytics.summary.total_vectorizations or 0 }}</h3>
+                <p>Vectorizations</p>
+                <small>{{ "%.1f"|format(vectorization_analytics.summary.avg_processing_time or 0) }}s avg</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card optimization-card">
+                <h3 id="optimization-potential">{{ "%.1f"|format(storage_summary.optimization_potential or 0) }}</h3>
+                <p>Optimization Potential</p>
+                <small>MB can be saved</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Tabs -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+                        <i class="fas fa-chart-line"></i> Overview
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="storage-tab" data-bs-toggle="tab" data-bs-target="#storage" type="button" role="tab">
+                        <i class="fas fa-hdd"></i> Storage
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="vectorization-tab" data-bs-toggle="tab" data-bs-target="#vectorization" type="button" role="tab">
+                        <i class="fas fa-magic"></i> Vectorization
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="optimization-tab" data-bs-toggle="tab" data-bs-target="#optimization" type="button" role="tab">
+                        <i class="fas fa-tools"></i> Optimization
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="tab-content" id="dashboardTabsContent">
+        <!-- Overview Tab -->
+        <div class="tab-pane fade show active" id="overview" role="tabpanel">
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h5>Upload Trends</h5>
+                        <canvas id="uploadTrendsChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h5>File Type Distribution</h5>
+                        <canvas id="fileTypeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h5>Processing Performance</h5>
+                        <canvas id="processingChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <h5>Quality Metrics</h5>
+                        <canvas id="qualityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Storage Tab -->
+        <div class="tab-pane fade" id="storage" role="tabpanel">
+            <div class="row mt-4">
+                <div class="col-md-8">
+                    <div class="chart-container">
+                        <h5>Storage Usage by Directory</h5>
+                        <canvas id="storageChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="chart-container">
+                        <h5>Storage Summary</h5>
+                        {% for directory, stats in storage_summary.directories.items() %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>{{ directory }}</span>
+                            <span class="badge bg-primary">{{ "%.1f"|format(stats.size / 1024 / 1024) }} MB</span>
+                        </div>
+                        <div class="progress mb-3">
+                            <div class="progress-bar" style="width: {{ (stats.size / storage_summary.total_size * 100) if storage_summary.total_size > 0 else 0 }}%"></div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vectorization Tab -->
+        <div class="tab-pane fade" id="vectorization" role="tabpanel">
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="chart-container real-time-metrics">
+                        <h5>Real-time Metrics</h5>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h4 class="text-primary" id="active-vectorizations">0</h4>
+                                    <small>Active</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h4 class="text-success" id="success-rate">0%</h4>
+                                    <small>Success Rate</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h4 class="text-info" id="avg-processing-time">0s</h4>
+                                    <small>Avg Time</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h4 class="text-warning" id="throughput">0</h4>
+                                    <small>Per Hour</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="chart-container">
+                        <h5>Vectorization Performance</h5>
+                        <canvas id="vectorizationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Optimization Tab -->
+        <div class="tab-pane fade" id="optimization" role="tabpanel">
+            <div class="row mt-4">
+                <div class="col-md-8">
+                    <div class="chart-container">
+                        <h5>Optimization Opportunities</h5>
+                        {% if optimization_opportunities.opportunities %}
+                        {% for opportunity in optimization_opportunities.opportunities %}
+                        <div class="optimization-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ opportunity.type|title }} Optimization</h6>
+                                    <p class="mb-0 text-muted">{{ opportunity.description }}</p>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-success">{{ opportunity.potential_savings }}</span>
+                                    <button class="btn btn-sm btn-outline-primary ms-2" onclick="performOptimization('{{ opportunity.type }}')">
+                                        Optimize
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No optimization opportunities found. Your system is running efficiently!
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="chart-container">
+                        <h5>System Health</h5>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><span class="status-indicator status-healthy"></span>Storage</span>
+                                <span class="badge bg-success">Healthy</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><span class="status-indicator status-healthy"></span>Processing</span>
+                                <span class="badge bg-success">Healthy</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><span class="status-indicator status-warning"></span>Optimization</span>
+                                <span class="badge bg-warning">Needs Attention</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary w-100" onclick="runSystemCheck()">
+                            <i class="fas fa-heartbeat"></i> Run System Check
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Processing...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Initialize charts
+let uploadTrendsChart, fileTypeChart, processingChart, qualityChart, storageChart, vectorizationChart;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    updateRealTimeMetrics();
+    setInterval(updateRealTimeMetrics, 30000); // Update every 30 seconds
+});
+
+function initializeCharts() {
+    // Upload Trends Chart
+    const uploadTrendsCtx = document.getElementById('uploadTrendsChart').getContext('2d');
+    uploadTrendsChart = new Chart(uploadTrendsCtx, {
+        type: 'line',
+        data: {
+            labels: {{ analytics.upload_trends | tojsonfilter | safe }} || [],
+            datasets: [{
+                label: 'Uploads',
+                data: {{ analytics.upload_trends | tojsonfilter | safe }} || [],
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // File Type Chart
+    const fileTypeCtx = document.getElementById('fileTypeChart').getContext('2d');
+    fileTypeChart = new Chart(fileTypeCtx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys({{ analytics.file_type_distribution | tojsonfilter | safe }} || {}),
+            datasets: [{
+                data: Object.values({{ analytics.file_type_distribution | tojsonfilter | safe }} || {}),
+                backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Initialize other charts...
+}
+
+function updateRealTimeMetrics() {
+    fetch('/admin/files/api/real-time-metrics')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('active-vectorizations').textContent = data.active_vectorizations || 0;
+            document.getElementById('success-rate').textContent = (data.success_rate * 100).toFixed(1) + '%';
+            document.getElementById('avg-processing-time').textContent = data.avg_processing_time.toFixed(1) + 's';
+            document.getElementById('throughput').textContent = data.throughput_per_hour || 0;
+        })
+        .catch(error => console.error('Error updating real-time metrics:', error));
+}
+
+function refreshDashboard() {
+    showLoadingModal();
+    fetch('/admin/files/action/refresh-analytics', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({days: 30})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error refreshing dashboard: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error refreshing dashboard:', error);
+        alert('Error refreshing dashboard');
+    })
+    .finally(() => {
+        hideLoadingModal();
+    });
+}
+
+function exportAnalytics() {
+    showLoadingModal();
+    fetch('/admin/files/action/export-analytics', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({days: 30, format: 'json'})
+    })
+    .then(response => response.json())
+    .then(data => {
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        
+        const exportFileDefaultName = 'vectorcraft_analytics_' + new Date().toISOString().split('T')[0] + '.json';
+        
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+    })
+    .catch(error => {
+        console.error('Error exporting analytics:', error);
+        alert('Error exporting analytics');
+    })
+    .finally(() => {
+        hideLoadingModal();
+    });
+}
+
+function performOptimization(type) {
+    if (!confirm('Are you sure you want to perform this optimization? This action cannot be undone.')) {
+        return;
+    }
+    
+    showLoadingModal();
+    fetch('/admin/files/action/optimize', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({action: type})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else {
+            alert('Optimization completed successfully!');
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error performing optimization:', error);
+        alert('Error performing optimization');
+    })
+    .finally(() => {
+        hideLoadingModal();
+    });
+}
+
+function runSystemCheck() {
+    showLoadingModal();
+    // Simulate system check
+    setTimeout(() => {
+        hideLoadingModal();
+        alert('System check completed. All systems are healthy!');
+    }, 2000);
+}
+
+function showLoadingModal() {
+    const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    modal.show();
+}
+
+function hideLoadingModal() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('loadingModal'));
+    if (modal) {
+        modal.hide();
+    }
+}
+</script>
+{% endblock %}

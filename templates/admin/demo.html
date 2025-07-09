@@ -1,0 +1,510 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Enhanced UI/UX Demo - VectorCraft{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-palette"></i> Enhanced UI/UX Demo</h1>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-success">All Features Active</span>
+        <button class="btn btn-outline-primary btn-sm" onclick="demoFeatures()">
+            <i class="bi bi-play"></i> Demo Features
+        </button>
+    </div>
+</div>
+
+<!-- Feature Overview Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-sun-fill text-warning" style="font-size: 2rem;"></i>
+                <h6 class="mt-2">Dark/Light Theme</h6>
+                <p class="text-muted small">Toggle between themes with persistence</p>
+                <button class="btn btn-sm btn-outline-primary" onclick="themeSystem.toggleTheme()">
+                    Toggle Theme
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-phone text-info" style="font-size: 2rem;"></i>
+                <h6 class="mt-2">Responsive Design</h6>
+                <p class="text-muted small">Mobile-first responsive layout</p>
+                <button class="btn btn-sm btn-outline-primary" onclick="testResponsiveness()">
+                    Test Mobile
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-graph-up text-success" style="font-size: 2rem;"></i>
+                <h6 class="mt-2">Interactive Charts</h6>
+                <p class="text-muted small">Real-time data visualizations</p>
+                <button class="btn btn-sm btn-outline-primary" onclick="updateChartData()">
+                    Update Charts
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body text-center">
+                <i class="bi bi-universal-access text-primary" style="font-size: 2rem;"></i>
+                <h6 class="mt-2">Accessibility</h6>
+                <p class="text-muted small">WCAG 2.1 AA compliance</p>
+                <button class="btn btn-sm btn-outline-primary" onclick="accessibilityEnhancements.toggleAccessibilityPanel()">
+                    Open A11y Menu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Real-time Metrics Display -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-activity"></i> Real-time System Metrics</h5>
+            </div>
+            <div class="card-body">
+                <div id="realtime-metrics"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Interactive Visualizations -->
+<div class="row mb-4">
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> Transaction Volume</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="demo-transaction-volume-chart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Status Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="demo-status-chart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dashboard Layout Controls -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-layout-wtf"></i> Customizable Dashboard Layout</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Layout Options</h6>
+                        <div class="btn-group-vertical w-100" role="group">
+                            <button class="btn btn-outline-primary" onclick="dashboardLayout.applyLayout('default')">
+                                Default Layout
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="dashboardLayout.applyLayout('analytics')">
+                                Analytics Focus
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="dashboardLayout.applyLayout('monitoring')">
+                                System Monitoring
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Layout Actions</h6>
+                        <div class="btn-group-vertical w-100" role="group">
+                            <button class="btn btn-outline-secondary" onclick="dashboardLayout.toggleEditMode()">
+                                Toggle Edit Mode
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="dashboardLayout.saveCurrentLayout()">
+                                Save Current Layout
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="dashboardLayout.resetLayout()">
+                                Reset to Default
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Accessibility Features -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-shield-check"></i> Accessibility Features</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6>Visual Accessibility</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success"></i> High Contrast Mode</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Large Text Option</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Reduced Motion</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Color Blind Friendly</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Navigation</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success"></i> Keyboard Navigation</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Focus Indicators</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Skip Links</li>
+                            <li><i class="bi bi-check-circle text-success"></i> ARIA Labels</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Screen Reader</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle text-success"></i> Live Regions</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Semantic HTML</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Announcements</li>
+                            <li><i class="bi bi-check-circle text-success"></i> Landmarks</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Theme Showcase -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-brush"></i> Theme System Showcase</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Current Theme Colors</h6>
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <div class="color-swatch" style="background-color: var(--primary-color);" title="Primary"></div>
+                            <div class="color-swatch" style="background-color: var(--secondary-color);" title="Secondary"></div>
+                            <div class="color-swatch" style="background-color: var(--success-color);" title="Success"></div>
+                            <div class="color-swatch" style="background-color: var(--warning-color);" title="Warning"></div>
+                            <div class="color-swatch" style="background-color: var(--error-color);" title="Error"></div>
+                            <div class="color-swatch" style="background-color: var(--info-color);" title="Info"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Theme Controls</h6>
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn btn-outline-primary" onclick="themeSystem.applyTheme('light')">
+                                <i class="bi bi-sun"></i> Light
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="themeSystem.applyTheme('dark')">
+                                <i class="bi bi-moon"></i> Dark
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="themeSystem.togglePalette()">
+                                <i class="bi bi-palette"></i> Palette
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Component Examples -->
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-ui-checks"></i> UI Components</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6>Buttons</h6>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-primary">Primary</button>
+                        <button class="btn btn-secondary">Secondary</button>
+                        <button class="btn btn-success">Success</button>
+                        <button class="btn btn-danger">Danger</button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Alerts</h6>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> This is an info alert
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> This is a warning alert
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Progress Bars</h6>
+                    <div class="progress mb-2">
+                        <div class="progress-bar" style="width: 75%"></div>
+                    </div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-success" style="width: 50%"></div>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar bg-warning" style="width: 25%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-toggles"></i> Form Controls</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Text Input</label>
+                    <input type="text" class="form-control" placeholder="Enter text...">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Select Dropdown</label>
+                    <select class="form-select">
+                        <option>Option 1</option>
+                        <option>Option 2</option>
+                        <option>Option 3</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Range Slider</label>
+                    <input type="range" class="form-range" min="0" max="100" value="50">
+                </div>
+                
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" checked>
+                        <label class="form-check-label">
+                            Enable notifications
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="demo-radio" checked>
+                        <label class="form-check-label">
+                            Option A
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="demo-radio">
+                        <label class="form-check-label">
+                            Option B
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Performance Metrics -->
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-speedometer2"></i> Performance Metrics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value" id="load-time">0ms</div>
+                            <div class="metric-label">Load Time</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value" id="components-loaded">0</div>
+                            <div class="metric-label">Components Loaded</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value" id="theme-switches">0</div>
+                            <div class="metric-label">Theme Switches</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="metric-card">
+                            <div class="metric-value" id="accessibility-score">100%</div>
+                            <div class="metric-label">A11y Score</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.color-swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.color-swatch:hover {
+    transform: scale(1.1);
+}
+
+.metric-card {
+    padding: 1rem;
+    border-radius: 8px;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.metric-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary-color);
+    margin-top: 0.25rem;
+}
+</style>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let demoStats = {
+        loadTime: 0,
+        componentsLoaded: 0,
+        themeSwitches: 0,
+        accessibilityScore: 100
+    };
+
+    function demoFeatures() {
+        // Demo theme switching
+        setTimeout(() => {
+            themeSystem.toggleTheme();
+            demoStats.themeSwitches++;
+            updateStats();
+        }, 1000);
+
+        // Demo accessibility features
+        setTimeout(() => {
+            accessibilityEnhancements.announce('Demo mode activated');
+        }, 2000);
+
+        // Demo layout changes
+        setTimeout(() => {
+            dashboardLayout.applyLayout('analytics');
+        }, 3000);
+
+        // Demo chart updates
+        setTimeout(() => {
+            updateChartData();
+        }, 4000);
+
+        // Return to default
+        setTimeout(() => {
+            themeSystem.toggleTheme();
+            dashboardLayout.applyLayout('default');
+            demoStats.themeSwitches++;
+            updateStats();
+        }, 6000);
+    }
+
+    function testResponsiveness() {
+        // Simulate mobile viewport
+        const viewport = document.querySelector('meta[name="viewport"]');
+        viewport.setAttribute('content', 'width=320, initial-scale=1.0');
+        
+        // Show mobile layout
+        document.body.classList.add('mobile-test');
+        
+        // Reset after 3 seconds
+        setTimeout(() => {
+            viewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
+            document.body.classList.remove('mobile-test');
+        }, 3000);
+    }
+
+    function updateChartData() {
+        if (window.interactiveViz) {
+            window.interactiveViz.updateCharts({
+                transactions: {
+                    volume: Array.from({length: 24}, () => Math.floor(Math.random() * 100)),
+                    status: [Math.random() * 100, Math.random() * 50, Math.random() * 20],
+                    revenue: Array.from({length: 7}, () => Math.floor(Math.random() * 2000))
+                },
+                system: {
+                    health: Array.from({length: 6}, () => 80 + Math.random() * 20),
+                    responseTime: Array.from({length: 30}, () => Math.floor(Math.random() * 1000))
+                }
+            });
+        }
+    }
+
+    function updateStats() {
+        document.getElementById('load-time').textContent = demoStats.loadTime + 'ms';
+        document.getElementById('components-loaded').textContent = demoStats.componentsLoaded;
+        document.getElementById('theme-switches').textContent = demoStats.themeSwitches;
+        document.getElementById('accessibility-score').textContent = demoStats.accessibilityScore + '%';
+    }
+
+    // Initialize demo
+    document.addEventListener('DOMContentLoaded', function() {
+        const startTime = performance.now();
+        
+        // Count loaded components
+        const components = ['themeSystem', 'interactiveViz', 'dashboardLayout', 'accessibilityEnhancements'];
+        components.forEach(component => {
+            if (window[component]) {
+                demoStats.componentsLoaded++;
+            }
+        });
+        
+        // Calculate load time
+        window.addEventListener('load', function() {
+            demoStats.loadTime = Math.round(performance.now() - startTime);
+            updateStats();
+        });
+        
+        // Listen for theme changes
+        window.addEventListener('themeChanged', function() {
+            demoStats.themeSwitches++;
+            updateStats();
+        });
+        
+        // Initialize demo charts
+        setTimeout(() => {
+            updateChartData();
+        }, 1000);
+        
+        updateStats();
+    });
+</script>
+{% endblock %}

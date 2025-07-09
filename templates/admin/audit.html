@@ -1,0 +1,512 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Audit Logs - VectorCraft Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .audit-controls {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .audit-filters {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .filter-group label {
+        font-weight: 500;
+        color: #333;
+        font-size: 0.9rem;
+    }
+    
+    .filter-group input,
+    .filter-group select {
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+    
+    .filter-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
+    .audit-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #007bff;
+    }
+    
+    .stat-card.success {
+        border-left-color: #28a745;
+    }
+    
+    .stat-card.warning {
+        border-left-color: #ffc107;
+    }
+    
+    .stat-card.danger {
+        border-left-color: #dc3545;
+    }
+    
+    .stat-number {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+        color: #666;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .audit-table {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .audit-log-entry {
+        display: grid;
+        grid-template-columns: 120px 100px 150px 200px 120px 100px 1fr;
+        gap: 1rem;
+        padding: 0.75rem;
+        border-bottom: 1px solid #eee;
+        align-items: center;
+        transition: background-color 0.2s;
+    }
+    
+    .audit-log-entry:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .audit-log-entry:last-child {
+        border-bottom: none;
+    }
+    
+    .audit-header {
+        display: grid;
+        grid-template-columns: 120px 100px 150px 200px 120px 100px 1fr;
+        gap: 1rem;
+        padding: 0.75rem;
+        background: #f8f9fa;
+        border-bottom: 2px solid #ddd;
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .audit-timestamp {
+        font-size: 0.8rem;
+        color: #666;
+        font-family: monospace;
+    }
+    
+    .audit-user {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .audit-action {
+        background: #e9ecef;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        text-align: center;
+        font-weight: 500;
+    }
+    
+    .audit-action.success {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .audit-action.danger {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .audit-resource {
+        font-family: monospace;
+        font-size: 0.8rem;
+        color: #333;
+    }
+    
+    .audit-ip {
+        font-family: monospace;
+        font-size: 0.8rem;
+        color: #666;
+    }
+    
+    .audit-success {
+        text-align: center;
+    }
+    
+    .audit-success.true {
+        color: #28a745;
+    }
+    
+    .audit-success.false {
+        color: #dc3545;
+    }
+    
+    .audit-details {
+        font-size: 0.8rem;
+        color: #666;
+    }
+    
+    .success-badge {
+        background: #28a745;
+        color: white;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+    
+    .failure-badge {
+        background: #dc3545;
+        color: white;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+    
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    
+    .pagination button {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ddd;
+        background: white;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .pagination button:hover {
+        background: #f8f9fa;
+    }
+    
+    .pagination button.active {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+    
+    .pagination button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .export-btn {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .export-btn:hover {
+        background: #218838;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Audit Logs</h1>
+        <button class="export-btn" onclick="exportAuditLogs()">
+            <i class="fas fa-download"></i>
+            Export Logs
+        </button>
+    </div>
+    
+    <!-- Audit Statistics -->
+    <div class="audit-stats">
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.total_events or 0 }}</div>
+            <div class="stat-label">Total Events</div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-number">{{ stats.successful_events or 0 }}</div>
+            <div class="stat-label">Successful</div>
+        </div>
+        <div class="stat-card danger">
+            <div class="stat-number">{{ stats.failed_events or 0 }}</div>
+            <div class="stat-label">Failed</div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-number">{{ stats.unique_users or 0 }}</div>
+            <div class="stat-label">Unique Users</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.events_today or 0 }}</div>
+            <div class="stat-label">Today's Events</div>
+        </div>
+    </div>
+    
+    <!-- Audit Controls -->
+    <div class="audit-controls">
+        <div class="audit-filters">
+            <div class="filter-group">
+                <label>User ID</label>
+                <input type="text" id="user-filter" placeholder="Filter by user ID">
+            </div>
+            <div class="filter-group">
+                <label>Action</label>
+                <select id="action-filter">
+                    <option value="">All Actions</option>
+                    <option value="LOGIN">Login</option>
+                    <option value="LOGOUT">Logout</option>
+                    <option value="UPLOAD">Upload</option>
+                    <option value="DOWNLOAD">Download</option>
+                    <option value="DELETE">Delete</option>
+                    <option value="PERMISSION_CHECK">Permission Check</option>
+                    <option value="GRANT_PERMISSION">Grant Permission</option>
+                    <option value="REVOKE_PERMISSION">Revoke Permission</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Resource</label>
+                <input type="text" id="resource-filter" placeholder="Filter by resource">
+            </div>
+            <div class="filter-group">
+                <label>Source IP</label>
+                <input type="text" id="ip-filter" placeholder="Filter by IP address">
+            </div>
+            <div class="filter-group">
+                <label>Success</label>
+                <select id="success-filter">
+                    <option value="">All</option>
+                    <option value="true">Success</option>
+                    <option value="false">Failed</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Date Range</label>
+                <input type="date" id="date-from" placeholder="From">
+                <input type="date" id="date-to" placeholder="To">
+            </div>
+        </div>
+        
+        <div class="filter-actions">
+            <button class="btn btn-primary" onclick="applyFilters()">
+                <i class="fas fa-filter"></i> Apply Filters
+            </button>
+            <button class="btn btn-secondary" onclick="clearFilters()">
+                <i class="fas fa-times"></i> Clear
+            </button>
+            <button class="btn btn-info" onclick="refreshLogs()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+    
+    <!-- Audit Log Table -->
+    <div class="audit-table">
+        <div class="audit-header">
+            <div>Timestamp</div>
+            <div>User ID</div>
+            <div>Action</div>
+            <div>Resource</div>
+            <div>Source IP</div>
+            <div>Success</div>
+            <div>Details</div>
+        </div>
+        
+        <div id="audit-logs-container">
+            {% if audit_logs %}
+                {% for log in audit_logs %}
+                <div class="audit-log-entry">
+                    <div class="audit-timestamp">{{ log.timestamp[:19] }}</div>
+                    <div class="audit-user">{{ log.user_id or 'Anonymous' }}</div>
+                    <div class="audit-action {{ 'success' if log.success else 'danger' }}">
+                        {{ log.action }}
+                    </div>
+                    <div class="audit-resource">{{ log.resource }}</div>
+                    <div class="audit-ip">{{ log.source_ip or 'N/A' }}</div>
+                    <div class="audit-success {{ 'true' if log.success else 'false' }}">
+                        {% if log.success %}
+                            <span class="success-badge">✓</span>
+                        {% else %}
+                            <span class="failure-badge">✗</span>
+                        {% endif %}
+                    </div>
+                    <div class="audit-details">
+                        {% if log.details %}
+                            {{ log.details | truncate(100) }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="loading">
+                    <i class="fas fa-search"></i>
+                    <p>No audit logs found</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Pagination -->
+        <div class="pagination">
+            <button onclick="changePage(1)" {{ 'disabled' if current_page == 1 else '' }}>
+                <i class="fas fa-angle-double-left"></i>
+            </button>
+            <button onclick="changePage({{ current_page - 1 }})" {{ 'disabled' if current_page == 1 else '' }}>
+                <i class="fas fa-angle-left"></i>
+            </button>
+            
+            {% for page in range(max(1, current_page - 2), min(total_pages + 1, current_page + 3)) %}
+                <button class="{{ 'active' if page == current_page else '' }}" onclick="changePage({{ page }})">
+                    {{ page }}
+                </button>
+            {% endfor %}
+            
+            <button onclick="changePage({{ current_page + 1 }})" {{ 'disabled' if current_page == total_pages else '' }}>
+                <i class="fas fa-angle-right"></i>
+            </button>
+            <button onclick="changePage({{ total_pages }})" {{ 'disabled' if current_page == total_pages else '' }}>
+                <i class="fas fa-angle-double-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentPage = {{ current_page or 1 }};
+let totalPages = {{ total_pages or 1 }};
+
+function applyFilters() {
+    const params = new URLSearchParams();
+    
+    const userFilter = document.getElementById('user-filter').value;
+    const actionFilter = document.getElementById('action-filter').value;
+    const resourceFilter = document.getElementById('resource-filter').value;
+    const ipFilter = document.getElementById('ip-filter').value;
+    const successFilter = document.getElementById('success-filter').value;
+    const dateFrom = document.getElementById('date-from').value;
+    const dateTo = document.getElementById('date-to').value;
+    
+    if (userFilter) params.append('user_id', userFilter);
+    if (actionFilter) params.append('action', actionFilter);
+    if (resourceFilter) params.append('resource', resourceFilter);
+    if (ipFilter) params.append('source_ip', ipFilter);
+    if (successFilter) params.append('success', successFilter);
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    
+    window.location.href = '/admin/audit?' + params.toString();
+}
+
+function clearFilters() {
+    document.getElementById('user-filter').value = '';
+    document.getElementById('action-filter').value = '';
+    document.getElementById('resource-filter').value = '';
+    document.getElementById('ip-filter').value = '';
+    document.getElementById('success-filter').value = '';
+    document.getElementById('date-from').value = '';
+    document.getElementById('date-to').value = '';
+    
+    window.location.href = '/admin/audit';
+}
+
+function refreshLogs() {
+    location.reload();
+}
+
+function changePage(page) {
+    if (page < 1 || page > totalPages) return;
+    
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', page);
+    
+    window.location.href = '/admin/audit?' + params.toString();
+}
+
+function exportAuditLogs() {
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'csv');
+    
+    window.location.href = '/admin/audit/export?' + params.toString();
+}
+
+// Auto-refresh every 30 seconds
+setInterval(refreshLogs, 30000);
+
+// Load filters from URL parameters
+window.addEventListener('load', function() {
+    const params = new URLSearchParams(window.location.search);
+    
+    if (params.get('user_id')) {
+        document.getElementById('user-filter').value = params.get('user_id');
+    }
+    if (params.get('action')) {
+        document.getElementById('action-filter').value = params.get('action');
+    }
+    if (params.get('resource')) {
+        document.getElementById('resource-filter').value = params.get('resource');
+    }
+    if (params.get('source_ip')) {
+        document.getElementById('ip-filter').value = params.get('source_ip');
+    }
+    if (params.get('success')) {
+        document.getElementById('success-filter').value = params.get('success');
+    }
+    if (params.get('date_from')) {
+        document.getElementById('date-from').value = params.get('date_from');
+    }
+    if (params.get('date_to')) {
+        document.getElementById('date-to').value = params.get('date_to');
+    }
+});
+</script>
+{% endblock %}

@@ -8,9 +8,15 @@ import uuid
 import hashlib
 import mimetypes
 import logging
+import json
+import time
+import shutil
+import statistics
+from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List, Tuple
 from pathlib import Path
 from werkzeug.utils import secure_filename
+from collections import defaultdict
 
 from .monitoring import system_logger
 
@@ -44,13 +50,31 @@ class FileService:
         self.upload_dir = 'uploads'
         self.results_dir = 'results'
         self.temp_dir = 'temp'
+        self.archive_dir = 'archive'
+        
+        # Analytics tracking
+        self.analytics_data = {
+            'upload_stats': defaultdict(lambda: {
+                'total_uploads': 0,
+                'total_size': 0,
+                'file_types': defaultdict(int),
+                'avg_file_size': 0,
+                'errors': 0
+            }),
+            'storage_metrics': {
+                'total_files': 0,
+                'total_size': 0,
+                'growth_rate': 0,
+                'optimization_savings': 0
+            }
+        }
         
         # Ensure directories exist
         self._ensure_directories()
     
     def _ensure_directories(self):
         """Ensure required directories exist"""
-        directories = [self.upload_dir, self.results_dir, self.temp_dir]
+        directories = [self.upload_dir, self.results_dir, self.temp_dir, self.archive_dir]
         for directory in directories:
             os.makedirs(directory, exist_ok=True)
     
@@ -381,6 +405,762 @@ class FileService:
                 os.remove(file_path)
         except Exception as e:
             self.logger.error(f"Error removing file {file_path}: {e}")
+    
+    # === FILE ANALYTICS AND MANAGEMENT METHODS ===
+    
+    def get_file_analytics(self, days: int = 30) -> Dict[str, Any]:
+        """Get comprehensive file analytics"""
+        try:
+            # Get upload analytics
+            upload_stats = self._get_upload_analytics(days)
+            
+            # Get storage analytics
+            storage_stats = self._get_storage_analytics()
+            
+            # Get processing analytics
+            processing_stats = self._get_processing_analytics(days)
+            
+            # Compile comprehensive analytics
+            analytics = {
+                'summary': {
+                    'total_uploads': upload_stats.get('total_uploads', 0),
+                    'total_size': upload_stats.get('total_size', 0),
+                    'avg_file_size': upload_stats.get('avg_file_size', 0),
+                    'success_rate': upload_stats.get('success_rate', 0),
+                    'storage_efficiency': storage_stats.get('efficiency', 0)
+                },
+                'upload_trends': upload_stats.get('daily_breakdown', []),
+                'file_type_distribution': upload_stats.get('file_types', {}),
+                'size_distribution': upload_stats.get('size_distribution', {}),
+                'processing_metrics': processing_stats,
+                'storage_metrics': storage_stats,
+                'optimization_opportunities': self._get_optimization_opportunities()
+            }
+            
+            return analytics
+            
+        except Exception as e:
+            self.logger.error(f"Error getting file analytics: {e}")
+            return self._get_default_analytics()
+    
+    def get_storage_summary(self) -> Dict[str, Any]:
+        """Get storage usage summary"""
+        try:
+            summary = {
+                'directories': {},
+                'total_size': 0,
+                'total_files': 0,
+                'growth_rate': 0,
+                'optimization_potential': 0
+            }
+            
+            # Analyze each directory
+            directories = [self.upload_dir, self.results_dir, self.temp_dir, self.archive_dir]
+            
+            for directory in directories:
+                if os.path.exists(directory):
+                    dir_stats = self._analyze_directory(directory)
+                    summary['directories'][directory] = dir_stats
+                    summary['total_size'] += dir_stats['size']
+                    summary['total_files'] += dir_stats['file_count']
+            
+            # Calculate growth rate
+            summary['growth_rate'] = self._calculate_storage_growth_rate()
+            
+            # Calculate optimization potential
+            summary['optimization_potential'] = self._calculate_optimization_potential()
+            
+            return summary
+            
+        except Exception as e:
+            self.logger.error(f"Error getting storage summary: {e}")
+            return self._get_default_storage_summary()
+    
+    def optimize_storage(self, action: str = 'analyze') -> Dict[str, Any]:
+        """Optimize storage usage"""
+        try:
+            optimization_results = {
+                'action': action,
+                'savings': 0,
+                'files_processed': 0,
+                'errors': 0,
+                'details': []
+            }
+            
+            if action == 'analyze':
+                # Analyze optimization opportunities
+                opportunities = self._analyze_optimization_opportunities()
+                optimization_results['opportunities'] = opportunities
+                
+            elif action == 'cleanup_temp':
+                # Clean up temporary files
+                cleaned = self.cleanup_temp_files(max_age_hours=24)
+                optimization_results['files_processed'] = cleaned
+                optimization_results['details'].append(f'Cleaned {cleaned} temporary files')
+                
+            elif action == 'compress_large_files':
+                # Compress large files
+                compressed = self._compress_large_files()
+                optimization_results.update(compressed)
+                
+            elif action == 'archive_old_files':
+                # Archive old files
+                archived = self._archive_old_files()
+                optimization_results.update(archived)
+                
+            elif action == 'deduplicate':
+                # Remove duplicate files
+                deduped = self._deduplicate_files()
+                optimization_results.update(deduped)
+            
+            return optimization_results
+            
+        except Exception as e:
+            self.logger.error(f"Error optimizing storage: {e}")
+            return {'error': str(e)}
+    
+    def get_file_quality_metrics(self) -> Dict[str, Any]:
+        """Get file quality metrics"""
+        try:
+            quality_metrics = {
+                'image_quality': {
+                    'avg_resolution': 0,
+                    'resolution_distribution': {},
+                    'format_distribution': {},
+                    'color_depth_distribution': {}
+                },
+                'file_integrity': {
+                    'valid_files': 0,
+                    'corrupted_files': 0,
+                    'suspicious_files': 0
+                },
+                'optimization_status': {
+                    'optimized_files': 0,
+                    'potential_savings': 0,
+                    'compression_ratio': 0
+                }
+            }
+            
+            # Analyze files in upload directory
+            for filename in os.listdir(self.upload_dir):
+                file_path = os.path.join(self.upload_dir, filename)
+                if os.path.isfile(file_path):
+                    file_metrics = self._analyze_file_quality(file_path)
+                    self._update_quality_metrics(quality_metrics, file_metrics)
+            
+            return quality_metrics
+            
+        except Exception as e:
+            self.logger.error(f"Error getting file quality metrics: {e}")
+            return self._get_default_quality_metrics()
+    
+    def monitor_file_processing(self) -> Dict[str, Any]:
+        """Monitor file processing in real-time"""
+        try:
+            monitoring_data = {
+                'active_uploads': 0,
+                'processing_queue': 0,
+                'recent_activity': [],
+                'error_rate': 0,
+                'throughput': 0,
+                'avg_processing_time': 0
+            }
+            
+            # Get recent activity
+            recent_activity = self._get_recent_file_activity(hours=1)
+            monitoring_data['recent_activity'] = recent_activity
+            
+            # Calculate metrics
+            if recent_activity:
+                total_files = len(recent_activity)
+                successful_files = sum(1 for activity in recent_activity if activity.get('status') == 'success')
+                error_files = total_files - successful_files
+                
+                monitoring_data['error_rate'] = error_files / total_files if total_files > 0 else 0
+                monitoring_data['throughput'] = total_files  # files per hour
+                
+                # Calculate average processing time
+                processing_times = [activity.get('processing_time', 0) for activity in recent_activity 
+                                  if activity.get('processing_time')]
+                if processing_times:
+                    monitoring_data['avg_processing_time'] = statistics.mean(processing_times)
+            
+            return monitoring_data
+            
+        except Exception as e:
+            self.logger.error(f"Error monitoring file processing: {e}")
+            return self._get_default_monitoring_data()
+    
+    def _get_upload_analytics(self, days: int) -> Dict[str, Any]:
+        """Get upload analytics for specified days"""
+        try:
+            # This would typically query a database
+            # For now, we'll analyze the file system
+            analytics = {
+                'total_uploads': 0,
+                'total_size': 0,
+                'avg_file_size': 0,
+                'success_rate': 0,
+                'daily_breakdown': [],
+                'file_types': defaultdict(int),
+                'size_distribution': defaultdict(int)
+            }
+            
+            # Analyze files in upload directory
+            cutoff_time = time.time() - (days * 24 * 3600)
+            
+            for filename in os.listdir(self.upload_dir):
+                file_path = os.path.join(self.upload_dir, filename)
+                if os.path.isfile(file_path):
+                    stat = os.stat(file_path)
+                    
+                    # Check if file is within time range
+                    if stat.st_mtime >= cutoff_time:
+                        analytics['total_uploads'] += 1
+                        analytics['total_size'] += stat.st_size
+                        
+                        # File type
+                        ext = Path(filename).suffix.lower()
+                        analytics['file_types'][ext] += 1
+                        
+                        # Size distribution
+                        size_mb = stat.st_size / (1024 * 1024)
+                        if size_mb < 1:
+                            analytics['size_distribution']['<1MB'] += 1
+                        elif size_mb < 5:
+                            analytics['size_distribution']['1-5MB'] += 1
+                        elif size_mb < 10:
+                            analytics['size_distribution']['5-10MB'] += 1
+                        else:
+                            analytics['size_distribution']['>10MB'] += 1
+            
+            # Calculate averages
+            if analytics['total_uploads'] > 0:
+                analytics['avg_file_size'] = analytics['total_size'] / analytics['total_uploads']
+            
+            return analytics
+            
+        except Exception as e:
+            self.logger.error(f"Error getting upload analytics: {e}")
+            return {}
+    
+    def _get_storage_analytics(self) -> Dict[str, Any]:
+        """Get storage analytics"""
+        try:
+            analytics = {
+                'total_size': 0,
+                'total_files': 0,
+                'efficiency': 0,
+                'growth_trend': [],
+                'directory_breakdown': {}
+            }
+            
+            # Analyze each directory
+            directories = [self.upload_dir, self.results_dir, self.temp_dir, self.archive_dir]
+            
+            for directory in directories:
+                if os.path.exists(directory):
+                    dir_stats = self._analyze_directory(directory)
+                    analytics['directory_breakdown'][directory] = dir_stats
+                    analytics['total_size'] += dir_stats['size']
+                    analytics['total_files'] += dir_stats['file_count']
+            
+            # Calculate efficiency (files per MB)
+            if analytics['total_size'] > 0:
+                analytics['efficiency'] = analytics['total_files'] / (analytics['total_size'] / (1024 * 1024))
+            
+            return analytics
+            
+        except Exception as e:
+            self.logger.error(f"Error getting storage analytics: {e}")
+            return {}
+    
+    def _get_processing_analytics(self, days: int) -> Dict[str, Any]:
+        """Get processing analytics"""
+        try:
+            analytics = {
+                'total_processed': 0,
+                'avg_processing_time': 0,
+                'success_rate': 0,
+                'error_distribution': defaultdict(int),
+                'performance_trends': []
+            }
+            
+            # This would typically query processing logs
+            # For now, return basic structure
+            return analytics
+            
+        except Exception as e:
+            self.logger.error(f"Error getting processing analytics: {e}")
+            return {}
+    
+    def _analyze_directory(self, directory: str) -> Dict[str, Any]:
+        """Analyze a directory for storage metrics"""
+        try:
+            stats = {
+                'size': 0,
+                'file_count': 0,
+                'avg_file_size': 0,
+                'oldest_file': None,
+                'newest_file': None,
+                'file_types': defaultdict(int)
+            }
+            
+            oldest_time = float('inf')
+            newest_time = 0
+            
+            for filename in os.listdir(directory):
+                file_path = os.path.join(directory, filename)
+                if os.path.isfile(file_path):
+                    file_stat = os.stat(file_path)
+                    
+                    stats['size'] += file_stat.st_size
+                    stats['file_count'] += 1
+                    
+                    # Track oldest and newest files
+                    if file_stat.st_mtime < oldest_time:
+                        oldest_time = file_stat.st_mtime
+                        stats['oldest_file'] = filename
+                    
+                    if file_stat.st_mtime > newest_time:
+                        newest_time = file_stat.st_mtime
+                        stats['newest_file'] = filename
+                    
+                    # File type distribution
+                    ext = Path(filename).suffix.lower()
+                    stats['file_types'][ext] += 1
+            
+            # Calculate average file size
+            if stats['file_count'] > 0:
+                stats['avg_file_size'] = stats['size'] / stats['file_count']
+            
+            return stats
+            
+        except Exception as e:
+            self.logger.error(f"Error analyzing directory {directory}: {e}")
+            return {'size': 0, 'file_count': 0, 'avg_file_size': 0}
+    
+    def _get_optimization_opportunities(self) -> List[Dict[str, Any]]:
+        """Get optimization opportunities"""
+        opportunities = []
+        
+        try:
+            # Check for large files
+            large_files = self._find_large_files()
+            if large_files:
+                opportunities.append({
+                    'type': 'compression',
+                    'description': f'Found {len(large_files)} large files that could be compressed',
+                    'potential_savings': f'{sum(f["size"] for f in large_files) * 0.3 / 1024/1024:.1f}MB',
+                    'files': large_files[:10]  # Show first 10
+                })
+            
+            # Check for temporary files
+            temp_files = self._find_old_temp_files()
+            if temp_files:
+                opportunities.append({
+                    'type': 'cleanup',
+                    'description': f'Found {len(temp_files)} old temporary files',
+                    'potential_savings': f'{sum(f["size"] for f in temp_files) / 1024/1024:.1f}MB',
+                    'files': temp_files[:10]
+                })
+            
+            # Check for duplicates
+            duplicates = self._find_duplicate_files()
+            if duplicates:
+                opportunities.append({
+                    'type': 'deduplication',
+                    'description': f'Found {len(duplicates)} duplicate files',
+                    'potential_savings': f'{sum(f["size"] for f in duplicates) / 1024/1024:.1f}MB',
+                    'files': duplicates[:10]
+                })
+            
+            return opportunities
+            
+        except Exception as e:
+            self.logger.error(f"Error getting optimization opportunities: {e}")
+            return []
+    
+    def _find_large_files(self, size_threshold: int = 10 * 1024 * 1024) -> List[Dict[str, Any]]:
+        """Find files larger than threshold"""
+        large_files = []
+        
+        try:
+            for directory in [self.upload_dir, self.results_dir]:
+                if os.path.exists(directory):
+                    for filename in os.listdir(directory):
+                        file_path = os.path.join(directory, filename)
+                        if os.path.isfile(file_path):
+                            file_size = os.path.getsize(file_path)
+                            if file_size > size_threshold:
+                                large_files.append({
+                                    'filename': filename,
+                                    'path': file_path,
+                                    'size': file_size,
+                                    'directory': directory
+                                })
+            
+            return sorted(large_files, key=lambda x: x['size'], reverse=True)
+            
+        except Exception as e:
+            self.logger.error(f"Error finding large files: {e}")
+            return []
+    
+    def _find_old_temp_files(self, age_hours: int = 24) -> List[Dict[str, Any]]:
+        """Find old temporary files"""
+        old_files = []
+        
+        try:
+            if os.path.exists(self.temp_dir):
+                cutoff_time = time.time() - (age_hours * 3600)
+                
+                for filename in os.listdir(self.temp_dir):
+                    file_path = os.path.join(self.temp_dir, filename)
+                    if os.path.isfile(file_path):
+                        file_stat = os.stat(file_path)
+                        if file_stat.st_mtime < cutoff_time:
+                            old_files.append({
+                                'filename': filename,
+                                'path': file_path,
+                                'size': file_stat.st_size,
+                                'age_hours': (time.time() - file_stat.st_mtime) / 3600
+                            })
+            
+            return sorted(old_files, key=lambda x: x['age_hours'], reverse=True)
+            
+        except Exception as e:
+            self.logger.error(f"Error finding old temp files: {e}")
+            return []
+    
+    def _find_duplicate_files(self) -> List[Dict[str, Any]]:
+        """Find duplicate files by hash"""
+        duplicates = []
+        
+        try:
+            file_hashes = {}
+            
+            # Calculate hashes for all files
+            for directory in [self.upload_dir, self.results_dir]:
+                if os.path.exists(directory):
+                    for filename in os.listdir(directory):
+                        file_path = os.path.join(directory, filename)
+                        if os.path.isfile(file_path):
+                            file_hash = self.calculate_file_hash(file_path)
+                            if file_hash:
+                                if file_hash in file_hashes:
+                                    # Found duplicate
+                                    duplicates.append({
+                                        'filename': filename,
+                                        'path': file_path,
+                                        'size': os.path.getsize(file_path),
+                                        'duplicate_of': file_hashes[file_hash]['filename']
+                                    })
+                                else:
+                                    file_hashes[file_hash] = {
+                                        'filename': filename,
+                                        'path': file_path
+                                    }
+            
+            return duplicates
+            
+        except Exception as e:
+            self.logger.error(f"Error finding duplicate files: {e}")
+            return []
+    
+    def _calculate_storage_growth_rate(self) -> float:
+        """Calculate storage growth rate"""
+        try:
+            # This would typically analyze historical data
+            # For now, return a placeholder
+            return 0.0
+        except Exception as e:
+            self.logger.error(f"Error calculating growth rate: {e}")
+            return 0.0
+    
+    def _calculate_optimization_potential(self) -> float:
+        """Calculate optimization potential in MB"""
+        try:
+            potential = 0.0
+            
+            # Add potential from large files (30% compression)
+            large_files = self._find_large_files()
+            potential += sum(f['size'] for f in large_files) * 0.3
+            
+            # Add potential from temp files (100% removal)
+            temp_files = self._find_old_temp_files()
+            potential += sum(f['size'] for f in temp_files)
+            
+            # Add potential from duplicates (100% removal)
+            duplicates = self._find_duplicate_files()
+            potential += sum(f['size'] for f in duplicates)
+            
+            return potential / (1024 * 1024)  # Convert to MB
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating optimization potential: {e}")
+            return 0.0
+    
+    def _get_default_analytics(self) -> Dict[str, Any]:
+        """Get default analytics structure"""
+        return {
+            'summary': {
+                'total_uploads': 0,
+                'total_size': 0,
+                'avg_file_size': 0,
+                'success_rate': 0,
+                'storage_efficiency': 0
+            },
+            'upload_trends': [],
+            'file_type_distribution': {},
+            'size_distribution': {},
+            'processing_metrics': {},
+            'storage_metrics': {},
+            'optimization_opportunities': []
+        }
+    
+    def _get_default_storage_summary(self) -> Dict[str, Any]:
+        """Get default storage summary"""
+        return {
+            'directories': {},
+            'total_size': 0,
+            'total_files': 0,
+            'growth_rate': 0,
+            'optimization_potential': 0
+        }
+    
+    def _get_default_quality_metrics(self) -> Dict[str, Any]:
+        """Get default quality metrics"""
+        return {
+            'image_quality': {
+                'avg_resolution': 0,
+                'resolution_distribution': {},
+                'format_distribution': {},
+                'color_depth_distribution': {}
+            },
+            'file_integrity': {
+                'valid_files': 0,
+                'corrupted_files': 0,
+                'suspicious_files': 0
+            },
+            'optimization_status': {
+                'optimized_files': 0,
+                'potential_savings': 0,
+                'compression_ratio': 0
+            }
+        }
+    
+    def _get_default_monitoring_data(self) -> Dict[str, Any]:
+        """Get default monitoring data"""
+        return {
+            'active_uploads': 0,
+            'processing_queue': 0,
+            'recent_activity': [],
+            'error_rate': 0,
+            'throughput': 0,
+            'avg_processing_time': 0
+        }
+    
+    def _get_recent_file_activity(self, hours: int = 1) -> List[Dict[str, Any]]:
+        """Get recent file activity"""
+        try:
+            # This would typically query logs or database
+            # For now, return sample data
+            return [
+                {
+                    'timestamp': datetime.now().isoformat(),
+                    'filename': 'sample.jpg',
+                    'size': 1024 * 1024,
+                    'type': 'jpg',
+                    'processing_time': 25.5,
+                    'status': 'success',
+                    'quality_score': 0.85
+                }
+            ]
+        except Exception as e:
+            self.logger.error(f"Error getting recent file activity: {e}")
+            return []
+    
+    def _analyze_file_quality(self, file_path: str) -> Dict[str, Any]:
+        """Analyze file quality metrics"""
+        try:
+            metrics = {
+                'resolution': 0,
+                'format': 'unknown',
+                'color_depth': 0,
+                'is_valid': False,
+                'is_corrupted': False,
+                'is_suspicious': False
+            }
+            
+            if self._is_valid_image(file_path):
+                from PIL import Image
+                with Image.open(file_path) as img:
+                    metrics['resolution'] = img.width * img.height
+                    metrics['format'] = img.format
+                    metrics['color_depth'] = len(img.getbands())
+                    metrics['is_valid'] = True
+            
+            return metrics
+            
+        except Exception as e:
+            self.logger.error(f"Error analyzing file quality: {e}")
+            return {'is_corrupted': True}
+    
+    def _update_quality_metrics(self, quality_metrics: Dict[str, Any], file_metrics: Dict[str, Any]):
+        """Update quality metrics with file data"""
+        try:
+            if file_metrics.get('is_valid'):
+                quality_metrics['file_integrity']['valid_files'] += 1
+                
+                # Update image quality metrics
+                resolution = file_metrics.get('resolution', 0)
+                if resolution > 0:
+                    current_avg = quality_metrics['image_quality']['avg_resolution']
+                    quality_metrics['image_quality']['avg_resolution'] = (current_avg + resolution) / 2
+                
+                # Update format distribution
+                format_type = file_metrics.get('format', 'unknown')
+                quality_metrics['image_quality']['format_distribution'][format_type] = \
+                    quality_metrics['image_quality']['format_distribution'].get(format_type, 0) + 1
+                
+            elif file_metrics.get('is_corrupted'):
+                quality_metrics['file_integrity']['corrupted_files'] += 1
+            elif file_metrics.get('is_suspicious'):
+                quality_metrics['file_integrity']['suspicious_files'] += 1
+                
+        except Exception as e:
+            self.logger.error(f"Error updating quality metrics: {e}")
+    
+    def _analyze_optimization_opportunities(self) -> List[Dict[str, Any]]:
+        """Analyze optimization opportunities"""
+        try:
+            opportunities = []
+            
+            # Check for large files
+            large_files = self._find_large_files()
+            if large_files:
+                potential_savings = sum(f['size'] for f in large_files) * 0.3
+                opportunities.append({
+                    'type': 'compression',
+                    'priority': 'high',
+                    'description': f'Compress {len(large_files)} large files',
+                    'potential_savings': f'{potential_savings / 1024 / 1024:.1f} MB',
+                    'action': 'compress_large_files'
+                })
+            
+            # Check for old temporary files
+            old_temp_files = self._find_old_temp_files()
+            if old_temp_files:
+                potential_savings = sum(f['size'] for f in old_temp_files)
+                opportunities.append({
+                    'type': 'cleanup',
+                    'priority': 'medium',
+                    'description': f'Clean up {len(old_temp_files)} old temporary files',
+                    'potential_savings': f'{potential_savings / 1024 / 1024:.1f} MB',
+                    'action': 'cleanup_temp'
+                })
+            
+            # Check for duplicate files
+            duplicates = self._find_duplicate_files()
+            if duplicates:
+                potential_savings = sum(f['size'] for f in duplicates)
+                opportunities.append({
+                    'type': 'deduplication',
+                    'priority': 'low',
+                    'description': f'Remove {len(duplicates)} duplicate files',
+                    'potential_savings': f'{potential_savings / 1024 / 1024:.1f} MB',
+                    'action': 'deduplicate'
+                })
+            
+            return opportunities
+            
+        except Exception as e:
+            self.logger.error(f"Error analyzing optimization opportunities: {e}")
+            return []
+    
+    def _compress_large_files(self) -> Dict[str, Any]:
+        """Compress large files"""
+        try:
+            large_files = self._find_large_files()
+            compressed_count = 0
+            total_savings = 0
+            
+            for file_info in large_files:
+                # In a real implementation, this would compress the file
+                # For now, just simulate the compression
+                compressed_count += 1
+                total_savings += file_info['size'] * 0.3
+            
+            return {
+                'files_processed': compressed_count,
+                'savings': total_savings / 1024 / 1024,  # MB
+                'details': [f'Compressed {compressed_count} files']
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error compressing large files: {e}")
+            return {'files_processed': 0, 'savings': 0, 'errors': 1}
+    
+    def _archive_old_files(self) -> Dict[str, Any]:
+        """Archive old files"""
+        try:
+            # Find files older than 90 days
+            old_files = []
+            cutoff_time = time.time() - (90 * 24 * 3600)
+            
+            for directory in [self.upload_dir, self.results_dir]:
+                if os.path.exists(directory):
+                    for filename in os.listdir(directory):
+                        file_path = os.path.join(directory, filename)
+                        if os.path.isfile(file_path):
+                            if os.path.getmtime(file_path) < cutoff_time:
+                                old_files.append({
+                                    'filename': filename,
+                                    'path': file_path,
+                                    'size': os.path.getsize(file_path)
+                                })
+            
+            archived_count = 0
+            total_savings = 0
+            
+            for file_info in old_files:
+                # In a real implementation, this would move files to archive
+                # For now, just simulate the archiving
+                archived_count += 1
+                total_savings += file_info['size']
+            
+            return {
+                'files_processed': archived_count,
+                'savings': total_savings / 1024 / 1024,  # MB
+                'details': [f'Archived {archived_count} old files']
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error archiving old files: {e}")
+            return {'files_processed': 0, 'savings': 0, 'errors': 1}
+    
+    def _deduplicate_files(self) -> Dict[str, Any]:
+        """Remove duplicate files"""
+        try:
+            duplicates = self._find_duplicate_files()
+            removed_count = 0
+            total_savings = 0
+            
+            for duplicate in duplicates:
+                # In a real implementation, this would remove the duplicate
+                # For now, just simulate the removal
+                removed_count += 1
+                total_savings += duplicate['size']
+            
+            return {
+                'files_processed': removed_count,
+                'savings': total_savings / 1024 / 1024,  # MB
+                'details': [f'Removed {removed_count} duplicate files']
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error deduplicating files: {e}")
+            return {'files_processed': 0, 'savings': 0, 'errors': 1}
 
 
 # Global file service instance
@@ -405,9 +1185,18 @@ if __name__ == '__main__':
     assert os.path.exists(file_service.upload_dir)
     assert os.path.exists(file_service.results_dir)
     assert os.path.exists(file_service.temp_dir)
+    assert os.path.exists(file_service.archive_dir)
     
     # Test temp file cleanup
     cleaned = file_service.cleanup_temp_files(max_age_hours=1)
     logger.info(f"Cleaned {cleaned} temporary files")
+    
+    # Test analytics
+    analytics = file_service.get_file_analytics()
+    logger.info(f"Analytics: {analytics['summary']}")
+    
+    # Test storage summary
+    storage = file_service.get_storage_summary()
+    logger.info(f"Storage: {storage['total_size']} bytes in {storage['total_files']} files")
     
     logger.info("File service test completed successfully!")

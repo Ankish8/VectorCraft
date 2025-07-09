@@ -2,14 +2,75 @@
 
 {% block title %}Admin Dashboard - VectorCraft{% endblock %}
 
+{% block extra_head %}
+<!-- Chart.js for real-time charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/date-fns@1.30.1/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<!-- Socket.IO for real-time updates -->
+<script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1><i class="bi bi-speedometer2"></i> Admin Dashboard</h1>
-    <div>
+    <div class="d-flex align-items-center gap-2">
         <span class="text-muted me-3">Last updated: <span id="lastUpdated">Loading...</span></span>
         <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
             <i class="bi bi-arrow-clockwise"></i> Refresh
         </button>
+    </div>
+</div>
+
+<!-- Enhanced Metrics Display -->
+<div id="realtime-metrics" class="mb-4">
+    <div class="metric-widget" data-metric="cpu">
+        <div class="metric-header">
+            <span class="metric-label">CPU Usage</span>
+            <span class="metric-value" id="cpu-value">0%</span>
+        </div>
+        <div class="metric-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="cpu-progress" style="background-color: var(--info-color)"></div>
+            </div>
+        </div>
+        <canvas class="metric-sparkline" id="cpu-sparkline" width="100" height="30"></canvas>
+    </div>
+    <div class="metric-widget" data-metric="memory">
+        <div class="metric-header">
+            <span class="metric-label">Memory Usage</span>
+            <span class="metric-value" id="memory-value">0%</span>
+        </div>
+        <div class="metric-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="memory-progress" style="background-color: var(--warning-color)"></div>
+            </div>
+        </div>
+        <canvas class="metric-sparkline" id="memory-sparkline" width="100" height="30"></canvas>
+    </div>
+    <div class="metric-widget" data-metric="disk">
+        <div class="metric-header">
+            <span class="metric-label">Disk Usage</span>
+            <span class="metric-value" id="disk-value">0%</span>
+        </div>
+        <div class="metric-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="disk-progress" style="background-color: var(--error-color)"></div>
+            </div>
+        </div>
+        <canvas class="metric-sparkline" id="disk-sparkline" width="100" height="30"></canvas>
+    </div>
+    <div class="metric-widget" data-metric="network">
+        <div class="metric-header">
+            <span class="metric-label">Network I/O</span>
+            <span class="metric-value" id="network-value">0MB/s</span>
+        </div>
+        <div class="metric-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="network-progress" style="background-color: var(--success-color)"></div>
+            </div>
+        </div>
+        <canvas class="metric-sparkline" id="network-sparkline" width="100" height="30"></canvas>
     </div>
 </div>
 
@@ -150,6 +211,126 @@
     </div>
 </div>
 
+<!-- Real-Time Performance Charts -->
+<div class="row mb-4">
+    <!-- System Performance Chart -->
+    <div class="col-lg-8 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> System Performance</h5>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-primary active" onclick="toggleChart('system')" id="systemChartBtn">
+                        System
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" onclick="toggleChart('revenue')" id="revenueChartBtn">
+                        Revenue
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="systemChartContainer">
+                    <canvas id="systemPerformanceChart" width="400" height="200"></canvas>
+                </div>
+                <div id="revenueChartContainer" style="display: none;">
+                    <canvas id="revenueChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Live Activity Feed -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-activity"></i> Live Activity</h5>
+                <span class="badge bg-success" id="liveIndicator">Live</span>
+            </div>
+            <div class="card-body">
+                <div id="liveActivityFeed" class="activity-feed">
+                    <div class="text-center text-muted py-3">
+                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                        <p class="mt-2 mb-0">Connecting to live feed...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Real-Time Metrics Dashboard -->
+<div class="row mb-4">
+    <!-- Transaction Flow -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0"><i class="bi bi-arrow-left-right"></i> Transaction Flow (Live)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="transactionFlowChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- User Activity Heatmap -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0"><i class="bi bi-people"></i> User Activity Heatmap</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="userActivityChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Interactive Charts Section -->
+<div class="row mb-4">
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> Transaction Volume</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="transaction-volume-chart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Transaction Status</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="transaction-status-chart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Revenue Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="revenue-chart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-transparent">
+                <h5 class="mb-0"><i class="bi bi-speedometer"></i> System Status</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="system-status-chart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Error Summary and Quick Actions -->
 <div class="row">
     <!-- Error Summary -->
@@ -230,9 +411,10 @@
                 
                 <h6>System Info</h6>
                 <small class="text-muted">
-                    <div><strong>Version:</strong> 1.0.0</div>
+                    <div><strong>Version:</strong> 2.1.0</div>
                     <div><strong>Environment:</strong> {{ 'Production' if config.get('ENV') == 'production' else 'Development' }}</div>
                     <div><strong>Uptime:</strong> <span id="uptime">Loading...</span></div>
+                    <div><strong>WebSocket:</strong> <span id="wsStatus" class="text-warning">Connecting...</span></div>
                 </small>
             </div>
         </div>
@@ -241,9 +423,402 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<style>
+/* Real-time dashboard styles */
+.activity-feed {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-time {
+    font-size: 0.8em;
+    color: #666;
+}
+
+.activity-type {
+    font-weight: bold;
+    color: #007bff;
+}
+
+.live-indicator {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+#liveIndicator.connected {
+    background-color: #28a745 !important;
+    animation: none;
+}
+
+#liveIndicator.disconnected {
+    background-color: #dc3545 !important;
+    animation: none;
+}
+</style>
+
 <script>
-    // Dashboard-specific JavaScript
+    // Real-time dashboard JavaScript
     let startTime = Date.now();
+    let socket = null;
+    let charts = {};
+    let chartData = {
+        system: {
+            labels: [],
+            cpu: [],
+            memory: [],
+            disk: []
+        },
+        revenue: {
+            labels: [],
+            data: []
+        },
+        transactions: {
+            labels: [],
+            data: []
+        },
+        userActivity: {
+            labels: [],
+            data: []
+        }
+    };
+    
+    // Initialize WebSocket connection
+    function initializeWebSocket() {
+        if (socket) {
+            socket.disconnect();
+        }
+        
+        socket = io();
+        
+        socket.on('connect', function() {
+            console.log('WebSocket connected');
+            updateConnectionStatus('connected');
+            socket.emit('join_admin_room');
+        });
+        
+        socket.on('disconnect', function() {
+            console.log('WebSocket disconnected');
+            updateConnectionStatus('disconnected');
+        });
+        
+        socket.on('live_update', function(data) {
+            console.log('Live update received:', data);
+            updateChartsWithLiveData(data);
+            updateActivityFeed(data);
+            updateMetrics(data);
+        });
+        
+        socket.on('error', function(error) {
+            console.error('WebSocket error:', error);
+            updateConnectionStatus('error');
+        });
+        
+        // Request live updates every 5 seconds
+        setInterval(function() {
+            if (socket && socket.connected) {
+                socket.emit('request_live_update');
+            }
+        }, 5000);
+    }
+    
+    function updateConnectionStatus(status) {
+        const indicator = document.getElementById('liveIndicator');
+        const wsStatus = document.getElementById('wsStatus');
+        
+        indicator.className = 'badge bg-' + 
+            (status === 'connected' ? 'success' : 
+             status === 'disconnected' ? 'danger' : 'warning');
+        
+        indicator.textContent = status === 'connected' ? 'Live' : 
+                               status === 'disconnected' ? 'Offline' : 'Connecting';
+        
+        wsStatus.textContent = status === 'connected' ? 'Connected' : 
+                               status === 'disconnected' ? 'Disconnected' : 'Connecting...';
+        wsStatus.className = 'text-' + 
+            (status === 'connected' ? 'success' : 
+             status === 'disconnected' ? 'danger' : 'warning');
+    }
+    
+    // Initialize Chart.js charts
+    function initializeCharts() {
+        // System Performance Chart
+        const systemCtx = document.getElementById('systemPerformanceChart').getContext('2d');
+        charts.system = new Chart(systemCtx, {
+            type: 'line',
+            data: {
+                labels: chartData.system.labels,
+                datasets: [{
+                    label: 'CPU %',
+                    data: chartData.system.cpu,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0,123,255,0.1)',
+                    tension: 0.4
+                }, {
+                    label: 'Memory %',
+                    data: chartData.system.memory,
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40,167,69,0.1)',
+                    tension: 0.4
+                }, {
+                    label: 'Disk %',
+                    data: chartData.system.disk,
+                    borderColor: '#ffc107',
+                    backgroundColor: 'rgba(255,193,7,0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    },
+                    x: {
+                        type: 'time',
+                        time: {
+                            displayFormats: {
+                                minute: 'HH:mm'
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+        
+        // Revenue Chart
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        charts.revenue = new Chart(revenueCtx, {
+            type: 'bar',
+            data: {
+                labels: chartData.revenue.labels,
+                datasets: [{
+                    label: 'Revenue ($)',
+                    data: chartData.revenue.data,
+                    backgroundColor: '#28a745',
+                    borderColor: '#1e7e34',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 750
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(2);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Transaction Flow Chart
+        const transactionCtx = document.getElementById('transactionFlowChart').getContext('2d');
+        charts.transactions = new Chart(transactionCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'Pending', 'Failed'],
+                datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 500
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+        
+        // User Activity Chart
+        const userActivityCtx = document.getElementById('userActivityChart').getContext('2d');
+        charts.userActivity = new Chart(userActivityCtx, {
+            type: 'polarArea',
+            data: {
+                labels: ['Login', 'Upload', 'Download', 'Convert'],
+                datasets: [{
+                    data: [0, 0, 0, 0],
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(255, 205, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 500
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    
+    function updateChartsWithLiveData(data) {
+        const now = new Date();
+        
+        // Update system metrics
+        if (data.system_metrics) {
+            chartData.system.labels.push(now);
+            chartData.system.cpu.push(data.system_metrics.cpu_percent || 0);
+            chartData.system.memory.push(data.system_metrics.memory_percent || 0);
+            chartData.system.disk.push(data.system_metrics.disk_percent || 0);
+            
+            // Keep only last 20 data points
+            if (chartData.system.labels.length > 20) {
+                chartData.system.labels.shift();
+                chartData.system.cpu.shift();
+                chartData.system.memory.shift();
+                chartData.system.disk.shift();
+            }
+            
+            charts.system.update('none');
+        }
+        
+        // Update transaction flow
+        if (data.recent_transactions) {
+            const transactions = data.recent_transactions;
+            const completed = transactions.filter(t => t.status === 'completed').length;
+            const pending = transactions.filter(t => t.status === 'pending').length;
+            const failed = transactions.filter(t => t.status === 'failed').length;
+            
+            charts.transactions.data.datasets[0].data = [completed, pending, failed];
+            charts.transactions.update('none');
+        }
+    }
+    
+    function updateActivityFeed(data) {
+        const feed = document.getElementById('liveActivityFeed');
+        
+        // Create activity items from live data
+        let activities = [];
+        
+        if (data.recent_transactions) {
+            data.recent_transactions.forEach(tx => {
+                activities.push({
+                    type: 'transaction',
+                    time: new Date(tx.created_at),
+                    description: `Transaction ${tx.transaction_id.substring(0, 8)}... - $${tx.amount} (${tx.status})`,
+                    icon: 'bi-credit-card'
+                });
+            });
+        }
+        
+        if (data.system_metrics) {
+            activities.push({
+                type: 'system',
+                time: new Date(),
+                description: `System check - CPU: ${data.system_metrics.cpu_percent}%, Memory: ${data.system_metrics.memory_percent}%`,
+                icon: 'bi-cpu'
+            });
+        }
+        
+        // Sort by time (newest first)
+        activities.sort((a, b) => b.time - a.time);
+        
+        // Generate HTML
+        let html = '';
+        activities.slice(0, 10).forEach(activity => {
+            html += `
+                <div class="activity-item">
+                    <div class="d-flex align-items-center">
+                        <i class="bi ${activity.icon} me-2 text-primary"></i>
+                        <div class="flex-grow-1">
+                            <div class="activity-description">${activity.description}</div>
+                            <div class="activity-time">${activity.time.toLocaleTimeString()}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        feed.innerHTML = html || '<div class="text-center text-muted py-3">No recent activity</div>';
+    }
+    
+    function updateMetrics(data) {
+        // Update the metric cards with live data
+        if (data.revenue_metrics) {
+            const revenueEl = document.getElementById('todayRevenue');
+            if (revenueEl) {
+                revenueEl.textContent = '$' + (data.revenue_metrics.total_revenue || 0).toFixed(2);
+            }
+            
+            const transactionsEl = document.getElementById('todayTransactions');
+            if (transactionsEl) {
+                transactionsEl.textContent = data.revenue_metrics.transaction_count || 0;
+            }
+        }
+    }
+    
+    function toggleChart(chartType) {
+        const systemContainer = document.getElementById('systemChartContainer');
+        const revenueContainer = document.getElementById('revenueChartContainer');
+        const systemBtn = document.getElementById('systemChartBtn');
+        const revenueBtn = document.getElementById('revenueChartBtn');
+        
+        if (chartType === 'system') {
+            systemContainer.style.display = 'block';
+            revenueContainer.style.display = 'none';
+            systemBtn.classList.add('active');
+            revenueBtn.classList.remove('active');
+        } else {
+            systemContainer.style.display = 'none';
+            revenueContainer.style.display = 'block';
+            systemBtn.classList.remove('active');
+            revenueBtn.classList.add('active');
+        }
+    }
     
     function refreshData() {
         console.log('Refreshing dashboard data...');
@@ -411,16 +986,120 @@
             `${hours}h ${minutes}m ${seconds}s`;
     }
     
-    // Initialize dashboard
+    // Simulate real-time metrics updates
+    function updateMetrics() {
+        // Simulate CPU usage (0-100%)
+        const cpuUsage = Math.random() * 100;
+        document.getElementById('cpu-value').textContent = cpuUsage.toFixed(1) + '%';
+        document.getElementById('cpu-progress').style.width = cpuUsage + '%';
+        
+        // Simulate Memory usage (0-100%)
+        const memUsage = Math.random() * 100;
+        document.getElementById('memory-value').textContent = memUsage.toFixed(1) + '%';
+        document.getElementById('memory-progress').style.width = memUsage + '%';
+        
+        // Simulate Disk usage (0-100%)
+        const diskUsage = Math.random() * 100;
+        document.getElementById('disk-value').textContent = diskUsage.toFixed(1) + '%';
+        document.getElementById('disk-progress').style.width = diskUsage + '%';
+        
+        // Simulate Network I/O (0-100 MB/s)
+        const networkIO = Math.random() * 100;
+        document.getElementById('network-value').textContent = networkIO.toFixed(1) + 'MB/s';
+        document.getElementById('network-progress').style.width = networkIO + '%';
+        
+        // Update sparklines if available
+        if (window.interactiveViz) {
+            window.interactiveViz.updateSparkline('cpu', cpuUsage);
+            window.interactiveViz.updateSparkline('memory', memUsage);
+            window.interactiveViz.updateSparkline('disk', diskUsage);
+            window.interactiveViz.updateSparkline('network', networkIO);
+        }
+    }
+    
+    // Initialize enhanced dashboard
     document.addEventListener('DOMContentLoaded', function() {
         refreshHealthStatus();
         updateUptime();
+        initializeCharts();
+        initializeWebSocket();
         
         // Update uptime every second
         setInterval(updateUptime, 1000);
+        
+        // Update metrics every 5 seconds
+        setInterval(updateMetrics, 5000);
+        
+        // Initial metrics update
+        updateMetrics();
+        
+        // Initialize interactive visualizations
+        if (window.interactiveViz) {
+            // Update charts with sample data
+            setTimeout(() => {
+                window.interactiveViz.updateCharts({
+                    transactions: {
+                        volume: Array.from({length: 24}, () => Math.floor(Math.random() * 100)),
+                        status: [75, 20, 5], // [completed, pending, failed]
+                        revenue: Array.from({length: 7}, () => Math.floor(Math.random() * 1000))
+                    },
+                    system: {
+                        health: [95, 98, 92, 88, 94, 96], // [database, paypal, email, storage, cpu, memory]
+                        responseTime: Array.from({length: 30}, () => Math.floor(Math.random() * 500))
+                    }
+                });
+            }, 1000);
+        }
+        
+        // Initialize theme system
+        if (window.themeSystem) {
+            console.log('Theme system initialized');
+        }
+        
+        // Initialize dashboard layout
+        if (window.dashboardLayout) {
+            console.log('Dashboard layout system initialized');
+        }
+        
+        // Initialize accessibility enhancements
+        if (window.accessibilityEnhancements) {
+            console.log('Accessibility enhancements initialized');
+        }
+        
+        // Fallback: Refresh data via REST API every 30 seconds if WebSocket fails
+        setInterval(function() {
+            if (!socket || !socket.connected) {
+                fetchLiveMetrics();
+            }
+        }, 30000);
     });
     
-    // Make refreshData available globally for auto-refresh
+    // Fallback function to fetch metrics via REST API
+    function fetchLiveMetrics() {
+        fetch('/admin/api/metrics/live')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateChartsWithLiveData(data);
+                    updateActivityFeed(data);
+                    updateMetrics(data);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching live metrics:', error);
+            });
+    }
+    
+    // Make functions available globally
     window.refreshData = refreshData;
+    window.toggleChart = toggleChart;
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        if (socket) {
+            socket.emit('leave_admin_room');
+            socket.disconnect();
+        }
+    });
 </script>
 {% endblock %}

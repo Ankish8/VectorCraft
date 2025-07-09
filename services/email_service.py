@@ -13,6 +13,8 @@ from email.mime.base import MIMEBase
 from email import encoders
 from datetime import datetime
 from dotenv import load_dotenv
+import uuid
+import json
 
 # Ensure environment variables are loaded
 load_dotenv()
@@ -38,6 +40,10 @@ class EmailService:
             self.logger.info(f"Email service configured: {self.from_email}")
             self.logger.info("If SMTP fails, emails will be simulated with console output")
             self.enabled = True
+        
+        # Import database for email logging
+        from database import db
+        self.db = db
     
     def _create_message(self, to_email, subject, body_text, body_html=None):
         """Create email message"""
@@ -57,15 +63,38 @@ class EmailService:
         
         return msg
     
-    def _send_email(self, message):
-        """Send email via SMTP"""
+    def _send_email(self, message, email_log_id=None, email_type='general', transaction_id=None):
+        """Send email via SMTP with database logging"""
+        recipient = message['To']
+        subject = message['Subject']
+        smtp_response = None
+        status = 'pending'
+        error_message = None
+        
+        # Create email log if not provided
+        if email_log_id is None:
+            email_log_id = self.db.log_email(
+                transaction_id=transaction_id,
+                email_type=email_type,
+                recipient_email=recipient,
+                subject=subject,
+                status='pending'
+            )
+        
         if not self.enabled:
             self.logger.info("SMTP not configured - simulating email send:")
-            self.logger.info(f"TO: {message['To']}")
-            self.logger.info(f"SUBJECT: {message['Subject']}")
+            self.logger.info(f"TO: {recipient}")
+            self.logger.info(f"SUBJECT: {subject}")
             self.logger.info("BODY:")
             self.logger.info(message.get_payload()[0].get_payload())
             self.logger.info("-" * 50)
+            
+            # Update database log
+            self.db.update_email_status(
+                email_log_id, 
+                'simulated', 
+                smtp_response='SMTP not configured - simulated'
+            )
             return True
         
         # Try STARTTLS first (port 587), then SSL (port 465)
@@ -87,27 +116,48 @@ class EmailService:
                     server.login(self.smtp_username, self.smtp_password)
                     
                     text = message.as_string()
-                    server.sendmail(self.from_email, message['To'], text)
-                    self.logger.info(f"Email sent successfully to {message['To']} via port {port}")
+                    server.sendmail(self.from_email, recipient, text)
+                    self.logger.info(f"Email sent successfully to {recipient} via port {port}")
+                    
+                    # Update database log
+                    self.db.update_email_status(
+                        email_log_id,
+                        'sent',
+                        smtp_response=f'Successfully sent via port {port}',
+                        delivered_at=True
+                    )
                     return True
                     
             except smtplib.SMTPAuthenticationError as e:
-                self.logger.error(f"Authentication failed on port {port}: {str(e)}")
+                error_message = f"Authentication failed on port {port}: {str(e)}"
+                self.logger.error(error_message)
                 continue
             except smtplib.SMTPConnectError as e:
-                self.logger.error(f"Connection failed on port {port}: {str(e)}")
+                error_message = f"Connection failed on port {port}: {str(e)}"
+                self.logger.error(error_message)
                 continue
             except Exception as e:
-                self.logger.error(f"Failed on port {port}: {str(e)}")
+                error_message = f"Failed on port {port}: {str(e)}"
+                self.logger.error(error_message)
                 continue
         
-        self.logger.error(f"All SMTP connection attempts failed for {message['To']}")
+        # All attempts failed
+        self.logger.error(f"All SMTP connection attempts failed for {recipient}")
         self.logger.info("Falling back to email simulation:")
-        self.logger.info(f"TO: {message['To']}")
-        self.logger.info(f"SUBJECT: {message['Subject']}")
+        self.logger.info(f"TO: {recipient}")
+        self.logger.info(f"SUBJECT: {subject}")
         self.logger.info("BODY:")
         self.logger.info(message.get_payload()[0].get_payload())
         self.logger.info("-" * 50)
+        
+        # Update database log with failure
+        self.db.update_email_status(
+            email_log_id,
+            'failed',
+            error_message=error_message,
+            smtp_response='All SMTP attempts failed - simulated fallback'
+        )
+        
         return True  # Return True so the order process continues
     
     def send_credentials_email(self, email, username, password, order_details=None):
@@ -208,7 +258,8 @@ Support: support@vectorcraft.com
 """
         
         message = self._create_message(email, subject, body_text, body_html)
-        return self._send_email(message)
+        transaction_id = order_details.get('transaction_id') if order_details else None
+        return self._send_email(message, email_type='credentials', transaction_id=transaction_id)
     
     def send_purchase_confirmation(self, email, order_details):
         """Send purchase confirmation email"""
@@ -237,7 +288,8 @@ VectorCraft Team
 """
         
         message = self._create_message(email, subject, body_text)
-        return self._send_email(message)
+        transaction_id = order_details.get('transaction_id') if order_details else None
+        return self._send_email(message, email_type='purchase_confirmation', transaction_id=transaction_id)
     
     def send_error_notification(self, email, error_details):
         """Send error notification email"""
@@ -260,7 +312,8 @@ VectorCraft Team
 """
         
         message = self._create_message(email, subject, body_text)
-        return self._send_email(message)
+        transaction_id = error_details.get('transaction_id') if error_details else None
+        return self._send_email(message, email_type='error_notification', transaction_id=transaction_id)
     
     def send_admin_notification(self, subject, message):
         """Send notification to admin"""
@@ -274,7 +327,7 @@ Time: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 """
         
         msg = self._create_message(admin_email, f"[VectorCraft] {subject}", body_text)
-        return self._send_email(msg)
+        return self._send_email(msg, email_type='admin_notification')
 
 # Global email service instance
 email_service = EmailService()

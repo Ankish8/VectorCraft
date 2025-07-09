@@ -273,6 +273,117 @@ class PerformanceMonitor:
                 logger.error(f"Error in system monitoring loop: {e}")
                 time.sleep(60)  # Wait longer on error
     
+    def get_real_time_metrics(self):
+        """Get real-time metrics for live dashboard"""
+        try:
+            current_time = datetime.now()
+            
+            # Get current system metrics
+            if self.metrics['system_metrics']:
+                latest_system = self.metrics['system_metrics'][-1]
+            else:
+                # Fallback to direct measurement
+                memory = psutil.virtual_memory()
+                cpu_percent = psutil.cpu_percent(interval=0.1)
+                disk = psutil.disk_usage('/')
+                
+                latest_system = {
+                    'timestamp': current_time,
+                    'memory_percent': memory.percent,
+                    'memory_used': memory.used,
+                    'memory_total': memory.total,
+                    'cpu_percent': cpu_percent,
+                    'disk_percent': disk.percent,
+                    'disk_used': disk.used,
+                    'disk_total': disk.total
+                }
+            
+            # Get recent response times
+            recent_response_times = {}
+            for endpoint, times in self.metrics['request_times'].items():
+                recent_times = [
+                    m['time'] for m in times
+                    if m['timestamp'] > current_time - timedelta(minutes=5)
+                ]
+                if recent_times:
+                    recent_response_times[endpoint] = recent_times[-10:]  # Last 10 requests
+            
+            # Get active requests
+            active_requests = dict(self.metrics['active_requests'])
+            
+            # Get recent vectorization metrics
+            recent_vectorization = list(self.metrics['vectorization_metrics'])[-10:]
+            
+            return {
+                'timestamp': current_time.isoformat(),
+                'system_metrics': latest_system,
+                'recent_response_times': recent_response_times,
+                'active_requests': active_requests,
+                'vectorization_metrics': recent_vectorization,
+                'performance_summary': self._calculate_performance_summary()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting real-time metrics: {e}")
+            return {
+                'timestamp': datetime.now().isoformat(),
+                'error': str(e)
+            }
+    
+    def _calculate_performance_summary(self):
+        """Calculate overall performance summary"""
+        try:
+            summary = {
+                'avg_response_time': 0,
+                'p95_response_time': 0,
+                'error_rate': 0,
+                'throughput': 0,
+                'system_health': 'healthy'
+            }
+            
+            # Calculate average response time across all endpoints
+            all_times = []
+            for endpoint, times in self.metrics['request_times'].items():
+                recent_times = [
+                    m['time'] for m in times
+                    if m['timestamp'] > datetime.now() - timedelta(minutes=5)
+                ]
+                all_times.extend(recent_times)
+            
+            if all_times:
+                summary['avg_response_time'] = statistics.mean(all_times)
+                summary['p95_response_time'] = statistics.quantiles(all_times, n=20)[18] if len(all_times) >= 20 else max(all_times)
+            
+            # Calculate error rate
+            total_requests = sum(self.metrics['request_counts'].values())
+            total_errors = sum(self.metrics['error_counts'].values())
+            if total_requests > 0:
+                summary['error_rate'] = total_errors / total_requests
+            
+            # Calculate throughput (requests per minute)
+            recent_requests = sum(self.metrics['active_requests'].values())
+            summary['throughput'] = recent_requests
+            
+            # Determine system health
+            if summary['error_rate'] > 0.1:  # 10% error rate
+                summary['system_health'] = 'critical'
+            elif summary['avg_response_time'] > 500:  # 500ms average
+                summary['system_health'] = 'warning'
+            elif self.metrics['memory_usage'] and self.metrics['memory_usage'][-1] > 90:
+                summary['system_health'] = 'warning'
+            
+            return summary
+            
+        except Exception as e:
+            logger.error(f"Error calculating performance summary: {e}")
+            return {
+                'avg_response_time': 0,
+                'p95_response_time': 0,
+                'error_rate': 0,
+                'throughput': 0,
+                'system_health': 'unknown'
+            }
+    
     def _check_performance_thresholds(self, endpoint, response_time):
         """Check if performance thresholds are exceeded"""
         # Get recent metrics for this endpoint

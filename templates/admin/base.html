@@ -9,8 +9,230 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Enhanced UI/UX System -->
+    <link href="{{ url_for('static', filename='css/vectorcraft.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/responsive-dashboard.css') }}" rel="stylesheet">
+    
+    <!-- Theme System CSS Variables -->
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --background-color: #ffffff;
+            --surface-color: #f8fafc;
+            --text-color: #1f2937;
+            --text-secondary-color: #6b7280;
+            --border-color: #e5e7eb;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --info-color: #3b82f6;
+        }
+        
+        /* Dark theme will be applied dynamically */
+        .theme-dark {
+            --primary-color: #818cf8;
+            --secondary-color: #a78bfa;
+            --background-color: #0f172a;
+            --surface-color: #1e293b;
+            --text-color: #f1f5f9;
+            --text-secondary-color: #94a3b8;
+            --border-color: #334155;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --success-color: #22c55e;
+            --warning-color: #eab308;
+            --error-color: #f87171;
+            --info-color: #60a5fa;
+        }
+        
+        /* Apply theme colors to elements */
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .card, .metric-card {
+            background-color: var(--surface-color);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+        
+        .text-muted {
+            color: var(--text-secondary-color) !important;
+        }
+        
+        .border {
+            border-color: var(--border-color) !important;
+        }
+        
+        .bg-light {
+            background-color: var(--surface-color) !important;
+        }
+        
+        .navbar-dark .navbar-nav .nav-link {
+            color: var(--text-color);
+        }
+        
+        .dropdown-menu {
+            background-color: var(--surface-color);
+            border-color: var(--border-color);
+        }
+        
+        .dropdown-item {
+            color: var(--text-color);
+        }
+        
+        .dropdown-item:hover {
+            background-color: var(--border-color);
+        }
+        
+        .table {
+            color: var(--text-color);
+        }
+        
+        .table td, .table th {
+            border-color: var(--border-color);
+        }
+        
+        .btn-outline-primary {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-outline-secondary {
+            border-color: var(--text-secondary-color);
+            color: var(--text-secondary-color);
+        }
+        
+        .btn-outline-secondary:hover {
+            background-color: var(--text-secondary-color);
+            border-color: var(--text-secondary-color);
+        }
+        
+        .form-control {
+            background-color: var(--background-color);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+        
+        .form-control:focus {
+            background-color: var(--background-color);
+            border-color: var(--primary-color);
+            color: var(--text-color);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .alert {
+            border-color: var(--border-color);
+        }
+        
+        .modal-content {
+            background-color: var(--surface-color);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+        
+        .modal-header {
+            border-bottom-color: var(--border-color);
+        }
+        
+        .modal-footer {
+            border-top-color: var(--border-color);
+        }
+        
+        .offcanvas {
+            background-color: var(--surface-color);
+            color: var(--text-color);
+        }
+        
+        .offcanvas-header {
+            border-bottom-color: var(--border-color);
+        }
+        
+        /* Smooth transitions for all theme changes */
+        * {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        /* Accessibility enhancements */
+        .focus-visible {
+            outline: 2px solid var(--warning-color);
+            outline-offset: 2px;
+        }
+        
+        /* Responsive image container */
+        .responsive-image {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Loading states */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .theme-dark .loading-overlay {
+            background: rgba(15, 23, 42, 0.8);
+        }
+        
+        /* Animation classes */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-in-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--surface-color);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary-color);
+        }
+    </style>
     
     <style>
         .sidebar {
@@ -123,6 +345,26 @@
                     <i class="bi bi-graph-up"></i> Analytics
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ url_for('security.dashboard') }}" class="nav-link {% if request.endpoint == 'security.dashboard' %}active{% endif %}">
+                    <i class="bi bi-shield-lock"></i> Security
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('security.audit_logs') }}" class="nav-link {% if request.endpoint == 'security.audit_logs' %}active{% endif %}">
+                    <i class="bi bi-journal-check"></i> Audit Logs
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('api_management.api_management') }}" class="nav-link {% if request.endpoint == 'api_management.api_management' %}active{% endif %}">
+                    <i class="bi bi-api"></i> API Management
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('admin.users') }}" class="nav-link {% if request.endpoint == 'admin.users' %}active{% endif %}">
+                    <i class="bi bi-people"></i> User Management
+                </a>
+            </li>
         </ul>
         
         <hr class="text-white">
@@ -186,6 +428,21 @@
                                 <i class="bi bi-graph-up"></i> Analytics
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('security.dashboard') }}">
+                                <i class="bi bi-shield-lock"></i> Security
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('security.audit_logs') }}">
+                                <i class="bi bi-journal-check"></i> Audit Logs
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin.users') }}">
+                                <i class="bi bi-people"></i> User Management
+                            </a>
+                        </li>
                         <li><hr class="dropdown-divider"></li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('dashboard') }}">
@@ -224,6 +481,13 @@
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Enhanced UI/UX System -->
+    <script src="{{ url_for('static', filename='js/vectorcraft.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/theme-system.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/interactive-visualizations.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard-layout.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/accessibility-enhancements.js') }}"></script>
     
     <!-- Common Admin JavaScript -->
     <script>

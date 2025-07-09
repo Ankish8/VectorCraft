@@ -14,14 +14,20 @@ from flask_login import LoginManager, current_user
 from flask_wtf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_socketio import SocketIO
 
 from blueprints import auth_bp, api_bp, admin_bp, payment_bp, main_bp
+from blueprints.admin.file_management import file_management_bp
 from blueprints.auth.utils import User
 from database import db
+
+# Global SocketIO instance for real-time features
+socketio = None
 
 
 def create_app(config_name='development'):
     """Create and configure Flask application"""
+    global socketio
     app = Flask(__name__)
     
     # Load configuration
@@ -29,6 +35,9 @@ def create_app(config_name='development'):
     
     # Initialize extensions
     _init_extensions(app)
+    
+    # Initialize SocketIO
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
     
     # Register blueprints
     _register_blueprints(app)
@@ -45,7 +54,7 @@ def create_app(config_name='development'):
     # Configure logging
     _configure_logging(app)
     
-    return app
+    return app, socketio
 
 
 def _get_config(config_name):
@@ -121,6 +130,7 @@ def _register_blueprints(app):
     app.register_blueprint(auth_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(file_management_bp)
     app.register_blueprint(payment_bp)
 
 

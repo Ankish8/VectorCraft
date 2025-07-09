@@ -1,36 +1,130 @@
 {% extends "admin/base.html" %}
 
-{% block title %}Transactions - VectorCraft Admin{% endblock %}
+{% block title %}Advanced Transaction Management - VectorCraft Admin{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="bi bi-credit-card"></i> Transaction Monitoring</h1>
-    <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
-        <i class="bi bi-arrow-clockwise"></i> Refresh
-    </button>
+    <h1><i class="bi bi-credit-card"></i> Advanced Transaction Management</h1>
+    <div class="btn-group">
+        <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+        <button class="btn btn-outline-info btn-sm" onclick="exportTransactions()">
+            <i class="bi bi-download"></i> Export
+        </button>
+        <button class="btn btn-outline-success btn-sm" onclick="generateReport()">
+            <i class="bi bi-file-earmark-text"></i> Report
+        </button>
+    </div>
 </div>
 
-<!-- Filters -->
+<!-- Transaction Analytics Summary -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title" id="totalRevenue">$0.00</h4>
+                        <p class="card-text">Total Revenue</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-currency-dollar" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title" id="successRate">0%</h4>
+                        <p class="card-text">Success Rate</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-check-circle" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title" id="pendingCount">0</h4>
+                        <p class="card-text">Pending</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title" id="fraudAlerts">0</h4>
+                        <p class="card-text">Fraud Alerts</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-shield-exclamation" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Advanced Filters -->
 <div class="card mb-4">
     <div class="card-header">
-        <h5 class="mb-0"><i class="bi bi-funnel"></i> Filters</h5>
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> Advanced Filters & Analytics</h5>
     </div>
     <div class="card-body">
         <div class="row">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Status</label>
                 <select class="form-select" id="statusFilter">
                     <option value="">All Statuses</option>
                     <option value="completed">Completed</option>
                     <option value="pending">Pending</option>
                     <option value="failed">Failed</option>
+                    <option value="disputed">Disputed</option>
+                    <option value="refunded">Refunded</option>
                 </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Email</label>
                 <input type="email" class="form-control" id="emailFilter" placeholder="Search by email">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
+                <label class="form-label">Date Range</label>
+                <select class="form-select" id="dateRangeFilter">
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month" selected>This Month</option>
+                    <option value="quarter">This Quarter</option>
+                    <option value="year">This Year</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Risk Level</label>
+                <select class="form-select" id="riskFilter">
+                    <option value="">All Risk Levels</option>
+                    <option value="low">Low Risk</option>
+                    <option value="medium">Medium Risk</option>
+                    <option value="high">High Risk</option>
+                    <option value="critical">Critical Risk</option>
+                </select>
+            </div>
+            <div class="col-md-2">
                 <label class="form-label">Limit</label>
                 <select class="form-select" id="limitFilter">
                     <option value="50">50 transactions</option>
@@ -38,28 +132,227 @@
                     <option value="200">200 transactions</option>
                 </select>
             </div>
-            <div class="col-md-3 d-flex align-items-end">
+            <div class="col-md-2 d-flex align-items-end">
                 <button class="btn btn-primary" onclick="applyFilters()">
-                    <i class="bi bi-search"></i> Apply Filters
+                    <i class="bi bi-search"></i> Apply
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Transactions Table -->
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-table"></i> Recent Transactions</h5>
-        <span id="transactionCount" class="badge bg-primary">Loading...</span>
-    </div>
-    <div class="card-body">
-        <div id="transactionsTable">
-            <div class="text-center py-4">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
+<!-- Transaction Analytics Tabs -->
+<ul class="nav nav-tabs" id="transactionTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="transactions-tab" data-bs-toggle="tab" data-bs-target="#transactions" type="button" role="tab">Transactions</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="analytics-tab" data-bs-toggle="tab" data-bs-target="#analytics" type="button" role="tab">Analytics</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="fraud-tab" data-bs-toggle="tab" data-bs-target="#fraud" type="button" role="tab">Fraud Detection</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="disputes-tab" data-bs-toggle="tab" data-bs-target="#disputes" type="button" role="tab">Disputes</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button" role="tab">Reports</button>
+    </li>
+</ul>
+
+<div class="tab-content" id="transactionTabsContent">
+    <!-- Transactions Tab -->
+    <div class="tab-pane fade show active" id="transactions" role="tabpanel">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-table"></i> Transaction List</h5>
+                <span id="transactionCount" class="badge bg-primary">Loading...</span>
+            </div>
+            <div class="card-body">
+                <div id="transactionsTable">
+                    <div class="text-center py-4">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading transactions...</p>
+                    </div>
                 </div>
-                <p class="mt-2">Loading transactions...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Tab -->
+    <div class="tab-pane fade" id="analytics" role="tabpanel">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Revenue Trends</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="revenueChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Transaction Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="statusChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-graph-up"></i> Performance Metrics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="performanceMetrics">
+                            <div class="text-center py-4">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2">Loading performance metrics...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fraud Detection Tab -->
+    <div class="tab-pane fade" id="fraud" role="tabpanel">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-shield-exclamation"></i> Fraud Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="fraudStats">
+                            <div class="text-center py-4">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2">Loading fraud statistics...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> High-Risk Transactions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="highRiskTransactions">
+                            <div class="text-center py-4">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2">Loading high-risk transactions...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disputes Tab -->
+    <div class="tab-pane fade" id="disputes" role="tabpanel">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Dispute Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="disputeStats">
+                            <div class="text-center py-4">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2">Loading dispute statistics...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-list-check"></i> Open Disputes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="openDisputes">
+                            <div class="text-center py-4">
+                                <div class="spinner-border" role="status"></div>
+                                <p class="mt-2">Loading open disputes...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports Tab -->
+    <div class="tab-pane fade" id="reports" role="tabpanel">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-bar-graph"></i> Financial Reports</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Generate Report</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Report Type</label>
+                            <select class="form-select" id="reportType">
+                                <option value="financial">Financial Report</option>
+                                <option value="analytics">Transaction Analytics</option>
+                                <option value="fraud">Fraud Report</option>
+                                <option value="disputes">Dispute Report</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Time Period</label>
+                            <select class="form-select" id="reportPeriod">
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month" selected>This Month</option>
+                                <option value="quarter">This Quarter</option>
+                                <option value="year">This Year</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="generateDetailedReport()">
+                            <i class="bi bi-file-earmark-text"></i> Generate Report
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Export Data</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Export Format</label>
+                            <select class="form-select" id="exportFormat">
+                                <option value="json">JSON</option>
+                                <option value="csv">CSV</option>
+                                <option value="xlsx">Excel</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Date Range</label>
+                            <select class="form-select" id="exportDateRange">
+                                <option value="week">Last Week</option>
+                                <option value="month" selected>Last Month</option>
+                                <option value="quarter">Last Quarter</option>
+                                <option value="year">Last Year</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-success" onclick="exportData()">
+                            <i class="bi bi-download"></i> Export Data
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -67,19 +360,43 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    let revenueChart = null;
+    let statusChart = null;
+    
     function refreshData() {
         loadTransactions();
+        loadAnalytics();
+        loadFraudData();
+        loadDisputeData();
+        loadSummaryCards();
     }
     
     function applyFilters() {
         loadTransactions();
     }
     
+    function loadSummaryCards() {
+        fetch('/admin/api/transaction-summary')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('totalRevenue').textContent = '$' + (data.total_revenue || 0).toFixed(2);
+                    document.getElementById('successRate').textContent = (data.success_rate || 0).toFixed(1) + '%';
+                    document.getElementById('pendingCount').textContent = data.pending_count || 0;
+                    document.getElementById('fraudAlerts').textContent = data.fraud_alerts || 0;
+                }
+            })
+            .catch(error => console.error('Error loading summary:', error));
+    }
+    
     function loadTransactions() {
         const status = document.getElementById('statusFilter').value;
         const email = document.getElementById('emailFilter').value;
         const limit = document.getElementById('limitFilter').value;
+        const dateRange = document.getElementById('dateRangeFilter').value;
+        const risk = document.getElementById('riskFilter').value;
         
         let url = '/admin/api/transactions?';
         const params = new URLSearchParams();
@@ -87,6 +404,8 @@
         if (status) params.append('status', status);
         if (email) params.append('email', email);
         if (limit) params.append('limit', limit);
+        if (dateRange) params.append('date_range', dateRange);
+        if (risk) params.append('risk', risk);
         
         url += params.toString();
         
@@ -125,6 +444,7 @@
                             <th>Username</th>
                             <th>Amount</th>
                             <th>Status</th>
+                            <th>Risk Level</th>
                             <th>PayPal Order</th>
                             <th>Created</th>
                             <th>Actions</th>
@@ -135,7 +455,13 @@
         
         transactions.forEach(tx => {
             const statusClass = tx.status === 'completed' ? 'success' : 
-                               tx.status === 'pending' ? 'warning' : 'danger';
+                               tx.status === 'pending' ? 'warning' : 
+                               tx.status === 'disputed' ? 'info' :
+                               tx.status === 'refunded' ? 'secondary' : 'danger';
+            
+            const riskClass = tx.risk_level === 'low' ? 'success' :
+                             tx.risk_level === 'medium' ? 'warning' :
+                             tx.risk_level === 'high' ? 'danger' : 'dark';
             
             html += `
                 <tr>
@@ -144,12 +470,21 @@
                     <td>${tx.username || '-'}</td>
                     <td>$${parseFloat(tx.amount || 0).toFixed(2)}</td>
                     <td><span class="badge bg-${statusClass}">${tx.status}</span></td>
+                    <td><span class="badge bg-${riskClass}">${tx.risk_level || 'low'}</span></td>
                     <td><small>${tx.paypal_order_id || '-'}</small></td>
                     <td><small>${tx.created_at}</small></td>
                     <td>
-                        <button class="btn btn-sm btn-outline-info" onclick="viewTransaction('${tx.transaction_id}')">
-                            <i class="bi bi-eye"></i>
-                        </button>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-info" onclick="viewTransaction('${tx.transaction_id}')">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="analyzeTransaction('${tx.transaction_id}')">
+                                <i class="bi bi-shield-check"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="createDispute('${tx.transaction_id}')">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -160,16 +495,349 @@
     }
     
     function viewTransaction(transactionId) {
-        alert('Transaction details for: ' + transactionId);
-        // In a real implementation, this would open a modal with detailed transaction info
+        fetch(`/admin/api/transaction-details/${transactionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showTransactionModal(data.transaction);
+                } else {
+                    alert('Error loading transaction details: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading transaction details');
+            });
+    }
+    
+    function analyzeTransaction(transactionId) {
+        fetch(`/admin/api/fraud-analysis/${transactionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showFraudAnalysisModal(data.analysis);
+                } else {
+                    alert('Error loading fraud analysis: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading fraud analysis');
+            });
+    }
+    
+    function createDispute(transactionId) {
+        if (confirm('Create a dispute case for this transaction?')) {
+            fetch(`/admin/api/create-dispute/${transactionId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    dispute_type: 'billing_inquiry',
+                    message: 'Admin initiated dispute case'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Dispute case created: ' + data.case_id);
+                    refreshData();
+                } else {
+                    alert('Error creating dispute: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error creating dispute');
+            });
+        }
+    }
+    
+    function loadAnalytics() {
+        fetch('/admin/api/transaction-analytics')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateCharts(data.analytics);
+                    updatePerformanceMetrics(data.performance);
+                }
+            })
+            .catch(error => console.error('Error loading analytics:', error));
+    }
+    
+    function loadFraudData() {
+        fetch('/admin/api/fraud-statistics')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateFraudStats(data.fraud_stats);
+                    updateHighRiskTransactions(data.high_risk_transactions);
+                }
+            })
+            .catch(error => console.error('Error loading fraud data:', error));
+    }
+    
+    function loadDisputeData() {
+        fetch('/admin/api/dispute-summary')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateDisputeStats(data.dispute_stats);
+                    updateOpenDisputes(data.open_disputes);
+                }
+            })
+            .catch(error => console.error('Error loading dispute data:', error));
+    }
+    
+    function updateCharts(analytics) {
+        // Revenue Chart
+        const revenueCtx = document.getElementById('revenueChart');
+        if (revenueChart) revenueChart.destroy();
+        
+        revenueChart = new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: analytics.daily_trends.map(d => d.date),
+                datasets: [{
+                    label: 'Daily Revenue',
+                    data: analytics.daily_trends.map(d => d.total_revenue),
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        // Status Chart
+        const statusCtx = document.getElementById('statusChart');
+        if (statusChart) statusChart.destroy();
+        
+        statusChart = new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'Pending', 'Failed', 'Disputed'],
+                datasets: [{
+                    data: [
+                        analytics.completed_transactions,
+                        analytics.pending_transactions,
+                        analytics.failed_transactions,
+                        analytics.disputed_transactions
+                    ],
+                    backgroundColor: [
+                        '#28a745',
+                        '#ffc107',
+                        '#dc3545',
+                        '#17a2b8'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+    
+    function updatePerformanceMetrics(performance) {
+        const html = `
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">${(performance.avg_processing_time || 0).toFixed(1)}s</h5>
+                            <p class="card-text">Avg Processing Time</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">${(performance.api_avg_response_time || 0).toFixed(0)}ms</h5>
+                            <p class="card-text">API Response Time</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">${(performance.success_rate || 0).toFixed(1)}%</h5>
+                            <p class="card-text">Success Rate</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">${(performance.error_rate || 0).toFixed(1)}%</h5>
+                            <p class="card-text">Error Rate</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('performanceMetrics').innerHTML = html;
+    }
+    
+    function updateFraudStats(stats) {
+        const html = `
+            <div class="list-group">
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    Total Analyses
+                    <span class="badge bg-primary rounded-pill">${stats.total_analyses || 0}</span>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    High Risk
+                    <span class="badge bg-danger rounded-pill">${stats.high_risk_count || 0}</span>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    Blocked
+                    <span class="badge bg-warning rounded-pill">${stats.blocked_count || 0}</span>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    Fraud Alerts
+                    <span class="badge bg-info rounded-pill">${stats.fraud_alerts || 0}</span>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('fraudStats').innerHTML = html;
+    }
+    
+    function updateHighRiskTransactions(transactions) {
+        if (!transactions || transactions.length === 0) {
+            document.getElementById('highRiskTransactions').innerHTML = 
+                '<div class="text-center py-4"><i class="bi bi-shield-check" style="font-size: 3rem; color: #28a745;"></i><p class="mt-3">No high-risk transactions</p></div>';
+            return;
+        }
+        
+        let html = '<div class="table-responsive"><table class="table table-sm">';
+        html += '<thead><tr><th>Transaction ID</th><th>Risk Level</th><th>Amount</th><th>Status</th></tr></thead><tbody>';
+        
+        transactions.forEach(tx => {
+            const riskClass = tx.risk_level === 'high' ? 'danger' : 'warning';
+            html += `
+                <tr>
+                    <td><code>${tx.transaction_id}</code></td>
+                    <td><span class="badge bg-${riskClass}">${tx.risk_level}</span></td>
+                    <td>$${parseFloat(tx.amount || 0).toFixed(2)}</td>
+                    <td>${tx.status}</td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table></div>';
+        document.getElementById('highRiskTransactions').innerHTML = html;
+    }
+    
+    function updateDisputeStats(stats) {
+        const html = `
+            <div class="list-group">
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    Total Disputes
+                    <span class="badge bg-primary rounded-pill">${stats.total_disputes || 0}</span>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    Open
+                    <span class="badge bg-warning rounded-pill">${stats.open_disputes || 0}</span>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    Resolved
+                    <span class="badge bg-success rounded-pill">${stats.resolved_disputes || 0}</span>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    Resolution Rate
+                    <span class="badge bg-info rounded-pill">${(stats.resolution_rate || 0).toFixed(1)}%</span>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('disputeStats').innerHTML = html;
+    }
+    
+    function updateOpenDisputes(disputes) {
+        if (!disputes || disputes.length === 0) {
+            document.getElementById('openDisputes').innerHTML = 
+                '<div class="text-center py-4"><i class="bi bi-check-circle" style="font-size: 3rem; color: #28a745;"></i><p class="mt-3">No open disputes</p></div>';
+            return;
+        }
+        
+        let html = '<div class="table-responsive"><table class="table table-sm">';
+        html += '<thead><tr><th>Case ID</th><th>Type</th><th>Priority</th><th>Amount</th><th>Status</th></tr></thead><tbody>';
+        
+        disputes.forEach(dispute => {
+            const priorityClass = dispute.priority === 'urgent' ? 'danger' : 
+                                 dispute.priority === 'high' ? 'warning' : 'info';
+            html += `
+                <tr>
+                    <td><code>${dispute.case_id}</code></td>
+                    <td>${dispute.dispute_type}</td>
+                    <td><span class="badge bg-${priorityClass}">${dispute.priority}</span></td>
+                    <td>$${parseFloat(dispute.amount || 0).toFixed(2)}</td>
+                    <td>${dispute.status}</td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table></div>';
+        document.getElementById('openDisputes').innerHTML = html;
+    }
+    
+    function exportTransactions() {
+        const format = document.getElementById('exportFormat').value || 'json';
+        const dateRange = document.getElementById('exportDateRange').value || 'month';
+        
+        window.open(`/admin/api/export-transactions?format=${format}&date_range=${dateRange}`, '_blank');
+    }
+    
+    function generateReport() {
+        const type = document.getElementById('reportType').value || 'financial';
+        const period = document.getElementById('reportPeriod').value || 'month';
+        
+        window.open(`/admin/api/generate-report?type=${type}&period=${period}`, '_blank');
+    }
+    
+    function generateDetailedReport() {
+        generateReport();
+    }
+    
+    function exportData() {
+        exportTransactions();
+    }
+    
+    function showTransactionModal(transaction) {
+        // Create and show modal with transaction details
+        alert('Transaction Details:\n' + JSON.stringify(transaction, null, 2));
+    }
+    
+    function showFraudAnalysisModal(analysis) {
+        // Create and show modal with fraud analysis
+        alert('Fraud Analysis:\n' + JSON.stringify(analysis, null, 2));
     }
     
     // Load data on page load
     document.addEventListener('DOMContentLoaded', function() {
-        loadTransactions();
+        refreshData();
+        
+        // Auto-refresh every 5 minutes
+        setInterval(refreshData, 300000);
     });
     
-    // Make refreshData available globally
+    // Make functions available globally
     window.refreshData = refreshData;
+    window.exportTransactions = exportTransactions;
+    window.generateReport = generateReport;
+    window.generateDetailedReport = generateDetailedReport;
+    window.exportData = exportData;
 </script>
 {% endblock %}

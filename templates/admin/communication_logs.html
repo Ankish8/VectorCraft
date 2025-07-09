@@ -1,0 +1,1338 @@
+{% extends "admin/base.html" %}
+{% block title %}Communication Logs - VectorCraft Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .communication-logs-container {
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .logs-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+    
+    .logs-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .action-button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    
+    .action-button.primary {
+        background: #667eea;
+        color: white;
+    }
+    
+    .action-button.primary:hover {
+        background: #5a67d8;
+    }
+    
+    .action-button.secondary {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    
+    .action-button.secondary:hover {
+        background: #e5e7eb;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    
+    .stat-card.email {
+        border-left: 4px solid #3b82f6;
+    }
+    
+    .stat-card.sms {
+        border-left: 4px solid #10b981;
+    }
+    
+    .stat-card.call {
+        border-left: 4px solid #f59e0b;
+    }
+    
+    .stat-card.chat {
+        border-left: 4px solid #8b5cf6;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #1f2937;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        color: #6b7280;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .stat-change {
+        font-size: 0.8rem;
+        margin-top: 5px;
+    }
+    
+    .stat-change.positive {
+        color: #10b981;
+    }
+    
+    .stat-change.negative {
+        color: #ef4444;
+    }
+    
+    .filters-section {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .filters-row {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+    }
+    
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .filter-group label {
+        font-size: 0.9rem;
+        color: #374151;
+        font-weight: 500;
+    }
+    
+    .filter-group select,
+    .filter-group input {
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+    
+    .quick-filters {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .quick-filter {
+        padding: 6px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 15px;
+        background: white;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.2s;
+    }
+    
+    .quick-filter:hover {
+        background: #f3f4f6;
+    }
+    
+    .quick-filter.active {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    
+    .logs-table-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .logs-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .logs-table th,
+    .logs-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .logs-table th {
+        background: #f9fafb;
+        font-weight: 600;
+        color: #374151;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .logs-table tr:hover {
+        background: #f9fafb;
+    }
+    
+    .communication-type {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .communication-type.email {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .communication-type.sms {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .communication-type.call {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .communication-type.chat {
+        background: #e0e7ff;
+        color: #3730a3;
+    }
+    
+    .direction-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .direction-badge.inbound {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .direction-badge.outbound {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .status-badge.sent {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .status-badge.delivered {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .status-badge.failed {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .status-badge.pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .log-content {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+    
+    .log-content:hover {
+        color: #667eea;
+    }
+    
+    .log-actions {
+        display: flex;
+        gap: 5px;
+    }
+    
+    .log-action {
+        padding: 4px 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        font-size: 0.75rem;
+        transition: all 0.2s;
+    }
+    
+    .log-action:hover {
+        background: #f9fafb;
+    }
+    
+    .log-action.primary {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    
+    .log-action.primary:hover {
+        background: #5a67d8;
+    }
+    
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-top: 20px;
+        padding: 20px;
+    }
+    
+    .pagination-button {
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    
+    .pagination-button:hover {
+        background: #f9fafb;
+    }
+    
+    .pagination-button.active {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    
+    .pagination-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6b7280;
+    }
+    
+    .empty-state-icon {
+        font-size: 4rem;
+        color: #d1d5db;
+        margin-bottom: 20px;
+    }
+    
+    .empty-state-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 10px;
+    }
+    
+    .empty-state-message {
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+    }
+    
+    .modal-content {
+        background-color: white;
+        margin: 5% auto;
+        padding: 0;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    
+    .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+    
+    .close-modal {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #6b7280;
+    }
+    
+    .close-modal:hover {
+        color: #374151;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .detail-item {
+        padding: 10px;
+        border-radius: 4px;
+        background: #f8fafc;
+    }
+    
+    .detail-label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 5px;
+    }
+    
+    .detail-value {
+        color: #4b5563;
+        word-break: break-word;
+    }
+    
+    .content-preview {
+        background: #f8fafc;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        padding: 15px;
+        margin-top: 15px;
+        white-space: pre-wrap;
+        font-family: monospace;
+        font-size: 0.9rem;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .timeline-view {
+        position: relative;
+        margin-left: 20px;
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 20px;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -5px;
+        top: 5px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #667eea;
+    }
+    
+    .timeline-item::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 15px;
+        width: 1px;
+        height: 100%;
+        background: #e5e7eb;
+    }
+    
+    .timeline-item:last-child::after {
+        display: none;
+    }
+    
+    .timeline-time {
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin-bottom: 5px;
+    }
+    
+    .timeline-content {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        padding: 10px;
+    }
+    
+    .chart-container {
+        height: 300px;
+        margin: 20px 0;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+    }
+    
+    .chart-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 15px;
+    }
+    
+    .export-formats {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .export-format {
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.2s;
+    }
+    
+    .export-format:hover {
+        background: #f9fafb;
+    }
+    
+    .search-highlight {
+        background: #fef3c7;
+        padding: 2px 4px;
+        border-radius: 2px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="communication-logs-container">
+    <div class="logs-header">
+        <h1 class="page-title">Communication Logs</h1>
+        <div class="logs-actions">
+            <button class="action-button secondary" onclick="refreshLogs()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button class="action-button secondary" onclick="showExportModal()">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button class="action-button secondary" onclick="showAnalytics()">
+                <i class="fas fa-chart-line"></i> Analytics
+            </button>
+        </div>
+    </div>
+    
+    <!-- Communication Stats -->
+    <div class="stats-grid">
+        <div class="stat-card email">
+            <div class="stat-number">{{ stats.email_count or 0 }}</div>
+            <div class="stat-label">Email Communications</div>
+            <div class="stat-change positive">+{{ stats.email_change or 0 }}% from last week</div>
+        </div>
+        
+        <div class="stat-card sms">
+            <div class="stat-number">{{ stats.sms_count or 0 }}</div>
+            <div class="stat-label">SMS Messages</div>
+            <div class="stat-change positive">+{{ stats.sms_change or 0 }}% from last week</div>
+        </div>
+        
+        <div class="stat-card call">
+            <div class="stat-number">{{ stats.call_count or 0 }}</div>
+            <div class="stat-label">Phone Calls</div>
+            <div class="stat-change negative">{{ stats.call_change or 0 }}% from last week</div>
+        </div>
+        
+        <div class="stat-card chat">
+            <div class="stat-number">{{ stats.chat_count or 0 }}</div>
+            <div class="stat-label">Chat Messages</div>
+            <div class="stat-change positive">+{{ stats.chat_change or 0 }}% from last week</div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="filters-section">
+        <div class="filters-row">
+            <div class="filter-group">
+                <label for="type-filter">Type:</label>
+                <select id="type-filter" onchange="filterLogs()">
+                    <option value="all">All Types</option>
+                    <option value="email">Email</option>
+                    <option value="sms">SMS</option>
+                    <option value="call">Phone Call</option>
+                    <option value="chat">Chat</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="direction-filter">Direction:</label>
+                <select id="direction-filter" onchange="filterLogs()">
+                    <option value="all">All</option>
+                    <option value="inbound">Inbound</option>
+                    <option value="outbound">Outbound</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="status-filter">Status:</label>
+                <select id="status-filter" onchange="filterLogs()">
+                    <option value="all">All</option>
+                    <option value="sent">Sent</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="failed">Failed</option>
+                    <option value="pending">Pending</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="date-from">From:</label>
+                <input type="date" id="date-from" onchange="filterLogs()">
+            </div>
+            
+            <div class="filter-group">
+                <label for="date-to">To:</label>
+                <input type="date" id="date-to" onchange="filterLogs()">
+            </div>
+            
+            <div class="filter-group">
+                <label for="search-input">Search:</label>
+                <input type="text" id="search-input" placeholder="Search content, emails..." onkeyup="searchLogs()">
+            </div>
+        </div>
+        
+        <div class="quick-filters">
+            <div class="quick-filter active" onclick="setQuickFilter('all')">All</div>
+            <div class="quick-filter" onclick="setQuickFilter('today')">Today</div>
+            <div class="quick-filter" onclick="setQuickFilter('week')">This Week</div>
+            <div class="quick-filter" onclick="setQuickFilter('month')">This Month</div>
+            <div class="quick-filter" onclick="setQuickFilter('failed')">Failed Only</div>
+            <div class="quick-filter" onclick="setQuickFilter('email')">Email Only</div>
+        </div>
+    </div>
+    
+    <!-- Communication Chart -->
+    <div class="chart-container">
+        <div class="chart-title">Communication Volume Over Time</div>
+        <canvas id="communication-chart"></canvas>
+    </div>
+    
+    <!-- Communication Logs Table -->
+    <div class="logs-table-container">
+        {% if communication_logs %}
+        <table class="logs-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Type</th>
+                    <th>Direction</th>
+                    <th>Contact</th>
+                    <th>Subject</th>
+                    <th>Content</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in communication_logs %}
+                <tr data-log-id="{{ log.log_id }}" 
+                    data-type="{{ log.communication_type }}"
+                    data-direction="{{ log.direction }}"
+                    data-status="{{ log.status }}">
+                    <td>{{ log.created_at }}</td>
+                    <td>
+                        <span class="communication-type {{ log.communication_type }}">
+                            {% if log.communication_type == 'email' %}
+                                <i class="fas fa-envelope"></i>
+                            {% elif log.communication_type == 'sms' %}
+                                <i class="fas fa-sms"></i>
+                            {% elif log.communication_type == 'call' %}
+                                <i class="fas fa-phone"></i>
+                            {% elif log.communication_type == 'chat' %}
+                                <i class="fas fa-comments"></i>
+                            {% endif %}
+                            {{ log.communication_type }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="direction-badge {{ log.direction }}">
+                            {% if log.direction == 'inbound' %}
+                                <i class="fas fa-arrow-down"></i>
+                            {% else %}
+                                <i class="fas fa-arrow-up"></i>
+                            {% endif %}
+                            {{ log.direction }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if log.email_address %}
+                            <a href="mailto:{{ log.email_address }}">{{ log.email_address }}</a>
+                        {% elif log.user_id %}
+                            User #{{ log.user_id }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ log.subject or '-' }}</td>
+                    <td>
+                        <div class="log-content" onclick="viewLogDetails('{{ log.log_id }}')">
+                            {{ log.content[:50] }}{% if log.content|length > 50 %}...{% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-badge {{ log.status }}">{{ log.status }}</span>
+                    </td>
+                    <td>
+                        <div class="log-actions">
+                            <button class="log-action primary" onclick="viewLogDetails('{{ log.log_id }}')">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            {% if log.communication_type == 'email' and log.direction == 'outbound' %}
+                            <button class="log-action" onclick="resendEmail('{{ log.log_id }}')">
+                                <i class="fas fa-redo"></i> Resend
+                            </button>
+                            {% endif %}
+                            <button class="log-action" onclick="showTimeline('{{ log.user_id or log.email_address }}')">
+                                <i class="fas fa-history"></i> Timeline
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <i class="fas fa-comments"></i>
+            </div>
+            <h3 class="empty-state-title">No Communication Logs</h3>
+            <p class="empty-state-message">
+                No communication logs found for the selected filters.<br>
+                Adjust your filters or check back later.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if communication_logs and communication_logs|length >= 50 %}
+    <div class="pagination">
+        <button class="pagination-button" onclick="previousPage()" {{ 'disabled' if current_page <= 1 }}>
+            <i class="fas fa-chevron-left"></i> Previous
+        </button>
+        
+        <span class="pagination-info">
+            Page {{ current_page }} of {{ total_pages }}
+        </span>
+        
+        <button class="pagination-button" onclick="nextPage()" {{ 'disabled' if current_page >= total_pages }}>
+            Next <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Log Details Modal -->
+<div id="log-details-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Communication Log Details</h3>
+            <button class="close-modal" onclick="closeLogDetails()">&times;</button>
+        </div>
+        <div class="modal-body" id="log-details-content">
+            <!-- Log details will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Timeline Modal -->
+<div id="timeline-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Communication Timeline</h3>
+            <button class="close-modal" onclick="closeTimeline()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="timeline-content" class="timeline-view">
+                <!-- Timeline will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div id="export-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Export Communication Logs</h3>
+            <button class="close-modal" onclick="closeExportModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Select export format and options:</p>
+            
+            <div class="export-formats">
+                <button class="export-format" onclick="exportLogs('csv')">
+                    <i class="fas fa-file-csv"></i> CSV
+                </button>
+                <button class="export-format" onclick="exportLogs('excel')">
+                    <i class="fas fa-file-excel"></i> Excel
+                </button>
+                <button class="export-format" onclick="exportLogs('pdf')">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </button>
+                <button class="export-format" onclick="exportLogs('json')">
+                    <i class="fas fa-file-code"></i> JSON
+                </button>
+            </div>
+            
+            <div class="form-group" style="margin-top: 20px;">
+                <label>
+                    <input type="checkbox" id="include-content" checked>
+                    Include message content
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="include-metadata" checked>
+                    Include metadata
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analytics Modal -->
+<div id="analytics-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Communication Analytics</h3>
+            <button class="close-modal" onclick="closeAnalytics()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="chart-container">
+                <div class="chart-title">Communication Types Distribution</div>
+                <canvas id="analytics-chart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title">Success Rate by Type</div>
+                <canvas id="success-rate-chart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let communicationChart;
+let analyticsChart;
+let successRateChart;
+let currentPage = {{ current_page or 1 }};
+let totalPages = {{ total_pages or 1 }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCommunicationChart();
+    
+    // Auto-refresh every 5 minutes
+    setInterval(refreshLogs, 300000);
+});
+
+function initializeCommunicationChart() {
+    const ctx = document.getElementById('communication-chart').getContext('2d');
+    communicationChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ chart_labels | tojson }},
+            datasets: [{
+                label: 'Email',
+                data: {{ chart_data.email | tojson }},
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4
+            }, {
+                label: 'SMS',
+                data: {{ chart_data.sms | tojson }},
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4
+            }, {
+                label: 'Calls',
+                data: {{ chart_data.calls | tojson }},
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                tension: 0.4
+            }, {
+                label: 'Chat',
+                data: {{ chart_data.chat | tojson }},
+                borderColor: '#8b5cf6',
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function refreshLogs() {
+    window.location.reload();
+}
+
+function filterLogs() {
+    const typeFilter = document.getElementById('type-filter').value;
+    const directionFilter = document.getElementById('direction-filter').value;
+    const statusFilter = document.getElementById('status-filter').value;
+    const dateFrom = document.getElementById('date-from').value;
+    const dateTo = document.getElementById('date-to').value;
+    
+    const params = new URLSearchParams({
+        type: typeFilter,
+        direction: directionFilter,
+        status: statusFilter,
+        date_from: dateFrom,
+        date_to: dateTo
+    });
+    
+    window.location.href = `/admin/communication-logs?${params.toString()}`;
+}
+
+function searchLogs() {
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    const rows = document.querySelectorAll('.logs-table tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+            row.style.display = '';
+            // Highlight search term
+            if (searchTerm) {
+                highlightSearchTerm(row, searchTerm);
+            }
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function highlightSearchTerm(row, term) {
+    const cells = row.querySelectorAll('td');
+    cells.forEach(cell => {
+        const text = cell.textContent;
+        if (text.toLowerCase().includes(term)) {
+            const regex = new RegExp(`(${term})`, 'gi');
+            cell.innerHTML = text.replace(regex, '<span class="search-highlight">$1</span>');
+        }
+    });
+}
+
+function setQuickFilter(filter) {
+    // Update active filter
+    document.querySelectorAll('.quick-filter').forEach(f => f.classList.remove('active'));
+    document.querySelector(`[onclick="setQuickFilter('${filter}')"]`).classList.add('active');
+    
+    const now = new Date();
+    let params = new URLSearchParams();
+    
+    switch(filter) {
+        case 'today':
+            params.set('date_from', now.toISOString().split('T')[0]);
+            params.set('date_to', now.toISOString().split('T')[0]);
+            break;
+        case 'week':
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            params.set('date_from', weekAgo.toISOString().split('T')[0]);
+            break;
+        case 'month':
+            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            params.set('date_from', monthAgo.toISOString().split('T')[0]);
+            break;
+        case 'failed':
+            params.set('status', 'failed');
+            break;
+        case 'email':
+            params.set('type', 'email');
+            break;
+        case 'all':
+        default:
+            // Clear all filters
+            break;
+    }
+    
+    window.location.href = `/admin/communication-logs?${params.toString()}`;
+}
+
+function viewLogDetails(logId) {
+    fetch(`/admin/api/communication-logs/${logId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const log = data.log;
+                document.getElementById('log-details-content').innerHTML = `
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">ID</div>
+                            <div class="detail-value">${log.log_id}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Type</div>
+                            <div class="detail-value">${log.communication_type}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Direction</div>
+                            <div class="detail-value">${log.direction}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Status</div>
+                            <div class="detail-value">${log.status}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Contact</div>
+                            <div class="detail-value">${log.email_address || 'User #' + log.user_id || 'Unknown'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Created</div>
+                            <div class="detail-value">${log.created_at}</div>
+                        </div>
+                    </div>
+                    
+                    ${log.subject ? `<div class="detail-item"><div class="detail-label">Subject</div><div class="detail-value">${log.subject}</div></div>` : ''}
+                    
+                    ${log.content ? `<div class="content-preview">${log.content}</div>` : ''}
+                    
+                    ${log.metadata ? `<div class="detail-item"><div class="detail-label">Metadata</div><div class="detail-value"><pre>${JSON.stringify(JSON.parse(log.metadata), null, 2)}</pre></div></div>` : ''}
+                `;
+                
+                document.getElementById('log-details-modal').style.display = 'block';
+            } else {
+                showNotification('Error loading log details', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error loading log details', 'error');
+        });
+}
+
+function showTimeline(contact) {
+    fetch(`/admin/api/communication-logs/timeline/${encodeURIComponent(contact)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const timeline = data.timeline;
+                let timelineHtml = '';
+                
+                timeline.forEach(item => {
+                    timelineHtml += `
+                        <div class="timeline-item">
+                            <div class="timeline-time">${item.created_at}</div>
+                            <div class="timeline-content">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                    <span class="communication-type ${item.communication_type}">${item.communication_type}</span>
+                                    <span class="direction-badge ${item.direction}">${item.direction}</span>
+                                    <span class="status-badge ${item.status}">${item.status}</span>
+                                </div>
+                                ${item.subject ? `<div style="font-weight: 600; margin-bottom: 5px;">${item.subject}</div>` : ''}
+                                <div style="color: #6b7280; font-size: 0.9rem;">${item.content ? item.content.substring(0, 100) + '...' : ''}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('timeline-content').innerHTML = timelineHtml;
+                document.getElementById('timeline-modal').style.display = 'block';
+            } else {
+                showNotification('Error loading timeline', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error loading timeline', 'error');
+        });
+}
+
+function resendEmail(logId) {
+    if (!confirm('Are you sure you want to resend this email?')) {
+        return;
+    }
+    
+    fetch(`/admin/api/communication-logs/${logId}/resend`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Email resent successfully', 'success');
+        } else {
+            showNotification('Error resending email', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error resending email', 'error');
+    });
+}
+
+function showExportModal() {
+    document.getElementById('export-modal').style.display = 'block';
+}
+
+function exportLogs(format) {
+    const includeContent = document.getElementById('include-content').checked;
+    const includeMetadata = document.getElementById('include-metadata').checked;
+    
+    const params = new URLSearchParams({
+        format: format,
+        include_content: includeContent,
+        include_metadata: includeMetadata
+    });
+    
+    // Add current filter parameters
+    const currentParams = new URLSearchParams(window.location.search);
+    currentParams.forEach((value, key) => {
+        if (key !== 'page') {
+            params.set(key, value);
+        }
+    });
+    
+    window.open(`/admin/export/communication-logs?${params.toString()}`, '_blank');
+    closeExportModal();
+}
+
+function showAnalytics() {
+    document.getElementById('analytics-modal').style.display = 'block';
+    
+    // Initialize analytics charts
+    setTimeout(() => {
+        initializeAnalyticsCharts();
+    }, 100);
+}
+
+function initializeAnalyticsCharts() {
+    // Type distribution chart
+    const analyticsCtx = document.getElementById('analytics-chart').getContext('2d');
+    analyticsChart = new Chart(analyticsCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Email', 'SMS', 'Calls', 'Chat'],
+            datasets: [{
+                data: [65, 20, 10, 5],
+                backgroundColor: [
+                    '#3b82f6',
+                    '#10b981',
+                    '#f59e0b',
+                    '#8b5cf6'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                }
+            }
+        }
+    });
+    
+    // Success rate chart
+    const successCtx = document.getElementById('success-rate-chart').getContext('2d');
+    successRateChart = new Chart(successCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Email', 'SMS', 'Calls', 'Chat'],
+            datasets: [{
+                label: 'Success Rate (%)',
+                data: [95, 98, 85, 92],
+                backgroundColor: [
+                    '#3b82f6',
+                    '#10b981',
+                    '#f59e0b',
+                    '#8b5cf6'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+}
+
+function previousPage() {
+    if (currentPage > 1) {
+        const params = new URLSearchParams(window.location.search);
+        params.set('page', currentPage - 1);
+        window.location.href = `/admin/communication-logs?${params.toString()}`;
+    }
+}
+
+function nextPage() {
+    if (currentPage < totalPages) {
+        const params = new URLSearchParams(window.location.search);
+        params.set('page', currentPage + 1);
+        window.location.href = `/admin/communication-logs?${params.toString()}`;
+    }
+}
+
+function closeLogDetails() {
+    document.getElementById('log-details-modal').style.display = 'none';
+}
+
+function closeTimeline() {
+    document.getElementById('timeline-modal').style.display = 'none';
+}
+
+function closeExportModal() {
+    document.getElementById('export-modal').style.display = 'none';
+}
+
+function closeAnalytics() {
+    document.getElementById('analytics-modal').style.display = 'none';
+}
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 5px;
+        color: white;
+        font-weight: 500;
+        z-index: 1000;
+        opacity: 0;
+        transform: translateY(-20px);
+        transition: all 0.3s ease;
+    `;
+    
+    if (type === 'error') {
+        notification.style.backgroundColor = '#ef4444';
+    } else {
+        notification.style.backgroundColor = '#10b981';
+    }
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateY(0)';
+    }, 100);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(-20px)';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
+}
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+    const logModal = document.getElementById('log-details-modal');
+    const timelineModal = document.getElementById('timeline-modal');
+    const exportModal = document.getElementById('export-modal');
+    const analyticsModal = document.getElementById('analytics-modal');
+    
+    if (event.target === logModal) {
+        closeLogDetails();
+    } else if (event.target === timelineModal) {
+        closeTimeline();
+    } else if (event.target === exportModal) {
+        closeExportModal();
+    } else if (event.target === analyticsModal) {
+        closeAnalytics();
+    }
+}
+</script>
+{% endblock %}

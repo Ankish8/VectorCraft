@@ -1,0 +1,522 @@
+{% extends "admin/base.html" %}
+
+{% block title %}User Management - VectorCraft Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 12px;
+    }
+    
+    .activity-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    
+    .activity-low { background-color: #ffc107; }
+    .activity-medium { background-color: #17a2b8; }
+    .activity-high { background-color: #28a745; }
+    .activity-none { background-color: #6c757d; }
+    
+    .bulk-actions {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+    
+    .bulk-actions.show {
+        display: block;
+    }
+    
+    .user-status-active { color: #28a745; }
+    .user-status-inactive { color: #dc3545; }
+    
+    .user-card {
+        transition: transform 0.2s;
+    }
+    
+    .user-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .filters-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .search-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>User Management</h2>
+            <p class="text-muted">Manage users, track activities, and perform bulk operations</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Total Users</h5>
+                            <h3>{{ insights.total_users or 0 }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Active Users</h5>
+                            <h3>{{ insights.active_users or 0 }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-user-check fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Inactive Users</h5>
+                            <h3>{{ insights.inactive_users or 0 }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-user-times fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Activation Rate</h5>
+                            <h3>{{ insights.activation_rate or 0 }}%</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="search-section">
+        <form id="searchForm" method="GET">
+            <div class="row align-items-end">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Search Users</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ current_filters.search }}" placeholder="Search by username or email...">
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">All Users</option>
+                        <option value="active" {{ 'selected' if current_filters.status == 'active' }}>Active</option>
+                        <option value="inactive" {{ 'selected' if current_filters.status == 'inactive' }}>Inactive</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="sort_by" class="form-label">Sort By</label>
+                    <select class="form-select" id="sort_by" name="sort_by">
+                        <option value="created_at" {{ 'selected' if current_filters.sort_by == 'created_at' }}>Date Created</option>
+                        <option value="username" {{ 'selected' if current_filters.sort_by == 'username' }}>Username</option>
+                        <option value="email" {{ 'selected' if current_filters.sort_by == 'email' }}>Email</option>
+                        <option value="last_login" {{ 'selected' if current_filters.sort_by == 'last_login' }}>Last Login</option>
+                        <option value="upload_count" {{ 'selected' if current_filters.sort_by == 'upload_count' }}>Upload Count</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="sort_order" class="form-label">Order</label>
+                    <select class="form-select" id="sort_order" name="sort_order">
+                        <option value="DESC" {{ 'selected' if current_filters.sort_order == 'DESC' }}>Descending</option>
+                        <option value="ASC" {{ 'selected' if current_filters.sort_order == 'ASC' }}>Ascending</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                    <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bulk Actions Bar -->
+    <div class="bulk-actions" id="bulkActions">
+        <div class="d-flex align-items-center">
+            <span class="me-3">
+                <strong id="selectedCount">0</strong> users selected
+            </span>
+            <button class="btn btn-success btn-sm me-2" onclick="bulkAction('activate')">
+                <i class="fas fa-check"></i> Activate
+            </button>
+            <button class="btn btn-warning btn-sm me-2" onclick="bulkAction('deactivate')">
+                <i class="fas fa-times"></i> Deactivate
+            </button>
+            <button class="btn btn-danger btn-sm me-2" onclick="bulkAction('delete')">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="clearSelection()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5>
+                Users List
+                {% if users_data.pagination.total %}
+                    <span class="badge bg-secondary">{{ users_data.pagination.total }} total</span>
+                {% endif %}
+            </h5>
+        </div>
+        
+        <div class="card-body">
+            {% if users_data.error %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Error: {{ users_data.error }}
+                </div>
+            {% elif users_data.users %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="selectAll" class="form-check-input">
+                                </th>
+                                <th>User</th>
+                                <th>Status</th>
+                                <th>Activity Level</th>
+                                <th>Uploads</th>
+                                <th>Created</th>
+                                <th>Last Activity</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users_data.users %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="form-check-input user-checkbox" 
+                                           value="{{ user.id }}" data-user-id="{{ user.id }}">
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar me-2" style="background-color: {{ '#' + (user.username|first|upper + user.email|first|upper)|hash|abs|string|truncate(6, True, '') }}">
+                                            {{ user.username|first|upper }}{{ user.email|first|upper }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ user.username }}</div>
+                                            <small class="text-muted">{{ user.email }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ user.status_class }}">
+                                        {{ user.status_label }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="activity-indicator activity-{{ user.activity_level_class }}"></span>
+                                    <small>{{ user.activity_level }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ user.upload_count or 0 }}</span>
+                                </td>
+                                <td>
+                                    <small>{{ user.created_at[:10] if user.created_at else 'N/A' }}</small>
+                                </td>
+                                <td>
+                                    <small>{{ user.last_activity_text }}</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('admin.user_detail', user_id=user.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                        
+                                        {% if user.is_active %}
+                                            <button class="btn btn-sm btn-outline-warning" 
+                                                    onclick="toggleUserStatus({{ user.id }}, false)">
+                                                <i class="fas fa-ban"></i> Deactivate
+                                            </button>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-outline-success" 
+                                                    onclick="toggleUserStatus({{ user.id }}, true)">
+                                                <i class="fas fa-check"></i> Activate
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if users_data.pagination.total_pages > 1 %}
+                <nav aria-label="Users pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if users_data.pagination.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin.users', page=users_data.pagination.prev_page, search=current_filters.search, status=current_filters.status, sort_by=current_filters.sort_by, sort_order=current_filters.sort_order) }}">
+                                    Previous
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for page_num in range(1, users_data.pagination.total_pages + 1) %}
+                            {% if page_num == users_data.pagination.page %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                            {% elif page_num <= users_data.pagination.page + 2 and page_num >= users_data.pagination.page - 2 %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('admin.users', page=page_num, search=current_filters.search, status=current_filters.status, sort_by=current_filters.sort_by, sort_order=current_filters.sort_order) }}">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if users_data.pagination.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin.users', page=users_data.pagination.next_page, search=current_filters.search, status=current_filters.status, sort_by=current_filters.sort_by, sort_order=current_filters.sort_order) }}">
+                                    Next
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-users fa-3x text-muted"></i>
+                    <h5 class="mt-3">No users found</h5>
+                    <p class="text-muted">Try adjusting your search criteria or filters.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmationMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAction">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedUsers = [];
+let bulkActionCallback = null;
+
+// Handle select all checkbox
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.user-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+    updateSelectedUsers();
+});
+
+// Handle individual checkbox changes
+document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', updateSelectedUsers);
+});
+
+function updateSelectedUsers() {
+    const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+    selectedUsers = Array.from(checkboxes).map(cb => parseInt(cb.value));
+    
+    const selectedCount = selectedUsers.length;
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCountElement = document.getElementById('selectedCount');
+    
+    selectedCountElement.textContent = selectedCount;
+    
+    if (selectedCount > 0) {
+        bulkActions.classList.add('show');
+    } else {
+        bulkActions.classList.remove('show');
+    }
+    
+    // Update select all checkbox
+    const allCheckboxes = document.querySelectorAll('.user-checkbox');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    selectAllCheckbox.checked = selectedCount === allCheckboxes.length;
+    selectAllCheckbox.indeterminate = selectedCount > 0 && selectedCount < allCheckboxes.length;
+}
+
+function clearSelection() {
+    selectedUsers = [];
+    document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = false);
+    document.getElementById('selectAll').checked = false;
+    document.getElementById('bulkActions').classList.remove('show');
+}
+
+function bulkAction(action) {
+    if (selectedUsers.length === 0) return;
+    
+    const actionNames = {
+        'activate': 'activate',
+        'deactivate': 'deactivate',
+        'delete': 'delete'
+    };
+    
+    const message = `Are you sure you want to ${actionNames[action]} ${selectedUsers.length} user(s)?`;
+    
+    document.getElementById('confirmationMessage').textContent = message;
+    bulkActionCallback = () => performBulkAction(action);
+    
+    const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    modal.show();
+}
+
+function performBulkAction(action) {
+    const button = document.getElementById('confirmAction');
+    button.disabled = true;
+    button.textContent = 'Processing...';
+    
+    fetch('/admin/users/bulk-action', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            user_ids: selectedUsers,
+            action: action
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error performing bulk action');
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.textContent = 'Confirm';
+    });
+}
+
+function toggleUserStatus(userId, activate) {
+    const action = activate ? 'activate' : 'deactivate';
+    const message = `Are you sure you want to ${action} this user?`;
+    
+    document.getElementById('confirmationMessage').textContent = message;
+    bulkActionCallback = () => performBulkAction(action);
+    selectedUsers = [userId];
+    
+    const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    modal.show();
+}
+
+// Handle confirmation modal
+document.getElementById('confirmAction').addEventListener('click', function() {
+    if (bulkActionCallback) {
+        bulkActionCallback();
+    }
+    const modal = bootstrap.Modal.getInstance(document.getElementById('confirmationModal'));
+    modal.hide();
+});
+
+// Auto-submit search form on change
+document.getElementById('status').addEventListener('change', function() {
+    document.getElementById('searchForm').submit();
+});
+
+document.getElementById('sort_by').addEventListener('change', function() {
+    document.getElementById('searchForm').submit();
+});
+
+document.getElementById('sort_order').addEventListener('change', function() {
+    document.getElementById('searchForm').submit();
+});
+</script>
+{% endblock %}

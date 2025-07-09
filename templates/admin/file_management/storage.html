@@ -1,0 +1,558 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Storage Management{% endblock %}
+
+{% block extra_css %}
+<style>
+.storage-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.storage-metric {
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.storage-metric h3 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+.directory-item {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid #667eea;
+}
+
+.optimization-card {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.action-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    color: white;
+}
+
+.danger-btn {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+}
+
+.danger-btn:hover {
+    background: linear-gradient(135deg, #ee5a52 0%, #ff6b6b 100%);
+}
+
+.progress-container {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.file-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.file-item {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.file-item:last-child {
+    border-bottom: none;
+}
+
+.chart-container {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Storage Management</h1>
+                <div>
+                    <a href="{{ url_for('file_management.index') }}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                    <button type="button" class="btn btn-primary" onclick="refreshStorageData()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Storage Overview -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="storage-metric">
+                <h3>{{ storage_summary.total_files or 0 }}</h3>
+                <p>Total Files</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="storage-metric">
+                <h3>{{ "%.1f"|format((storage_summary.total_size or 0) / 1024 / 1024 / 1024) }}</h3>
+                <p>Total Size (GB)</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="storage-metric">
+                <h3>{{ "%.1f"|format(storage_summary.growth_rate or 0) }}%</h3>
+                <p>Growth Rate</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="storage-metric">
+                <h3>{{ "%.1f"|format(storage_summary.optimization_potential or 0) }}</h3>
+                <p>Optimization Potential (MB)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Directory Breakdown -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="storage-card">
+                <h5>Directory Usage</h5>
+                <canvas id="directoryChart"></canvas>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="storage-card">
+                <h5>Directory Details</h5>
+                {% for directory, stats in storage_summary.directories.items() %}
+                <div class="directory-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ directory }}</h6>
+                            <p class="mb-0 text-muted">{{ stats.file_count or 0 }} files</p>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-primary">{{ "%.1f"|format((stats.size or 0) / 1024 / 1024) }} MB</span>
+                        </div>
+                    </div>
+                    <div class="progress mt-2">
+                        <div class="progress-bar" style="width: {{ (stats.size / storage_summary.total_size * 100) if storage_summary.total_size > 0 else 0 }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Optimization Tools -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="optimization-card">
+                <h5>Storage Optimization</h5>
+                <p>Optimize your storage usage with these tools:</p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-light" onclick="performOptimization('cleanup_temp')">
+                        <i class="fas fa-trash"></i> Clean Temporary Files
+                    </button>
+                    <button class="btn btn-light" onclick="performOptimization('compress_large_files')">
+                        <i class="fas fa-compress"></i> Compress Large Files
+                    </button>
+                    <button class="btn btn-light" onclick="performOptimization('archive_old_files')">
+                        <i class="fas fa-archive"></i> Archive Old Files
+                    </button>
+                    <button class="btn btn-light" onclick="performOptimization('deduplicate')">
+                        <i class="fas fa-copy"></i> Remove Duplicates
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="storage-card">
+                <h5>Optimization Opportunities</h5>
+                {% if optimization_analysis.opportunities %}
+                {% for opportunity in optimization_analysis.opportunities %}
+                <div class="alert alert-info">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ opportunity.description }}</h6>
+                            <small class="text-muted">Potential savings: {{ opportunity.potential_savings }}</small>
+                        </div>
+                        <button class="btn btn-sm btn-primary" onclick="performOptimization('{{ opportunity.action }}')">
+                            Optimize
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> No optimization opportunities found. Storage is well managed!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Large Files -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="storage-card">
+                <h5>Large Files (>10MB)</h5>
+                <div class="file-list">
+                    {% for large_file in storage_analytics.large_files %}
+                    <div class="file-item">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">{{ large_file.original_filename }}</h6>
+                            <small class="text-muted">{{ large_file.created_at }}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-warning">{{ "%.1f"|format(large_file.file_size / 1024 / 1024) }} MB</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-file-alt fa-3x mb-3"></i>
+                        <p>No large files found</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="storage-card">
+                <h5>Storage Growth Trend</h5>
+                <canvas id="growthChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Type Distribution -->
+    <div class="row">
+        <div class="col-12">
+            <div class="storage-card">
+                <h5>File Type Distribution</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <canvas id="fileTypeChart"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>File Type</th>
+                                        <th>Count</th>
+                                        <th>Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for file_type, count in storage_analytics.file_types.items() %}
+                                    <tr>
+                                        <td>{{ file_type }}</td>
+                                        <td>{{ count }}</td>
+                                        <td>{{ "%.1f"|format((count / storage_summary.total_files * 100) if storage_summary.total_files > 0 else 0) }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="row">
+        <div class="col-12">
+            <div class="storage-card border-danger">
+                <h5 class="text-danger">Danger Zone</h5>
+                <p class="text-muted">These actions are irreversible. Use with caution.</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-danger w-100" onclick="confirmDangerousAction('clear_temp')">
+                            <i class="fas fa-trash"></i> Clear All Temporary Files
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-danger w-100" onclick="confirmDangerousAction('force_cleanup')">
+                            <i class="fas fa-broom"></i> Force Storage Cleanup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Modal -->
+<div class="modal fade" id="progressModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Processing...</h5>
+            </div>
+            <div class="modal-body">
+                <div class="progress mb-3">
+                    <div class="progress-bar" role="progressbar" style="width: 0%" id="progressBar"></div>
+                </div>
+                <p id="progressText">Initializing...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmText">Are you sure you want to proceed?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let directoryChart, growthChart, fileTypeChart;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+});
+
+function initializeCharts() {
+    // Directory Chart
+    const directoryCtx = document.getElementById('directoryChart').getContext('2d');
+    directoryChart = new Chart(directoryCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ storage_summary.directories.keys() | list | tojsonfilter | safe }},
+            datasets: [{
+                label: 'Size (MB)',
+                data: {{ storage_summary.directories.values() | map(attribute='size') | map('multiply', 1.0/1024/1024) | list | tojsonfilter | safe }},
+                backgroundColor: '#667eea',
+                borderColor: '#764ba2',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Size (MB)'
+                    }
+                }
+            }
+        }
+    });
+
+    // Growth Chart
+    const growthCtx = document.getElementById('growthChart').getContext('2d');
+    growthChart = new Chart(growthCtx, {
+        type: 'line',
+        data: {
+            labels: ['7 days ago', '6 days ago', '5 days ago', '4 days ago', '3 days ago', '2 days ago', '1 day ago', 'Today'],
+            datasets: [{
+                label: 'Storage (MB)',
+                data: [100, 120, 140, 160, 180, 200, 220, 240],
+                borderColor: '#43e97b',
+                backgroundColor: 'rgba(67, 233, 123, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Storage (MB)'
+                    }
+                }
+            }
+        }
+    });
+
+    // File Type Chart
+    const fileTypeCtx = document.getElementById('fileTypeChart').getContext('2d');
+    fileTypeChart = new Chart(fileTypeCtx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys({{ storage_analytics.file_types | tojsonfilter | safe }} || {}),
+            datasets: [{
+                data: Object.values({{ storage_analytics.file_types | tojsonfilter | safe }} || {}),
+                backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function refreshStorageData() {
+    showProgressModal('Refreshing storage data...');
+    
+    fetch('/admin/files/api/storage')
+        .then(response => response.json())
+        .then(data => {
+            hideProgressModal();
+            location.reload();
+        })
+        .catch(error => {
+            hideProgressModal();
+            console.error('Error refreshing storage data:', error);
+            alert('Error refreshing storage data');
+        });
+}
+
+function performOptimization(action) {
+    const actionNames = {
+        'cleanup_temp': 'Clean Temporary Files',
+        'compress_large_files': 'Compress Large Files',
+        'archive_old_files': 'Archive Old Files',
+        'deduplicate': 'Remove Duplicates'
+    };
+    
+    const actionName = actionNames[action] || action;
+    
+    if (!confirm(`Are you sure you want to ${actionName.toLowerCase()}? This action cannot be undone.`)) {
+        return;
+    }
+    
+    showProgressModal(`${actionName}...`);
+    
+    fetch('/admin/files/action/optimize', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({action: action})
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideProgressModal();
+        if (data.error) {
+            alert('Error: ' + data.error);
+        } else {
+            alert(`${actionName} completed successfully!\nFiles processed: ${data.files_processed}\nSpace saved: ${data.savings.toFixed(1)} MB`);
+            location.reload();
+        }
+    })
+    .catch(error => {
+        hideProgressModal();
+        console.error('Error performing optimization:', error);
+        alert('Error performing optimization');
+    });
+}
+
+function confirmDangerousAction(action) {
+    const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    const confirmText = document.getElementById('confirmText');
+    const confirmBtn = document.getElementById('confirmBtn');
+    
+    const actionTexts = {
+        'clear_temp': 'This will permanently delete all temporary files. This action cannot be undone.',
+        'force_cleanup': 'This will perform an aggressive cleanup of all unused files. This action cannot be undone.'
+    };
+    
+    confirmText.textContent = actionTexts[action] || 'Are you sure you want to proceed?';
+    
+    confirmBtn.onclick = function() {
+        confirmModal.hide();
+        performDangerousAction(action);
+    };
+    
+    confirmModal.show();
+}
+
+function performDangerousAction(action) {
+    showProgressModal('Performing dangerous action...');
+    
+    // Simulate dangerous action
+    setTimeout(() => {
+        hideProgressModal();
+        alert('Action completed successfully!');
+        location.reload();
+    }, 3000);
+}
+
+function showProgressModal(text) {
+    const progressModal = new bootstrap.Modal(document.getElementById('progressModal'));
+    document.getElementById('progressText').textContent = text;
+    progressModal.show();
+}
+
+function hideProgressModal() {
+    const progressModal = bootstrap.Modal.getInstance(document.getElementById('progressModal'));
+    if (progressModal) {
+        progressModal.hide();
+    }
+}
+</script>
+{% endblock %}

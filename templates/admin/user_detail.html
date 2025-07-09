@@ -1,0 +1,475 @@
+{% extends "admin/base.html" %}
+
+{% block title %}User Details - VectorCraft Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .user-avatar-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+    
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+        padding-left: 20px;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -26px;
+        top: 8px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: white;
+        border: 2px solid #dee2e6;
+    }
+    
+    .timeline-item.timeline-upload::before { border-color: #007bff; }
+    .timeline-item.timeline-login::before { border-color: #28a745; }
+    .timeline-item.timeline-transaction::before { border-color: #17a2b8; }
+    .timeline-item.timeline-activity::before { border-color: #6c757d; }
+    
+    .timeline-content {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #dee2e6;
+    }
+    
+    .timeline-content.timeline-upload { border-left-color: #007bff; }
+    .timeline-content.timeline-login { border-left-color: #28a745; }
+    .timeline-content.timeline-transaction { border-left-color: #17a2b8; }
+    .timeline-content.timeline-activity { border-left-color: #6c757d; }
+    
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-card h3 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    
+    .stat-card p {
+        margin: 5px 0 0 0;
+        opacity: 0.9;
+    }
+    
+    .activity-filter {
+        margin-bottom: 20px;
+    }
+    
+    .user-info-card {
+        background: #f8f9fa;
+        padding: 25px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% if user_details.error %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i> Error: {{ user_details.error }}
+        </div>
+        <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Users
+        </a>
+    {% else %}
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2>User Details</h2>
+                        <p class="text-muted">Comprehensive user information and activity timeline</p>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Users
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Basic Info -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="user-info-card text-center">
+                    <div class="user-avatar-large mx-auto" style="background-color: {{ '#' + (user_details.user_info.username|first|upper + user_details.user_info.email|first|upper)|hash|abs|string|truncate(6, True, '') }}">
+                        {{ user_details.user_info.username|first|upper }}{{ user_details.user_info.email|first|upper }}
+                    </div>
+                    
+                    <h4>{{ user_details.user_info.username }}</h4>
+                    <p class="text-muted">{{ user_details.user_info.email }}</p>
+                    
+                    <div class="mt-3">
+                        <span class="badge bg-{{ user_details.user_info.status_class }} fs-6">
+                            {{ user_details.user_info.status_label }}
+                        </span>
+                    </div>
+                    
+                    <div class="mt-3">
+                        {% if user_details.user_info.is_active %}
+                            <button class="btn btn-warning" onclick="toggleUserStatus({{ user_details.user_info.id }}, false)">
+                                <i class="fas fa-ban"></i> Deactivate User
+                            </button>
+                        {% else %}
+                            <button class="btn btn-success" onclick="toggleUserStatus({{ user_details.user_info.id }}, true)">
+                                <i class="fas fa-check"></i> Activate User
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="stat-card">
+                            <h3>{{ user_details.upload_stats.total_uploads or 0 }}</h3>
+                            <p>Total Uploads</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <h3>{{ user_details.user_info.activity_count or 0 }}</h3>
+                            <p>Activities Logged</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <h3>{{ user_details.user_info.account_age_days or 0 }}</h3>
+                            <p>Days Active</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <h3>{{ "%.1f"|format(user_details.upload_stats.avg_processing_time or 0) }}s</h3>
+                            <p>Avg Processing Time</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Details Table -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Account Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td><strong>User ID:</strong></td>
+                                        <td>{{ user_details.user_info.id }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Username:</strong></td>
+                                        <td>{{ user_details.user_info.username }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Email:</strong></td>
+                                        <td>{{ user_details.user_info.email }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Status:</strong></td>
+                                        <td>
+                                            <span class="badge bg-{{ user_details.user_info.status_class }}">
+                                                {{ user_details.user_info.status_label }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td><strong>Created:</strong></td>
+                                        <td>{{ user_details.user_info.created_at[:19] if user_details.user_info.created_at else 'N/A' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Last Login:</strong></td>
+                                        <td>{{ user_details.user_info.last_login[:19] if user_details.user_info.last_login else 'Never' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Account Age:</strong></td>
+                                        <td>{{ user_details.user_info.account_age_text or 'N/A' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Activity Level:</strong></td>
+                                        <td>
+                                            <span class="badge bg-{{ user_details.user_info.activity_level_class }}">
+                                                {{ user_details.user_info.activity_level }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Statistics -->
+        {% if user_details.upload_stats.total_uploads %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Upload Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h4 class="text-primary">{{ user_details.upload_stats.total_uploads }}</h4>
+                                    <p class="text-muted">Total Uploads</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h4 class="text-success">{{ "%.1f"|format(user_details.upload_stats.avg_file_size / 1024 / 1024) }} MB</h4>
+                                    <p class="text-muted">Avg File Size</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h4 class="text-info">{{ "%.1f"|format(user_details.upload_stats.total_file_size / 1024 / 1024) }} MB</h4>
+                                    <p class="text-muted">Total File Size</p>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h4 class="text-warning">{{ "%.1f"|format(user_details.upload_stats.avg_processing_time or 0) }}s</h4>
+                                    <p class="text-muted">Avg Processing Time</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if user_details.upload_stats.first_upload %}
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <p><strong>First Upload:</strong> {{ user_details.upload_stats.first_upload[:19] }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Last Upload:</strong> {{ user_details.upload_stats.last_upload[:19] }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Activity Timeline -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5>Activity Timeline</h5>
+                            <div class="activity-filter">
+                                <select id="activityFilter" class="form-select form-select-sm">
+                                    <option value="">All Activities</option>
+                                    <option value="login">Login Events</option>
+                                    <option value="upload">Upload Events</option>
+                                    <option value="transaction">Transactions</option>
+                                    <option value="admin_action">Admin Actions</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% if user_details.timeline %}
+                            <div class="timeline" id="timeline">
+                                {% for activity in user_details.timeline %}
+                                <div class="timeline-item timeline-{{ activity.type }}" data-activity-type="{{ activity.type }}">
+                                    <div class="timeline-content timeline-{{ activity.type }}">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1">
+                                                    <i class="fas fa-{{ activity.icon }} me-2"></i>
+                                                    {{ activity.description }}
+                                                </h6>
+                                                
+                                                {% if activity.details %}
+                                                <div class="mt-2">
+                                                    {% if activity.type == 'upload' %}
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-file"></i> {{ activity.details.filename or 'N/A' }} |
+                                                            <i class="fas fa-weight"></i> {{ "%.1f"|format((activity.details.file_size or 0) / 1024) }} KB |
+                                                            <i class="fas fa-clock"></i> {{ "%.1f"|format(activity.details.processing_time or 0) }}s
+                                                        </small>
+                                                    {% elif activity.type == 'transaction' %}
+                                                        <small class="text-muted">
+                                                            <i class="fas fa-dollar-sign"></i> {{ activity.details.amount or 'N/A' }} {{ activity.details.currency or 'USD' }} |
+                                                            <i class="fas fa-receipt"></i> {{ activity.details.transaction_id or 'N/A' }}
+                                                        </small>
+                                                    {% endif %}
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="text-muted">
+                                                <small>{{ activity.timestamp[:19] if activity.timestamp else 'N/A' }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-history fa-3x text-muted"></i>
+                                <h5 class="mt-3">No Activity Found</h5>
+                                <p class="text-muted">This user has no recorded activities yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmationMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAction">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let actionCallback = null;
+
+// Filter timeline activities
+document.getElementById('activityFilter').addEventListener('change', function() {
+    const filterType = this.value;
+    const timelineItems = document.querySelectorAll('.timeline-item');
+    
+    timelineItems.forEach(item => {
+        if (filterType === '' || item.dataset.activityType === filterType) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+});
+
+function toggleUserStatus(userId, activate) {
+    const action = activate ? 'activate' : 'deactivate';
+    const message = `Are you sure you want to ${action} this user?`;
+    
+    document.getElementById('confirmationMessage').textContent = message;
+    actionCallback = () => performUserAction(userId, action);
+    
+    const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    modal.show();
+}
+
+function performUserAction(userId, action) {
+    const button = document.getElementById('confirmAction');
+    button.disabled = true;
+    button.textContent = 'Processing...';
+    
+    fetch('/admin/users/bulk-action', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            user_ids: [userId],
+            action: action
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error performing action');
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.textContent = 'Confirm';
+    });
+}
+
+// Handle confirmation modal
+document.getElementById('confirmAction').addEventListener('click', function() {
+    if (actionCallback) {
+        actionCallback();
+    }
+    const modal = bootstrap.Modal.getInstance(document.getElementById('confirmationModal'));
+    modal.hide();
+});
+</script>
+{% endblock %}

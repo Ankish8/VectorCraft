@@ -1,0 +1,688 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Security Analytics - VectorCraft Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .analytics-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .analytics-card h3 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        color: #333;
+        font-size: 1.2rem;
+    }
+    
+    .chart-container {
+        height: 300px;
+        position: relative;
+    }
+    
+    .chart-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .summary-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #007bff;
+    }
+    
+    .stat-card.danger {
+        border-left-color: #dc3545;
+    }
+    
+    .stat-card.warning {
+        border-left-color: #ffc107;
+    }
+    
+    .stat-card.success {
+        border-left-color: #28a745;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+        color: #666;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .trend-indicator {
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+    }
+    
+    .trend-up {
+        color: #dc3545;
+    }
+    
+    .trend-down {
+        color: #28a745;
+    }
+    
+    .trend-neutral {
+        color: #6c757d;
+    }
+    
+    .top-list {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+    
+    .top-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .top-item:last-child {
+        border-bottom: none;
+    }
+    
+    .top-item-name {
+        font-family: monospace;
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .top-item-count {
+        background: #e9ecef;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: #495057;
+    }
+    
+    .timeline {
+        margin-top: 2rem;
+    }
+    
+    .timeline-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        border-left: 3px solid #007bff;
+        margin-bottom: 0.5rem;
+        background: white;
+        border-radius: 0 4px 4px 0;
+    }
+    
+    .timeline-item.high {
+        border-left-color: #dc3545;
+    }
+    
+    .timeline-item.medium {
+        border-left-color: #ffc107;
+    }
+    
+    .timeline-item.low {
+        border-left-color: #28a745;
+    }
+    
+    .timeline-time {
+        font-size: 0.8rem;
+        color: #666;
+        margin-right: 1rem;
+        min-width: 80px;
+    }
+    
+    .timeline-content {
+        flex: 1;
+    }
+    
+    .timeline-title {
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 0.25rem;
+    }
+    
+    .timeline-description {
+        font-size: 0.8rem;
+        color: #666;
+    }
+    
+    .filters {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .filter-row {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .filter-group label {
+        font-size: 0.8rem;
+        color: #666;
+        font-weight: 500;
+    }
+    
+    .filter-group select,
+    .filter-group input {
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+    
+    .refresh-btn {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .refresh-btn:hover {
+        background: #0056b3;
+    }
+    
+    .export-btn {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .export-btn:hover {
+        background: #218838;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 3rem;
+        color: #666;
+    }
+    
+    .loading i {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    .alert-summary {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .alert-summary h4 {
+        margin-top: 0;
+        color: #495057;
+    }
+    
+    .alert-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .alert-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .alert-icon {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #dc3545;
+    }
+    
+    .alert-icon.medium {
+        background: #ffc107;
+    }
+    
+    .alert-icon.low {
+        background: #28a745;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Security Analytics</h1>
+        <div class="d-flex gap-2">
+            <button class="export-btn" onclick="exportAnalytics()">
+                <i class="fas fa-download"></i>
+                Export Report
+            </button>
+            <button class="refresh-btn" onclick="refreshAnalytics()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+        </div>
+    </div>
+    
+    <!-- Time Range Filters -->
+    <div class="filters">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label>Time Range</label>
+                <select id="timeRange" onchange="updateTimeRange()">
+                    <option value="24h">Last 24 Hours</option>
+                    <option value="7d" selected>Last 7 Days</option>
+                    <option value="30d">Last 30 Days</option>
+                    <option value="90d">Last 90 Days</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+            </div>
+            <div class="filter-group" id="customRange" style="display: none;">
+                <label>From</label>
+                <input type="date" id="fromDate">
+            </div>
+            <div class="filter-group" id="customRangeTo" style="display: none;">
+                <label>To</label>
+                <input type="date" id="toDate">
+            </div>
+            <div class="filter-group">
+                <label>Event Type</label>
+                <select id="eventType">
+                    <option value="">All Types</option>
+                    <option value="FAILED_LOGIN">Failed Login</option>
+                    <option value="RATE_LIMIT_EXCEEDED">Rate Limit</option>
+                    <option value="IP_BLOCKED">IP Blocked</option>
+                    <option value="SUSPICIOUS_ACTIVITY">Suspicious Activity</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Summary Statistics -->
+    <div class="summary-stats">
+        <div class="stat-card danger">
+            <div class="stat-number" id="totalThreats">{{ analytics.total_threats or 0 }}</div>
+            <div class="stat-label">Total Threats</div>
+            <div class="trend-indicator trend-up">
+                <i class="fas fa-arrow-up"></i> +15% from last week
+            </div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-number" id="blockedIPs">{{ analytics.blocked_ips or 0 }}</div>
+            <div class="stat-label">Blocked IPs</div>
+            <div class="trend-indicator trend-down">
+                <i class="fas fa-arrow-down"></i> -8% from last week
+            </div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-number" id="resolvedIncidents">{{ analytics.resolved_incidents or 0 }}</div>
+            <div class="stat-label">Resolved Incidents</div>
+            <div class="trend-indicator trend-up">
+                <i class="fas fa-arrow-up"></i> +22% from last week
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="avgResponseTime">{{ analytics.avg_response_time or '0' }}min</div>
+            <div class="stat-label">Avg Response Time</div>
+            <div class="trend-indicator trend-neutral">
+                <i class="fas fa-minus"></i> No change
+            </div>
+        </div>
+    </div>
+    
+    <!-- Analytics Charts -->
+    <div class="analytics-grid">
+        <div class="analytics-card">
+            <h3>Security Events Over Time</h3>
+            <div class="chart-container">
+                <canvas id="eventsChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="analytics-card">
+            <h3>Events by Type</h3>
+            <div class="chart-container">
+                <canvas id="typesChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="analytics-card">
+            <h3>Top Source IPs</h3>
+            <div class="top-list" id="topIPs">
+                {% for ip, count in analytics.top_ips.items() %}
+                <div class="top-item">
+                    <span class="top-item-name">{{ ip }}</span>
+                    <span class="top-item-count">{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="analytics-card">
+            <h3>Failed Login Attempts</h3>
+            <div class="chart-container">
+                <canvas id="failedLoginsChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Security Alerts -->
+    <div class="analytics-card">
+        <h3>Recent Security Alerts</h3>
+        <div class="alert-summary">
+            <h4>Alert Summary</h4>
+            <div class="alert-item">
+                <div class="alert-icon"></div>
+                <span>3 Critical alerts in the last 24 hours</span>
+            </div>
+            <div class="alert-item">
+                <div class="alert-icon medium"></div>
+                <span>12 Medium alerts in the last 24 hours</span>
+            </div>
+            <div class="alert-item">
+                <div class="alert-icon low"></div>
+                <span>45 Low alerts in the last 24 hours</span>
+            </div>
+        </div>
+        
+        <div class="timeline" id="alertTimeline">
+            {% for alert in recent_alerts %}
+            <div class="timeline-item {{ alert.severity.lower() }}">
+                <div class="timeline-time">{{ alert.timestamp[-8:-3] }}</div>
+                <div class="timeline-content">
+                    <div class="timeline-title">{{ alert.event_type }}</div>
+                    <div class="timeline-description">{{ alert.description }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading" style="display: none;">
+    <i class="fas fa-spinner fa-spin"></i>
+    <p>Loading analytics data...</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let eventsChart, typesChart, failedLoginsChart;
+
+// Initialize charts
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+    loadAnalyticsData();
+});
+
+function initializeCharts() {
+    // Events over time chart
+    const eventsCtx = document.getElementById('eventsChart').getContext('2d');
+    eventsChart = new Chart(eventsCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Security Events',
+                data: [],
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+
+    // Events by type chart
+    const typesCtx = document.getElementById('typesChart').getContext('2d');
+    typesChart = new Chart(typesCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: [
+                    '#dc3545',
+                    '#ffc107',
+                    '#28a745',
+                    '#007bff',
+                    '#6c757d'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Failed logins chart
+    const failedLoginsCtx = document.getElementById('failedLoginsChart').getContext('2d');
+    failedLoginsChart = new Chart(failedLoginsCtx, {
+        type: 'bar',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Failed Logins',
+                data: [],
+                backgroundColor: '#dc3545'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+}
+
+function loadAnalyticsData() {
+    showLoading();
+    
+    const timeRange = document.getElementById('timeRange').value;
+    const eventType = document.getElementById('eventType').value;
+    
+    fetch(`/admin/security/analytics?time_range=${timeRange}&event_type=${eventType}`)
+        .then(response => response.json())
+        .then(data => {
+            updateCharts(data);
+            updateStatistics(data);
+            hideLoading();
+        })
+        .catch(error => {
+            console.error('Error loading analytics:', error);
+            hideLoading();
+        });
+}
+
+function updateCharts(data) {
+    // Update events over time chart
+    if (data.events_by_day) {
+        const dates = Object.keys(data.events_by_day);
+        const counts = Object.values(data.events_by_day);
+        
+        eventsChart.data.labels = dates;
+        eventsChart.data.datasets[0].data = counts;
+        eventsChart.update();
+    }
+    
+    // Update events by type chart
+    if (data.events_by_type) {
+        const types = Object.keys(data.events_by_type);
+        const counts = Object.values(data.events_by_type);
+        
+        typesChart.data.labels = types;
+        typesChart.data.datasets[0].data = counts;
+        typesChart.update();
+    }
+    
+    // Update failed logins chart
+    if (data.failed_logins_by_ip) {
+        const ips = Object.keys(data.failed_logins_by_ip);
+        const counts = Object.values(data.failed_logins_by_ip);
+        
+        failedLoginsChart.data.labels = ips;
+        failedLoginsChart.data.datasets[0].data = counts;
+        failedLoginsChart.update();
+    }
+    
+    // Update top IPs list
+    if (data.top_source_ips) {
+        updateTopIPsList(data.top_source_ips);
+    }
+}
+
+function updateTopIPsList(topIPs) {
+    const container = document.getElementById('topIPs');
+    container.innerHTML = '';
+    
+    Object.entries(topIPs).forEach(([ip, count]) => {
+        const item = document.createElement('div');
+        item.className = 'top-item';
+        item.innerHTML = `
+            <span class="top-item-name">${ip}</span>
+            <span class="top-item-count">${count}</span>
+        `;
+        container.appendChild(item);
+    });
+}
+
+function updateStatistics(data) {
+    // Update statistic cards with new data
+    if (data.statistics) {
+        const stats = data.statistics;
+        
+        document.getElementById('totalThreats').textContent = stats.total_threats || 0;
+        document.getElementById('blockedIPs').textContent = stats.blocked_ips || 0;
+        document.getElementById('resolvedIncidents').textContent = stats.resolved_incidents || 0;
+        document.getElementById('avgResponseTime').textContent = (stats.avg_response_time || 0) + 'min';
+    }
+}
+
+function updateTimeRange() {
+    const timeRange = document.getElementById('timeRange').value;
+    const customRange = document.getElementById('customRange');
+    const customRangeTo = document.getElementById('customRangeTo');
+    
+    if (timeRange === 'custom') {
+        customRange.style.display = 'block';
+        customRangeTo.style.display = 'block';
+    } else {
+        customRange.style.display = 'none';
+        customRangeTo.style.display = 'none';
+        loadAnalyticsData();
+    }
+}
+
+function refreshAnalytics() {
+    loadAnalyticsData();
+}
+
+function exportAnalytics() {
+    const timeRange = document.getElementById('timeRange').value;
+    const eventType = document.getElementById('eventType').value;
+    
+    const params = new URLSearchParams({
+        time_range: timeRange,
+        event_type: eventType,
+        format: 'pdf'
+    });
+    
+    window.location.href = `/admin/security/analytics/export?${params.toString()}`;
+}
+
+function showLoading() {
+    document.getElementById('loadingOverlay').style.display = 'block';
+}
+
+function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+}
+
+// Auto-refresh every 60 seconds
+setInterval(refreshAnalytics, 60000);
+</script>
+{% endblock %}

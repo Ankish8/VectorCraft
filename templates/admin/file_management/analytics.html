@@ -1,0 +1,504 @@
+{% extends "admin/base.html" %}
+
+{% block title %}File Analytics{% endblock %}
+
+{% block extra_css %}
+<style>
+.analytics-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.metric-summary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.metric-item {
+    text-align: center;
+    padding: 10px;
+}
+
+.metric-value {
+    font-size: 2em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.metric-label {
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.trend-indicator {
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.trend-up {
+    color: #28a745;
+}
+
+.trend-down {
+    color: #dc3545;
+}
+
+.trend-neutral {
+    color: #6c757d;
+}
+
+.filter-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.chart-container {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.data-table {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.table thead th {
+    background: #f8f9fa;
+    border: none;
+    font-weight: 600;
+}
+
+.badge-large {
+    font-size: 0.9em;
+    padding: 8px 12px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">File Analytics</h1>
+                <a href="{{ url_for('file_management.index') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-section">
+        <div class="row">
+            <div class="col-md-3">
+                <label for="timeRange" class="form-label">Time Range</label>
+                <select class="form-select" id="timeRange" onchange="updateTimeRange(this.value)">
+                    <option value="7" {{ 'selected' if days == 7 }}>Last 7 Days</option>
+                    <option value="30" {{ 'selected' if days == 30 }}>Last 30 Days</option>
+                    <option value="90" {{ 'selected' if days == 90 }}>Last 90 Days</option>
+                    <option value="365" {{ 'selected' if days == 365 }}>Last Year</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="metricType" class="form-label">Metric Type</label>
+                <select class="form-select" id="metricType" onchange="updateMetricType(this.value)">
+                    <option value="uploads">Uploads</option>
+                    <option value="storage">Storage</option>
+                    <option value="processing">Processing</option>
+                    <option value="quality">Quality</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="fileType" class="form-label">File Type</label>
+                <select class="form-select" id="fileType" onchange="updateFileType(this.value)">
+                    <option value="all">All Types</option>
+                    {% for file_type in file_analytics.file_type_distribution.keys() %}
+                    <option value="{{ file_type }}">{{ file_type }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <button class="btn btn-primary d-block w-100" onclick="exportAnalytics()">
+                    <i class="fas fa-download"></i> Export Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="metric-summary">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="metric-item">
+                    <div class="metric-value">{{ file_analytics.summary.total_uploads or 0 }}</div>
+                    <div class="metric-label">Total Uploads</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-item">
+                    <div class="metric-value">{{ "%.1f"|format((file_analytics.summary.total_size or 0) / 1024 / 1024) }}</div>
+                    <div class="metric-label">Total Size (MB)</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-item">
+                    <div class="metric-value">{{ "%.1f"|format((file_analytics.summary.avg_file_size or 0) / 1024 / 1024) }}</div>
+                    <div class="metric-label">Avg File Size (MB)</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-item">
+                    <div class="metric-value">{{ "%.1f"|format((file_analytics.summary.success_rate or 0) * 100) }}%</div>
+                    <div class="metric-label">Success Rate</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="chart-container">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Upload Trends</h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary btn-sm active" onclick="switchChart('daily')">Daily</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="switchChart('weekly')">Weekly</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="switchChart('monthly')">Monthly</button>
+                    </div>
+                </div>
+                <canvas id="trendsChart"></canvas>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="chart-container">
+                <h5>File Type Distribution</h5>
+                <canvas id="fileTypeChart"></canvas>
+                <div class="mt-3">
+                    {% for file_type, count in file_analytics.file_type_distribution.items() %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>{{ file_type }}</span>
+                        <span class="badge bg-primary badge-large">{{ count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h5>File Size Distribution</h5>
+                <canvas id="fileSizeChart"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h5>Processing Performance</h5>
+                <canvas id="processingChart"></canvas>
+                <div class="mt-3">
+                    <div class="row">
+                        <div class="col-4 text-center">
+                            <h6 class="text-primary">{{ processing_metrics.avg_processing_time or 0 }}s</h6>
+                            <small class="text-muted">Avg Processing Time</small>
+                        </div>
+                        <div class="col-4 text-center">
+                            <h6 class="text-success">{{ processing_metrics.throughput or 0 }}</h6>
+                            <small class="text-muted">Files/Hour</small>
+                        </div>
+                        <div class="col-4 text-center">
+                            <h6 class="text-warning">{{ "%.1f"|format((processing_metrics.error_rate or 0) * 100) }}%</h6>
+                            <small class="text-muted">Error Rate</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quality Metrics -->
+    <div class="row">
+        <div class="col-12">
+            <div class="analytics-card">
+                <h5>Quality Metrics</h5>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-primary">{{ quality_metrics.image_quality.avg_resolution or 0 }}</h4>
+                            <p class="text-muted">Avg Resolution</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-success">{{ quality_metrics.file_integrity.valid_files or 0 }}</h4>
+                            <p class="text-muted">Valid Files</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-warning">{{ quality_metrics.file_integrity.corrupted_files or 0 }}</h4>
+                            <p class="text-muted">Corrupted Files</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-danger">{{ quality_metrics.file_integrity.suspicious_files or 0 }}</h4>
+                            <p class="text-muted">Suspicious Files</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Data Table -->
+    <div class="data-table">
+        <h5>Recent Activity</h5>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Filename</th>
+                        <th>Size</th>
+                        <th>Type</th>
+                        <th>Processing Time</th>
+                        <th>Status</th>
+                        <th>Quality Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for activity in processing_metrics.recent_activity %}
+                    <tr>
+                        <td>{{ activity.timestamp or 'N/A' }}</td>
+                        <td>
+                            <span class="text-truncate" style="max-width: 200px;">{{ activity.filename or 'N/A' }}</span>
+                        </td>
+                        <td>{{ "%.1f"|format((activity.size or 0) / 1024 / 1024) }} MB</td>
+                        <td>
+                            <span class="badge bg-secondary">{{ activity.type or 'N/A' }}</span>
+                        </td>
+                        <td>{{ "%.1f"|format(activity.processing_time or 0) }}s</td>
+                        <td>
+                            {% if activity.status == 'success' %}
+                            <span class="badge bg-success">Success</span>
+                            {% elif activity.status == 'error' %}
+                            <span class="badge bg-danger">Error</span>
+                            {% else %}
+                            <span class="badge bg-warning">Processing</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if activity.quality_score %}
+                            <span class="badge bg-primary">{{ "%.2f"|format(activity.quality_score) }}</span>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">No recent activity</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let trendsChart, fileTypeChart, fileSizeChart, processingChart;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeCharts();
+});
+
+function initializeCharts() {
+    // Trends Chart
+    const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+    trendsChart = new Chart(trendsCtx, {
+        type: 'line',
+        data: {
+            labels: {{ file_analytics.upload_trends | tojsonfilter | safe }} || [],
+            datasets: [{
+                label: 'Uploads',
+                data: {{ file_analytics.upload_trends | tojsonfilter | safe }} || [],
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // File Type Chart
+    const fileTypeCtx = document.getElementById('fileTypeChart').getContext('2d');
+    fileTypeChart = new Chart(fileTypeCtx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys({{ file_analytics.file_type_distribution | tojsonfilter | safe }} || {}),
+            datasets: [{
+                data: Object.values({{ file_analytics.file_type_distribution | tojsonfilter | safe }} || {}),
+                backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // File Size Chart
+    const fileSizeCtx = document.getElementById('fileSizeChart').getContext('2d');
+    fileSizeChart = new Chart(fileSizeCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys({{ file_analytics.size_distribution | tojsonfilter | safe }} || {}),
+            datasets: [{
+                label: 'Files',
+                data: Object.values({{ file_analytics.size_distribution | tojsonfilter | safe }} || {}),
+                backgroundColor: '#667eea',
+                borderColor: '#764ba2',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Processing Chart
+    const processingCtx = document.getElementById('processingChart').getContext('2d');
+    processingChart = new Chart(processingCtx, {
+        type: 'line',
+        data: {
+            labels: ['1h', '2h', '3h', '4h', '5h', '6h'],
+            datasets: [{
+                label: 'Processing Time',
+                data: [30, 28, 35, 32, 29, 31],
+                borderColor: '#43e97b',
+                backgroundColor: 'rgba(67, 233, 123, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Seconds'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateTimeRange(days) {
+    window.location.href = `{{ url_for('file_management.analytics') }}?days=${days}`;
+}
+
+function updateMetricType(type) {
+    // Update charts based on metric type
+    console.log('Updating metric type:', type);
+}
+
+function updateFileType(type) {
+    // Filter data based on file type
+    console.log('Updating file type filter:', type);
+}
+
+function switchChart(period) {
+    // Switch chart display period
+    const buttons = document.querySelectorAll('.btn-group button');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Update chart data based on period
+    console.log('Switching to', period, 'view');
+}
+
+function exportAnalytics() {
+    const days = document.getElementById('timeRange').value;
+    
+    fetch('/admin/files/action/export-analytics', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({days: parseInt(days), format: 'json'})
+    })
+    .then(response => response.json())
+    .then(data => {
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        
+        const exportFileDefaultName = `file_analytics_${days}days_${new Date().toISOString().split('T')[0]}.json`;
+        
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+    })
+    .catch(error => {
+        console.error('Error exporting analytics:', error);
+        alert('Error exporting analytics');
+    });
+}
+</script>
+{% endblock %}

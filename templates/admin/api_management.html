@@ -1,0 +1,843 @@
+{% extends "admin/base.html" %}
+{% set active_page = 'api_management' %}
+
+{% block title %}API Management - VectorCraft Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .api-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 15px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #007bff;
+    }
+    
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 10px 0;
+        text-align: center;
+    }
+    
+    .metric-value {
+        font-size: 2.5em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .metric-label {
+        font-size: 0.9em;
+        opacity: 0.9;
+    }
+    
+    .status-healthy {
+        color: #28a745;
+        font-weight: bold;
+    }
+    
+    .status-unhealthy {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    
+    .status-unknown {
+        color: #6c757d;
+        font-weight: bold;
+    }
+    
+    .endpoint-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+    }
+    
+    .endpoint-table th,
+    .endpoint-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .endpoint-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+    
+    .endpoint-table tr:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .rate-limit-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 10px 0;
+    }
+    
+    .rate-limit-control input {
+        width: 80px;
+        padding: 5px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    
+    .rate-limit-control button {
+        padding: 5px 15px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    .rate-limit-control button:hover {
+        background: #0056b3;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin: 20px 0;
+    }
+    
+    .integration-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 10px 0;
+    }
+    
+    .integration-status .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    
+    .integration-status .status-healthy {
+        background-color: #28a745;
+    }
+    
+    .integration-status .status-unhealthy {
+        background-color: #dc3545;
+    }
+    
+    .integration-status .status-unknown {
+        background-color: #6c757d;
+    }
+    
+    .tab-container {
+        margin: 20px 0;
+    }
+    
+    .tab-buttons {
+        display: flex;
+        border-bottom: 2px solid #f8f9fa;
+        margin-bottom: 20px;
+    }
+    
+    .tab-button {
+        padding: 12px 24px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        color: #666;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s ease;
+    }
+    
+    .tab-button.active {
+        color: #007bff;
+        border-bottom-color: #007bff;
+    }
+    
+    .tab-button:hover {
+        color: #007bff;
+    }
+    
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    .refresh-btn {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-left: 10px;
+    }
+    
+    .refresh-btn:hover {
+        background: #218838;
+    }
+    
+    .documentation-viewer {
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+    }
+    
+    .success-message {
+        background: #d4edda;
+        color: #155724;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">API Management</h1>
+                <div>
+                    <button class="refresh-btn" onclick="refreshAllData()">
+                        <i class="fas fa-sync-alt"></i> Refresh All
+                    </button>
+                </div>
+            </div>
+            
+            <!-- API Metrics Overview -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="total-requests">-</div>
+                        <div class="metric-label">Total Requests (24h)</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="avg-response-time">-</div>
+                        <div class="metric-label">Avg Response Time (ms)</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="error-rate">-</div>
+                        <div class="metric-label">Error Rate (%)</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-card">
+                        <div class="metric-value" id="active-endpoints">-</div>
+                        <div class="metric-label">Active Endpoints</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab Navigation -->
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="showTab('analytics')">
+                        <i class="fas fa-chart-line"></i> Analytics
+                    </button>
+                    <button class="tab-button" onclick="showTab('integrations')">
+                        <i class="fas fa-plug"></i> Integrations
+                    </button>
+                    <button class="tab-button" onclick="showTab('rate-limits')">
+                        <i class="fas fa-tachometer-alt"></i> Rate Limits
+                    </button>
+                    <button class="tab-button" onclick="showTab('documentation')">
+                        <i class="fas fa-book"></i> Documentation
+                    </button>
+                    <button class="tab-button" onclick="showTab('performance')">
+                        <i class="fas fa-performance"></i> Performance
+                    </button>
+                </div>
+                
+                <!-- Analytics Tab -->
+                <div class="tab-content active" id="analytics-tab">
+                    <div class="api-card">
+                        <h4><i class="fas fa-chart-bar"></i> API Usage Analytics</h4>
+                        <div class="chart-container">
+                            <canvas id="requestsChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="api-card">
+                        <h4><i class="fas fa-list"></i> Top Endpoints</h4>
+                        <table class="endpoint-table">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Requests</th>
+                                    <th>Avg Response Time</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="top-endpoints-table">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="api-card">
+                        <h4><i class="fas fa-exclamation-triangle"></i> Error Trends</h4>
+                        <div class="chart-container">
+                            <canvas id="errorsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Integrations Tab -->
+                <div class="tab-content" id="integrations-tab">
+                    <div class="api-card">
+                        <h4><i class="fas fa-plug"></i> Third-Party Service Status</h4>
+                        <div id="integrations-status">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Rate Limits Tab -->
+                <div class="tab-content" id="rate-limits-tab">
+                    <div class="api-card">
+                        <h4><i class="fas fa-tachometer-alt"></i> Rate Limit Configuration</h4>
+                        <div id="rate-limits-config">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Documentation Tab -->
+                <div class="tab-content" id="documentation-tab">
+                    <div class="api-card">
+                        <h4><i class="fas fa-book"></i> API Documentation</h4>
+                        <div class="d-flex gap-2 mb-3">
+                            <button class="btn btn-primary" onclick="loadDocumentation('json')">
+                                <i class="fas fa-code"></i> OpenAPI Spec
+                            </button>
+                            <button class="btn btn-secondary" onclick="loadDocumentation('html')">
+                                <i class="fas fa-globe"></i> HTML Documentation
+                            </button>
+                        </div>
+                        <div class="documentation-viewer" id="documentation-viewer">
+                            <p class="text-muted">Select a documentation format to view API documentation.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Performance Tab -->
+                <div class="tab-content" id="performance-tab">
+                    <div class="api-card">
+                        <h4><i class="fas fa-performance"></i> Performance Metrics</h4>
+                        <div class="chart-container">
+                            <canvas id="performanceChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="api-card">
+                        <h4><i class="fas fa-list"></i> Endpoint Performance</h4>
+                        <table class="endpoint-table">
+                            <thead>
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th>Method</th>
+                                    <th>Requests</th>
+                                    <th>Avg Time</th>
+                                    <th>Max Time</th>
+                                    <th>Min Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="endpoint-performance-table">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Rate Limit Update Modal -->
+<div class="modal fade" id="rateLimitModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Rate Limit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="rateLimitForm">
+                    <div class="mb-3">
+                        <label class="form-label">Endpoint</label>
+                        <input type="text" class="form-control" id="rateLimitEndpoint" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Request Limit</label>
+                        <input type="number" class="form-control" id="rateLimitValue" min="1" max="10000">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Time Window (seconds)</label>
+                        <input type="number" class="form-control" id="rateLimitWindow" min="60" max="86400">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateRateLimit()">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let analyticsData = null;
+let integrationData = null;
+let rateLimitsData = null;
+let performanceData = null;
+
+// Initialize the dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    loadAllData();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(refreshAllData, 30000);
+});
+
+function showTab(tabName) {
+    // Hide all tabs
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabContents.forEach(tab => tab.classList.remove('active'));
+    
+    // Remove active class from all buttons
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(button => button.classList.remove('active'));
+    
+    // Show selected tab
+    document.getElementById(tabName + '-tab').classList.add('active');
+    
+    // Add active class to clicked button
+    event.target.classList.add('active');
+    
+    // Load data for the selected tab
+    switch(tabName) {
+        case 'analytics':
+            loadAnalyticsData();
+            break;
+        case 'integrations':
+            loadIntegrationData();
+            break;
+        case 'rate-limits':
+            loadRateLimitsData();
+            break;
+        case 'performance':
+            loadPerformanceData();
+            break;
+    }
+}
+
+function loadAllData() {
+    loadAnalyticsData();
+    loadIntegrationData();
+    loadRateLimitsData();
+    loadPerformanceData();
+}
+
+function refreshAllData() {
+    showLoadingSpinner();
+    loadAllData();
+}
+
+function loadAnalyticsData() {
+    fetch('/admin/api/analytics')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                analyticsData = data.analytics;
+                updateAnalyticsUI();
+            } else {
+                showError('Failed to load analytics data: ' + data.error);
+            }
+        })
+        .catch(error => {
+            showError('Error loading analytics data: ' + error);
+        });
+}
+
+function loadIntegrationData() {
+    fetch('/admin/api/integrations')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                integrationData = data.services;
+                updateIntegrationUI();
+            } else {
+                showError('Failed to load integration data: ' + data.error);
+            }
+        })
+        .catch(error => {
+            showError('Error loading integration data: ' + error);
+        });
+}
+
+function loadRateLimitsData() {
+    fetch('/admin/api/rate-limits')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                rateLimitsData = data.rate_limits;
+                updateRateLimitsUI();
+            } else {
+                showError('Failed to load rate limits data: ' + data.error);
+            }
+        })
+        .catch(error => {
+            showError('Error loading rate limits data: ' + error);
+        });
+}
+
+function loadPerformanceData() {
+    fetch('/admin/api/performance')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                performanceData = data.metrics;
+                updatePerformanceUI();
+            } else {
+                showError('Failed to load performance data: ' + data.error);
+            }
+        })
+        .catch(error => {
+            showError('Error loading performance data: ' + error);
+        });
+}
+
+function updateAnalyticsUI() {
+    if (!analyticsData) return;
+    
+    const summary = analyticsData.summary;
+    
+    // Update overview metrics
+    document.getElementById('total-requests').textContent = 
+        summary.request_stats.reduce((sum, stat) => sum + stat.count, 0);
+    
+    const avgResponseTime = summary.request_stats.reduce((sum, stat) => 
+        sum + (stat.avg_response_time || 0), 0) / summary.request_stats.length;
+    document.getElementById('avg-response-time').textContent = 
+        Math.round(avgResponseTime * 1000) + 'ms';
+    
+    const errorRate = summary.error_stats.length / Math.max(summary.request_stats.length, 1) * 100;
+    document.getElementById('error-rate').textContent = errorRate.toFixed(1) + '%';
+    
+    document.getElementById('active-endpoints').textContent = summary.request_stats.length;
+    
+    // Update top endpoints table
+    const topEndpointsTable = document.getElementById('top-endpoints-table');
+    topEndpointsTable.innerHTML = '';
+    
+    analyticsData.top_endpoints.forEach(endpoint => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${endpoint.endpoint}</td>
+            <td>${endpoint.requests}</td>
+            <td>${Math.round((endpoint.avg_response_time || 0) * 1000)}ms</td>
+            <td><span class="badge bg-success">Active</span></td>
+        `;
+        topEndpointsTable.appendChild(row);
+    });
+    
+    // Update charts
+    updateRequestsChart();
+    updateErrorsChart();
+}
+
+function updateIntegrationUI() {
+    if (!integrationData) return;
+    
+    const integrationsStatus = document.getElementById('integrations-status');
+    integrationsStatus.innerHTML = '';
+    
+    Object.entries(integrationData).forEach(([serviceName, status]) => {
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'integration-status';
+        
+        const statusClass = status.status === 'healthy' ? 'status-healthy' : 
+                          status.status === 'unhealthy' ? 'status-unhealthy' : 'status-unknown';
+        
+        statusDiv.innerHTML = `
+            <span class="status-indicator ${statusClass}"></span>
+            <strong>${serviceName}</strong>
+            <span class="${statusClass}">${status.status.toUpperCase()}</span>
+            <small class="text-muted">
+                ${status.response_time ? `(${Math.round(status.response_time * 1000)}ms)` : ''}
+            </small>
+            ${status.error_message ? `<div class="text-danger small">${status.error_message}</div>` : ''}
+        `;
+        
+        integrationsStatus.appendChild(statusDiv);
+    });
+}
+
+function updateRateLimitsUI() {
+    if (!rateLimitsData) return;
+    
+    const rateLimitsConfig = document.getElementById('rate-limits-config');
+    rateLimitsConfig.innerHTML = '';
+    
+    Object.entries(rateLimitsData).forEach(([endpoint, config]) => {
+        const configDiv = document.createElement('div');
+        configDiv.className = 'rate-limit-control';
+        
+        configDiv.innerHTML = `
+            <strong>${endpoint}</strong>
+            <span>Limit: ${config.limit} requests per ${config.window}s</span>
+            <span class="text-muted">Hits today: ${config.hits_today}</span>
+            <button class="btn btn-sm btn-outline-primary" onclick="showRateLimitModal('${endpoint}', ${config.limit}, ${config.window})">
+                <i class="fas fa-edit"></i> Edit
+            </button>
+        `;
+        
+        rateLimitsConfig.appendChild(configDiv);
+    });
+}
+
+function updatePerformanceUI() {
+    if (!performanceData) return;
+    
+    // Update endpoint performance table
+    const performanceTable = document.getElementById('endpoint-performance-table');
+    performanceTable.innerHTML = '';
+    
+    performanceData.endpoint_performance.forEach(endpoint => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${endpoint.endpoint}</td>
+            <td>${endpoint.method}</td>
+            <td>${endpoint.request_count}</td>
+            <td>${Math.round((endpoint.avg_response_time || 0) * 1000)}ms</td>
+            <td>${Math.round((endpoint.max_response_time || 0) * 1000)}ms</td>
+            <td>${Math.round((endpoint.min_response_time || 0) * 1000)}ms</td>
+        `;
+        performanceTable.appendChild(row);
+    });
+    
+    // Update performance chart
+    updatePerformanceChart();
+}
+
+function updateRequestsChart() {
+    const ctx = document.getElementById('requestsChart').getContext('2d');
+    
+    // Sample data - in real implementation, this would come from analytics
+    const data = {
+        labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+        datasets: [{
+            label: 'API Requests',
+            data: [12, 19, 3, 5, 2, 3],
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1
+        }]
+    };
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function updateErrorsChart() {
+    const ctx = document.getElementById('errorsChart').getContext('2d');
+    
+    // Sample data
+    const data = {
+        labels: ['400', '401', '403', '404', '429', '500'],
+        datasets: [{
+            label: 'Error Count',
+            data: [3, 1, 2, 5, 8, 2],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 205, 86, 0.2)',
+                'rgba(75, 192, 192, 0.2)',
+                'rgba(153, 102, 255, 0.2)',
+                'rgba(255, 159, 64, 0.2)'
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 205, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 1
+        }]
+    };
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function updatePerformanceChart() {
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    
+    // Sample data
+    const data = {
+        labels: ['Vectorize', 'Upload', 'Download', 'Health', 'Auth'],
+        datasets: [{
+            label: 'Response Time (ms)',
+            data: [1200, 300, 150, 50, 100],
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        }]
+    };
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function showRateLimitModal(endpoint, limit, window) {
+    document.getElementById('rateLimitEndpoint').value = endpoint;
+    document.getElementById('rateLimitValue').value = limit;
+    document.getElementById('rateLimitWindow').value = window;
+    
+    const modal = new bootstrap.Modal(document.getElementById('rateLimitModal'));
+    modal.show();
+}
+
+function updateRateLimit() {
+    const endpoint = document.getElementById('rateLimitEndpoint').value;
+    const limit = parseInt(document.getElementById('rateLimitValue').value);
+    const window = parseInt(document.getElementById('rateLimitWindow').value);
+    
+    fetch('/admin/api/rate-limits', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            endpoint: endpoint,
+            limit: limit,
+            window: window
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess('Rate limit updated successfully');
+            loadRateLimitsData();
+            bootstrap.Modal.getInstance(document.getElementById('rateLimitModal')).hide();
+        } else {
+            showError('Failed to update rate limit: ' + data.error);
+        }
+    })
+    .catch(error => {
+        showError('Error updating rate limit: ' + error);
+    });
+}
+
+function loadDocumentation(format) {
+    fetch(`/admin/api/documentation?format=${format}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const viewer = document.getElementById('documentation-viewer');
+                
+                if (format === 'html') {
+                    viewer.innerHTML = data.documentation;
+                } else {
+                    viewer.innerHTML = `<pre><code>${JSON.stringify(data.documentation, null, 2)}</code></pre>`;
+                }
+            } else {
+                showError('Failed to load documentation: ' + data.error);
+            }
+        })
+        .catch(error => {
+            showError('Error loading documentation: ' + error);
+        });
+}
+
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = message;
+    
+    document.body.appendChild(errorDiv);
+    
+    setTimeout(() => {
+        document.body.removeChild(errorDiv);
+    }, 5000);
+}
+
+function showSuccess(message) {
+    const successDiv = document.createElement('div');
+    successDiv.className = 'success-message';
+    successDiv.textContent = message;
+    
+    document.body.appendChild(successDiv);
+    
+    setTimeout(() => {
+        document.body.removeChild(successDiv);
+    }, 5000);
+}
+
+function showLoadingSpinner() {
+    // Add loading spinner logic here
+    console.log('Loading...');
+}
+</script>
+{% endblock %}

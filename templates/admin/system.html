@@ -1,40 +1,453 @@
 {% extends "admin/base.html" %}
 
-{% block title %}System Health - VectorCraft Admin{% endblock %}
+{% block title %}System Operations Center - VectorCraft Admin{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="bi bi-cpu"></i> System Health</h1>
-    <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
-        <i class="bi bi-arrow-clockwise"></i> Refresh
-    </button>
-</div>
-
-<!-- Overall Status -->
-<div id="overallStatus" class="alert alert-info mb-4">
-    <div class="d-flex align-items-center">
-        <div class="spinner-border spinner-border-sm me-2"></div>
-        <div>Loading system status...</div>
+    <h1><i class="bi bi-cpu"></i> System Operations Center</h1>
+    <div class="btn-toolbar">
+        <button class="btn btn-outline-primary btn-sm me-2" onclick="refreshData()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+        <button class="btn btn-outline-warning btn-sm me-2" onclick="showMaintenancePanel()">
+            <i class="bi bi-tools"></i> Maintenance
+        </button>
+        <button class="btn btn-outline-danger btn-sm" onclick="showSecurityPanel()">
+            <i class="bi bi-shield-lock"></i> Security
+        </button>
     </div>
 </div>
 
-<!-- Component Health -->
-<div class="row" id="componentHealth">
-    <div class="col-12 text-center py-4">
-        <div class="spinner-border"></div>
-        <p class="mt-2">Loading component health status...</p>
+<!-- Navigation Tabs -->
+<ul class="nav nav-tabs mb-4" id="systemTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+            <i class="bi bi-speedometer2"></i> Overview
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="database-tab" data-bs-toggle="tab" data-bs-target="#database" type="button" role="tab">
+            <i class="bi bi-database"></i> Database
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="api-tab" data-bs-toggle="tab" data-bs-target="#api" type="button" role="tab">
+            <i class="bi bi-globe"></i> API Performance
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab">
+            <i class="bi bi-shield-lock"></i> Security
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="maintenance-tab" data-bs-toggle="tab" data-bs-target="#maintenance" type="button" role="tab">
+            <i class="bi bi-tools"></i> Maintenance
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="systemTabsContent">
+    <!-- Overview Tab -->
+    <div class="tab-pane fade show active" id="overview" role="tabpanel">
+        <!-- Overall Status -->
+        <div id="overallStatus" class="alert alert-info mb-4">
+            <div class="d-flex align-items-center">
+                <div class="spinner-border spinner-border-sm me-2"></div>
+                <div>Loading system status...</div>
+            </div>
+        </div>
+
+        <!-- Component Health -->
+        <div class="row" id="componentHealth">
+            <div class="col-12 text-center py-4">
+                <div class="spinner-border"></div>
+                <p class="mt-2">Loading component health status...</p>
+            </div>
+        </div>
+
+        <!-- Real-time Metrics -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-activity"></i> Real-time Performance</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="performanceChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-pie-chart"></i> System Resources</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="resourceChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Database Tab -->
+    <div class="tab-pane fade" id="database" role="tabpanel">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-database"></i> Database Performance</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="databaseMetrics" class="loading">Loading database metrics...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-clock-history"></i> Slow Queries</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="slowQueries" class="loading">Loading slow queries...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-graph-up"></i> Database Performance Trends</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="databaseTrendChart" width="800" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Performance Tab -->
+    <div class="tab-pane fade" id="api" role="tabpanel">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-speedometer"></i> API Metrics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="apiMetrics" class="loading">Loading API metrics...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-exclamation-triangle"></i> Error Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="errorAnalysis" class="loading">Loading error analysis...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-bar-chart"></i> Endpoint Performance</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="endpointPerformance" class="loading">Loading endpoint performance...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Tab -->
+    <div class="tab-pane fade" id="security" role="tabpanel">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-shield-exclamation"></i> Security Threats</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="securityThreats" class="loading">Loading security threats...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-geo-alt"></i> Blocked IPs</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="blockedIPs" class="loading">Loading blocked IPs...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-graph-up"></i> Attack Trends</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="attackTrendChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-bell"></i> Security Alerts</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="securityAlerts" class="loading">Loading security alerts...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Maintenance Tab -->
+    <div class="tab-pane fade" id="maintenance" role="tabpanel">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-calendar-check"></i> Scheduled Tasks</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="scheduledTasks" class="loading">Loading scheduled tasks...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-gear"></i> Automation Rules</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="automationRules" class="loading">Loading automation rules...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-clock-history"></i> Maintenance History</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="maintenanceHistory" class="loading">Loading maintenance history...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions Modal -->
+<div class="modal fade" id="quickActionsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Quick Actions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="runOptimization()">
+                        <i class="bi bi-speedometer2"></i> Optimize Database
+                    </button>
+                    <button class="btn btn-warning" onclick="clearCache()">
+                        <i class="bi bi-trash"></i> Clear Cache
+                    </button>
+                    <button class="btn btn-info" onclick="runHealthCheck()">
+                        <i class="bi bi-heart-pulse"></i> Run Health Check
+                    </button>
+                    <button class="btn btn-danger" onclick="blockSuspiciousIPs()">
+                        <i class="bi bi-shield-lock"></i> Block Suspicious IPs
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Global variables for charts
+    let performanceChart, resourceChart, databaseTrendChart, attackTrendChart;
+    let currentTab = 'overview';
+    
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeDashboard();
+        loadAllData();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadAllData, 30000);
+        
+        // Tab change handler
+        document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+            tab.addEventListener('shown.bs.tab', function(e) {
+                currentTab = e.target.getAttribute('data-bs-target').replace('#', '');
+                loadTabData(currentTab);
+            });
+        });
+    });
+    
+    function initializeDashboard() {
+        // Initialize charts
+        initializeCharts();
+        
+        // Set up quick actions
+        setupQuickActions();
+    }
+    
+    function initializeCharts() {
+        // Performance Chart
+        const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+        performanceChart = new Chart(performanceCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Response Time (ms)',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        // Resource Chart
+        const resourceCtx = document.getElementById('resourceChart').getContext('2d');
+        resourceChart = new Chart(resourceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['CPU', 'Memory', 'Disk'],
+                datasets: [{
+                    data: [0, 0, 0],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 205, 86, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+        
+        // Database Trend Chart
+        const databaseCtx = document.getElementById('databaseTrendChart').getContext('2d');
+        databaseTrendChart = new Chart(databaseCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Query Time (ms)',
+                    data: [],
+                    borderColor: 'rgb(153, 102, 255)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        
+        // Attack Trend Chart
+        const attackCtx = document.getElementById('attackTrendChart').getContext('2d');
+        attackTrendChart = new Chart(attackCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Attacks',
+                    data: [],
+                    backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+    
     function refreshData() {
+        loadAllData();
+    }
+    
+    function loadAllData() {
         loadHealthStatus();
+        if (currentTab !== 'overview') {
+            loadTabData(currentTab);
+        }
+    }
+    
+    function loadTabData(tab) {
+        switch(tab) {
+            case 'database':
+                loadDatabaseData();
+                break;
+            case 'api':
+                loadAPIData();
+                break;
+            case 'security':
+                loadSecurityData();
+                break;
+            case 'maintenance':
+                loadMaintenanceData();
+                break;
+        }
     }
     
     function loadHealthStatus() {
-        // Add cache-busting parameter to ensure fresh data
         const timestamp = new Date().getTime();
         fetch(`/admin/api/health?_=${timestamp}`)
             .then(response => response.json())
@@ -42,15 +455,86 @@
                 if (data.success) {
                     updateOverallStatus(data.overall_status);
                     updateComponentHealth(data.health_results);
+                    updateRealTimeCharts(data);
                 } else {
-                    document.getElementById('overallStatus').innerHTML = 
-                        '<div class="alert alert-danger">Error loading health status</div>';
+                    showError('overallStatus', 'Error loading health status');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                document.getElementById('overallStatus').innerHTML = 
-                    '<div class="alert alert-danger">Error loading health status</div>';
+                showError('overallStatus', 'Error loading health status');
+            });
+    }
+    
+    function loadDatabaseData() {
+        const timestamp = new Date().getTime();
+        fetch(`/admin/api/database-performance?_=${timestamp}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateDatabaseMetrics(data.performance_dashboard);
+                    updateDatabaseTrends(data.performance_trends);
+                } else {
+                    showError('databaseMetrics', 'Error loading database data');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('databaseMetrics', 'Error loading database data');
+            });
+    }
+    
+    function loadAPIData() {
+        const timestamp = new Date().getTime();
+        fetch(`/admin/api/api-performance?_=${timestamp}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateAPIMetrics(data.performance_dashboard);
+                    updateEndpointPerformance(data.slow_endpoints);
+                } else {
+                    showError('apiMetrics', 'Error loading API data');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('apiMetrics', 'Error loading API data');
+            });
+    }
+    
+    function loadSecurityData() {
+        const timestamp = new Date().getTime();
+        fetch(`/admin/api/security-dashboard?_=${timestamp}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateSecurityThreats(data.security_dashboard);
+                    updateAttackTrends(data.attack_trends);
+                } else {
+                    showError('securityThreats', 'Error loading security data');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('securityThreats', 'Error loading security data');
+            });
+    }
+    
+    function loadMaintenanceData() {
+        const timestamp = new Date().getTime();
+        fetch(`/admin/api/maintenance-dashboard?_=${timestamp}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateScheduledTasks(data.maintenance_dashboard);
+                    updateMaintenanceHistory(data.recent_executions);
+                } else {
+                    showError('scheduledTasks', 'Error loading maintenance data');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('scheduledTasks', 'Error loading maintenance data');
             });
     }
     
@@ -100,15 +584,536 @@
         document.getElementById('componentHealth').innerHTML = html;
     }
     
-    // Load data on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        loadHealthStatus();
+    function updateRealTimeCharts(data) {
+        // Update performance chart
+        const now = new Date().toLocaleTimeString();
+        const avgResponseTime = data.performance_metrics?.avg_response_time || 0;
         
-        // Auto-refresh every 30 seconds
-        setInterval(loadHealthStatus, 30000);
-    });
+        performanceChart.data.labels.push(now);
+        performanceChart.data.datasets[0].data.push(avgResponseTime);
+        
+        // Keep only last 20 points
+        if (performanceChart.data.labels.length > 20) {
+            performanceChart.data.labels.shift();
+            performanceChart.data.datasets[0].data.shift();
+        }
+        
+        performanceChart.update();
+        
+        // Update resource chart
+        const systemMetrics = data.system_metrics || {};
+        resourceChart.data.datasets[0].data = [
+            systemMetrics.cpu_percent || 0,
+            systemMetrics.memory_percent || 0,
+            systemMetrics.disk_percent || 0
+        ];
+        resourceChart.update();
+    }
     
-    // Make refreshData available globally
+    function updateDatabaseMetrics(dashboard) {
+        const metrics = dashboard.query_statistics || {};
+        const health = dashboard.health_metrics || [];
+        
+        let html = `
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="metric-card">
+                        <h6>Total Queries</h6>
+                        <h3 class="text-primary">${Object.keys(metrics).length}</h3>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="metric-card">
+                        <h6>Avg Response Time</h6>
+                        <h3 class="text-info">${dashboard.avg_response_time || 0}ms</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <h6>Health Metrics</h6>
+                <div class="list-group">
+        `;
+        
+        health.forEach(metric => {
+            const statusClass = metric.status === 'healthy' ? 'success' : 
+                               metric.status === 'warning' ? 'warning' : 'danger';
+            html += `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>${metric.name}</span>
+                    <span class="badge bg-${statusClass}">${metric.value} ${metric.unit}</span>
+                </div>
+            `;
+        });
+        
+        html += '</div></div>';
+        document.getElementById('databaseMetrics').innerHTML = html;
+        
+        // Update slow queries
+        const slowQueries = dashboard.slow_queries || [];
+        let slowHtml = '<div class="list-group">';
+        
+        slowQueries.forEach(query => {
+            slowHtml += `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <h6>${query.query_name}</h6>
+                        <small class="text-muted">${query.avg_time.toFixed(1)}ms</small>
+                    </div>
+                    <small class="text-muted">Executed ${query.count} times</small>
+                </div>
+            `;
+        });
+        
+        slowHtml += '</div>';
+        document.getElementById('slowQueries').innerHTML = slowHtml;
+    }
+    
+    function updateDatabaseTrends(trends) {
+        if (!trends || trends.length === 0) return;
+        
+        databaseTrendChart.data.labels = trends.map(t => new Date(t.time).toLocaleTimeString());
+        databaseTrendChart.data.datasets[0].data = trends.map(t => t.avg_time);
+        databaseTrendChart.update();
+    }
+    
+    function updateAPIMetrics(dashboard) {
+        const metrics = dashboard.performance_metrics || {};
+        const realTimeRequests = dashboard.real_time_requests || [];
+        
+        let html = `
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="metric-card">
+                        <h6>Total Requests</h6>
+                        <h3 class="text-primary">${metrics.total_requests || 0}</h3>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="metric-card">
+                        <h6>Error Rate</h6>
+                        <h3 class="text-danger">${((metrics.error_rate || 0) * 100).toFixed(1)}%</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <h6>Recent Requests</h6>
+                <div class="list-group" style="max-height: 300px; overflow-y: auto;">
+        `;
+        
+        realTimeRequests.slice(-10).forEach(request => {
+            const statusClass = request.error ? 'danger' : 
+                               request.response_time > 1000 ? 'warning' : 'success';
+            html += `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <span>${request.endpoint}</span>
+                        <span class="badge bg-${statusClass}">${request.response_time.toFixed(0)}ms</span>
+                    </div>
+                    <small class="text-muted">${new Date(request.timestamp).toLocaleTimeString()}</small>
+                </div>
+            `;
+        });
+        
+        html += '</div></div>';
+        document.getElementById('apiMetrics').innerHTML = html;
+        
+        // Update error analysis
+        const errorAnalysis = dashboard.error_analysis || [];
+        let errorHtml = '<div class="list-group">';
+        
+        errorAnalysis.forEach(error => {
+            errorHtml += `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <span>HTTP ${error.status_code}</span>
+                        <span class="badge bg-danger">${error.count}</span>
+                    </div>
+                    <small class="text-muted">${error.endpoint}</small>
+                </div>
+            `;
+        });
+        
+        errorHtml += '</div>';
+        document.getElementById('errorAnalysis').innerHTML = errorHtml;
+    }
+    
+    function updateEndpointPerformance(endpoints) {
+        let html = '<div class="table-responsive"><table class="table table-striped">';
+        html += '<thead><tr><th>Endpoint</th><th>Avg Time</th><th>Count</th><th>Status</th></tr></thead><tbody>';
+        
+        endpoints.forEach(endpoint => {
+            const statusClass = endpoint.avg_time > 1000 ? 'danger' : 
+                               endpoint.avg_time > 500 ? 'warning' : 'success';
+            html += `
+                <tr>
+                    <td>${endpoint.endpoint}</td>
+                    <td><span class="badge bg-${statusClass}">${endpoint.avg_time.toFixed(0)}ms</span></td>
+                    <td>${endpoint.count}</td>
+                    <td><span class="badge bg-${statusClass}">${endpoint.avg_time > 1000 ? 'Slow' : 'OK'}</span></td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table></div>';
+        document.getElementById('endpointPerformance').innerHTML = html;
+    }
+    
+    function updateSecurityThreats(dashboard) {
+        const stats = dashboard.security_stats || {};
+        const recentThreats = dashboard.recent_threats || [];
+        
+        let html = `
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="metric-card">
+                        <h6>Total Requests</h6>
+                        <h3 class="text-info">${stats.total_requests || 0}</h3>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="metric-card">
+                        <h6>Blocked Requests</h6>
+                        <h3 class="text-danger">${stats.blocked_requests || 0}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <h6>Recent Threats</h6>
+                <div class="list-group" style="max-height: 300px; overflow-y: auto;">
+        `;
+        
+        recentThreats.slice(-10).forEach(threat => {
+            html += `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <span>${threat.ip}</span>
+                        <small class="text-muted">${new Date(threat.timestamp).toLocaleTimeString()}</small>
+                    </div>
+                    <small class="text-danger">${threat.threats.map(t => t.type).join(', ')}</small>
+                </div>
+            `;
+        });
+        
+        html += '</div></div>';
+        document.getElementById('securityThreats').innerHTML = html;
+        
+        // Update blocked IPs
+        const blockedIPs = dashboard.blocked_ips || [];
+        let blockedHtml = '<div class="list-group">';
+        
+        blockedIPs.slice(-20).forEach(ip => {
+            blockedHtml += `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>${ip}</span>
+                    <button class="btn btn-sm btn-outline-success" onclick="unblockIP('${ip}')">
+                        <i class="bi bi-unlock"></i>
+                    </button>
+                </div>
+            `;
+        });
+        
+        blockedHtml += '</div>';
+        document.getElementById('blockedIPs').innerHTML = blockedHtml;
+        
+        // Update security alerts
+        const alerts = dashboard.security_alerts || [];
+        let alertHtml = '<div class="list-group">';
+        
+        alerts.forEach(alert => {
+            const severityClass = alert.severity === 'critical' ? 'danger' : 
+                                  alert.severity === 'high' ? 'warning' : 'info';
+            alertHtml += `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <span>${alert.message}</span>
+                        <span class="badge bg-${severityClass}">${alert.severity}</span>
+                    </div>
+                    <small class="text-muted">${new Date(alert.timestamp).toLocaleTimeString()}</small>
+                </div>
+            `;
+        });
+        
+        alertHtml += '</div>';
+        document.getElementById('securityAlerts').innerHTML = alertHtml;
+    }
+    
+    function updateAttackTrends(trends) {
+        if (!trends || trends.length === 0) return;
+        
+        const hourlyData = {};
+        trends.forEach(trend => {
+            const hour = new Date(trend.hour).getHours();
+            hourlyData[hour] = (hourlyData[hour] || 0) + trend.count;
+        });
+        
+        attackTrendChart.data.labels = Object.keys(hourlyData).map(h => `${h}:00`);
+        attackTrendChart.data.datasets[0].data = Object.values(hourlyData);
+        attackTrendChart.update();
+    }
+    
+    function updateScheduledTasks(dashboard) {
+        const tasks = dashboard.scheduled_tasks || [];
+        
+        let html = '<div class="table-responsive"><table class="table table-striped">';
+        html += '<thead><tr><th>Task</th><th>Schedule</th><th>Status</th><th>Last Run</th><th>Actions</th></tr></thead><tbody>';
+        
+        tasks.forEach(task => {
+            const statusClass = task.enabled ? 'success' : 'secondary';
+            const lastRun = task.last_run ? new Date(task.last_run).toLocaleString() : 'Never';
+            
+            html += `
+                <tr>
+                    <td>
+                        <strong>${task.name}</strong><br>
+                        <small class="text-muted">${task.description}</small>
+                    </td>
+                    <td>${task.schedule_type}: ${task.schedule_value}</td>
+                    <td><span class="badge bg-${statusClass}">${task.enabled ? 'Enabled' : 'Disabled'}</span></td>
+                    <td>${lastRun}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="runMaintenanceTask('${task.name}')">
+                            <i class="bi bi-play"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table></div>';
+        document.getElementById('scheduledTasks').innerHTML = html;
+        
+        // Update automation rules
+        const rules = dashboard.automation_rules || [];
+        let rulesHtml = '<div class="list-group">';
+        
+        rules.forEach(rule => {
+            const statusClass = rule.enabled ? 'success' : 'secondary';
+            rulesHtml += `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <span>${rule.name}</span>
+                        <span class="badge bg-${statusClass}">${rule.enabled ? 'Active' : 'Inactive'}</span>
+                    </div>
+                    <small class="text-muted">${rule.condition} → ${rule.action}</small>
+                </div>
+            `;
+        });
+        
+        rulesHtml += '</div>';
+        document.getElementById('automationRules').innerHTML = rulesHtml;
+    }
+    
+    function updateMaintenanceHistory(executions) {
+        let html = '<div class="table-responsive"><table class="table table-striped">';
+        html += '<thead><tr><th>Task</th><th>Status</th><th>Duration</th><th>Time</th></tr></thead><tbody>';
+        
+        executions.forEach(execution => {
+            const statusClass = execution.status === 'completed' ? 'success' : 
+                               execution.status === 'failed' ? 'danger' : 'warning';
+            const duration = execution.duration ? `${execution.duration}s` : 'N/A';
+            
+            html += `
+                <tr>
+                    <td>${execution.task_name}</td>
+                    <td><span class="badge bg-${statusClass}">${execution.status}</span></td>
+                    <td>${duration}</td>
+                    <td>${new Date(execution.start_time).toLocaleString()}</td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table></div>';
+        document.getElementById('maintenanceHistory').innerHTML = html;
+    }
+    
+    function setupQuickActions() {
+        // Quick action functions
+        window.runOptimization = function() {
+            fetch('/admin/api/optimize-database', {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Database optimization completed successfully');
+                    } else {
+                        alert('Optimization failed: ' + data.error);
+                    }
+                })
+                .catch(error => alert('Error: ' + error.message));
+        };
+        
+        window.clearCache = function() {
+            fetch('/admin/api/clear-cache', {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Cache cleared successfully');
+                    } else {
+                        alert('Cache clear failed: ' + data.error);
+                    }
+                })
+                .catch(error => alert('Error: ' + error.message));
+        };
+        
+        window.runHealthCheck = function() {
+            fetch('/admin/api/health-check', {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Health check completed successfully');
+                        loadHealthStatus();
+                    } else {
+                        alert('Health check failed: ' + data.error);
+                    }
+                })
+                .catch(error => alert('Error: ' + error.message));
+        };
+        
+        window.blockSuspiciousIPs = function() {
+            fetch('/admin/api/block-suspicious-ips', {method: 'POST'})
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(`Blocked ${data.blocked_count} suspicious IPs`);
+                        loadSecurityData();
+                    } else {
+                        alert('Failed to block IPs: ' + data.error);
+                    }
+                })
+                .catch(error => alert('Error: ' + error.message));
+        };
+        
+        window.unblockIP = function(ip) {
+            fetch('/admin/api/unblock-ip', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ip: ip})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(`IP ${ip} unblocked successfully`);
+                        loadSecurityData();
+                    } else {
+                        alert('Failed to unblock IP: ' + data.error);
+                    }
+                })
+                .catch(error => alert('Error: ' + error.message));
+        };
+        
+        window.runMaintenanceTask = function(taskName) {
+            fetch('/admin/api/run-maintenance-task', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({task: taskName})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(`Maintenance task "${taskName}" started successfully`);
+                        loadMaintenanceData();
+                    } else {
+                        alert('Failed to start task: ' + data.error);
+                    }
+                })
+                .catch(error => alert('Error: ' + error.message));
+        };
+        
+        window.showMaintenancePanel = function() {
+            const maintenanceTab = document.getElementById('maintenance-tab');
+            maintenanceTab.click();
+        };
+        
+        window.showSecurityPanel = function() {
+            const securityTab = document.getElementById('security-tab');
+            securityTab.click();
+        };
+    }
+    
+    function showError(elementId, message) {
+        document.getElementById(elementId).innerHTML = `<div class="alert alert-danger">${message}</div>`;
+    }
+    
+    // Make functions available globally
     window.refreshData = refreshData;
+    window.loadTabData = loadTabData;
 </script>
+
+<style>
+    .metric-card {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .metric-card h6 {
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+    }
+    
+    .metric-card h3 {
+        margin-bottom: 0;
+        font-weight: 600;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+    }
+    
+    .tab-content {
+        min-height: 400px;
+    }
+    
+    .list-group-item {
+        border-left: none;
+        border-right: none;
+    }
+    
+    .list-group-item:first-child {
+        border-top: none;
+    }
+    
+    .list-group-item:last-child {
+        border-bottom: none;
+    }
+    
+    .card-header h5 {
+        margin-bottom: 0;
+        font-weight: 600;
+    }
+    
+    .nav-tabs .nav-link {
+        border-radius: 0.375rem 0.375rem 0 0;
+        font-weight: 500;
+    }
+    
+    .nav-tabs .nav-link.active {
+        border-bottom-color: #fff;
+        font-weight: 600;
+    }
+    
+    .btn-toolbar .btn {
+        margin-left: 0.25rem;
+    }
+    
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        background-color: #f8f9fa;
+    }
+    
+    .badge {
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 1rem;
+    }
+</style>
 {% endblock %}

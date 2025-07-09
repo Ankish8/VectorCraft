@@ -1,0 +1,595 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Security Dashboard - VectorCraft Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .security-overview {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .security-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #007bff;
+    }
+    
+    .security-card.danger {
+        border-left-color: #dc3545;
+    }
+    
+    .security-card.warning {
+        border-left-color: #ffc107;
+    }
+    
+    .security-card.success {
+        border-left-color: #28a745;
+    }
+    
+    .security-metric {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .security-label {
+        color: #666;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .threat-level {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    
+    .threat-level.low {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .threat-level.medium {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    
+    .threat-level.high {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    
+    .threat-level.critical {
+        background-color: #721c24;
+        color: white;
+    }
+    
+    .security-events {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .event-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        border-bottom: 1px solid #eee;
+        transition: background-color 0.2s;
+    }
+    
+    .event-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .event-item:last-child {
+        border-bottom: none;
+    }
+    
+    .event-timestamp {
+        color: #666;
+        font-size: 0.8rem;
+        margin-right: 1rem;
+        min-width: 120px;
+    }
+    
+    .event-type {
+        background: #e9ecef;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        margin-right: 1rem;
+        min-width: 120px;
+        text-align: center;
+    }
+    
+    .event-description {
+        flex: 1;
+        margin-right: 1rem;
+    }
+    
+    .event-source {
+        color: #666;
+        font-size: 0.8rem;
+        min-width: 120px;
+    }
+    
+    .blocked-ips {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .ip-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .ip-item:last-child {
+        border-bottom: none;
+    }
+    
+    .ip-address {
+        font-family: monospace;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .ip-reason {
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .ip-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    .refresh-btn {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .refresh-btn:hover {
+        background: #0056b3;
+    }
+    
+    .security-tabs {
+        display: flex;
+        border-bottom: 1px solid #ddd;
+        margin-bottom: 1rem;
+    }
+    
+    .security-tab {
+        padding: 0.75rem 1.5rem;
+        background: none;
+        border: none;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+    
+    .security-tab.active {
+        border-bottom-color: #007bff;
+        color: #007bff;
+    }
+    
+    .security-tab-content {
+        display: none;
+    }
+    
+    .security-tab-content.active {
+        display: block;
+    }
+    
+    .filters {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .filter-group label {
+        font-size: 0.8rem;
+        color: #666;
+    }
+    
+    .filter-group select,
+    .filter-group input {
+        padding: 0.25rem 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Security Dashboard</h1>
+        <button class="refresh-btn" onclick="refreshDashboard()">
+            <i class="fas fa-sync-alt"></i>
+            Refresh
+        </button>
+    </div>
+    
+    <!-- Security Overview -->
+    <div class="security-overview">
+        <div class="security-card danger">
+            <div class="security-metric" id="critical-events">{{ metrics.critical_events or 0 }}</div>
+            <div class="security-label">Critical Events (24h)</div>
+        </div>
+        <div class="security-card warning">
+            <div class="security-metric" id="blocked-ips">{{ metrics.blocked_ips_count or 0 }}</div>
+            <div class="security-label">Blocked IPs</div>
+        </div>
+        <div class="security-card success">
+            <div class="security-metric" id="audit-activity">{{ metrics.audit_activity or 0 }}</div>
+            <div class="security-label">Audit Events (24h)</div>
+        </div>
+        <div class="security-card">
+            <div class="security-metric" id="active-sessions">{{ metrics.active_sessions or 0 }}</div>
+            <div class="security-label">Active Sessions</div>
+        </div>
+    </div>
+    
+    <!-- Security Tabs -->
+    <div class="security-tabs">
+        <button class="security-tab active" onclick="showTab('events')">Security Events</button>
+        <button class="security-tab" onclick="showTab('threats')">Threat Indicators</button>
+        <button class="security-tab" onclick="showTab('blocked')">Blocked IPs</button>
+        <button class="security-tab" onclick="showTab('access')">Access Control</button>
+    </div>
+    
+    <!-- Security Events Tab -->
+    <div id="events-tab" class="security-tab-content active">
+        <div class="filters">
+            <div class="filter-group">
+                <label>Severity</label>
+                <select id="severity-filter" onchange="filterEvents()">
+                    <option value="">All</option>
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                    <option value="CRITICAL">Critical</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Event Type</label>
+                <select id="type-filter" onchange="filterEvents()">
+                    <option value="">All</option>
+                    <option value="FAILED_LOGIN">Failed Login</option>
+                    <option value="RATE_LIMIT_EXCEEDED">Rate Limit</option>
+                    <option value="IP_BLOCKED">IP Blocked</option>
+                    <option value="SUSPICIOUS_ACTIVITY">Suspicious Activity</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Source IP</label>
+                <input type="text" id="ip-filter" placeholder="IP Address" onchange="filterEvents()">
+            </div>
+        </div>
+        
+        <div class="security-events">
+            <h3>Recent Security Events</h3>
+            <div id="security-events-list">
+                {% for event in security_events %}
+                <div class="event-item" data-severity="{{ event.severity }}" data-type="{{ event.event_type }}" data-ip="{{ event.source_ip }}">
+                    <div class="event-timestamp">{{ event.timestamp[:19] }}</div>
+                    <div class="event-type">{{ event.event_type }}</div>
+                    <div class="threat-level {{ event.severity.lower() }}">{{ event.severity }}</div>
+                    <div class="event-description">{{ event.description }}</div>
+                    <div class="event-source">{{ event.source_ip or 'N/A' }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Threat Indicators Tab -->
+    <div id="threats-tab" class="security-tab-content">
+        <div class="security-events">
+            <h3>Threat Indicators</h3>
+            <div id="threat-indicators-list">
+                {% for indicator in threat_indicators %}
+                <div class="event-item">
+                    <div class="event-timestamp">{{ indicator.last_seen[:19] }}</div>
+                    <div class="event-type">{{ indicator.indicator_type.upper() }}</div>
+                    <div class="threat-level {{ indicator.severity.lower() }}">{{ indicator.severity }}</div>
+                    <div class="event-description">{{ indicator.description }}</div>
+                    <div class="event-source">{{ indicator.value }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Blocked IPs Tab -->
+    <div id="blocked-tab" class="security-tab-content">
+        <div class="blocked-ips">
+            <h3>Blocked IP Addresses</h3>
+            <div id="blocked-ips-list">
+                {% for ip in blocked_ips %}
+                <div class="ip-item">
+                    <div>
+                        <div class="ip-address">{{ ip.ip_address }}</div>
+                        <div class="ip-reason">{{ ip.reason }}</div>
+                    </div>
+                    <div class="ip-actions">
+                        <button class="btn btn-sm btn-warning" onclick="unblockIP('{{ ip.ip_address }}')">
+                            Unblock
+                        </button>
+                        <button class="btn btn-sm btn-info" onclick="viewIPDetails('{{ ip.ip_address }}')">
+                            Details
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Access Control Tab -->
+    <div id="access-tab" class="security-tab-content">
+        <div class="security-events">
+            <h3>Access Control Management</h3>
+            <div class="mb-3">
+                <button class="btn btn-primary" onclick="showAddPermissionModal()">
+                    <i class="fas fa-plus"></i> Add Permission
+                </button>
+            </div>
+            <div id="access-control-list">
+                {% for permission in access_permissions %}
+                <div class="event-item">
+                    <div class="event-timestamp">{{ permission.granted_at[:19] }}</div>
+                    <div class="event-type">{{ permission.permission.upper() }}</div>
+                    <div class="event-description">{{ permission.user_id }} → {{ permission.resource }}</div>
+                    <div class="event-source">{{ permission.granted_by }}</div>
+                    <div class="ip-actions">
+                        <button class="btn btn-sm btn-danger" onclick="revokePermission('{{ permission.user_id }}', '{{ permission.resource }}', '{{ permission.permission }}')">
+                            Revoke
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Permission Modal -->
+<div class="modal" id="addPermissionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Permission</h5>
+                <button type="button" class="close" onclick="closeModal('addPermissionModal')">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addPermissionForm">
+                    <div class="form-group">
+                        <label for="userId">User ID</label>
+                        <input type="text" class="form-control" id="userId" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="resource">Resource</label>
+                        <input type="text" class="form-control" id="resource" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="permission">Permission</label>
+                        <select class="form-control" id="permission" required>
+                            <option value="">Select Permission</option>
+                            <option value="read">Read</option>
+                            <option value="write">Write</option>
+                            <option value="delete">Delete</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="expiresAt">Expires At (Optional)</label>
+                        <input type="datetime-local" class="form-control" id="expiresAt">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addPermissionModal')">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addPermission()">Add Permission</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentTab = 'events';
+
+function showTab(tab) {
+    // Hide all tabs
+    document.querySelectorAll('.security-tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Remove active class from all tabs
+    document.querySelectorAll('.security-tab').forEach(tabBtn => {
+        tabBtn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(tab + '-tab').classList.add('active');
+    event.target.classList.add('active');
+    
+    currentTab = tab;
+}
+
+function filterEvents() {
+    const severityFilter = document.getElementById('severity-filter').value;
+    const typeFilter = document.getElementById('type-filter').value;
+    const ipFilter = document.getElementById('ip-filter').value;
+    
+    document.querySelectorAll('.event-item').forEach(item => {
+        const severity = item.getAttribute('data-severity');
+        const type = item.getAttribute('data-type');
+        const ip = item.getAttribute('data-ip');
+        
+        let show = true;
+        
+        if (severityFilter && severity !== severityFilter) show = false;
+        if (typeFilter && type !== typeFilter) show = false;
+        if (ipFilter && (!ip || !ip.includes(ipFilter))) show = false;
+        
+        item.style.display = show ? 'flex' : 'none';
+    });
+}
+
+function refreshDashboard() {
+    location.reload();
+}
+
+function unblockIP(ip) {
+    if (confirm(`Are you sure you want to unblock IP ${ip}?`)) {
+        fetch('/admin/security/unblock-ip', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ip: ip})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('IP unblocked successfully');
+                location.reload();
+            } else {
+                alert('Failed to unblock IP: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error unblocking IP');
+        });
+    }
+}
+
+function viewIPDetails(ip) {
+    // Implement IP details view
+    alert('IP Details for ' + ip + ' - Feature coming soon');
+}
+
+function showAddPermissionModal() {
+    document.getElementById('addPermissionModal').style.display = 'block';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+function addPermission() {
+    const userId = document.getElementById('userId').value;
+    const resource = document.getElementById('resource').value;
+    const permission = document.getElementById('permission').value;
+    const expiresAt = document.getElementById('expiresAt').value;
+    
+    if (!userId || !resource || !permission) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    fetch('/admin/security/add-permission', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            user_id: userId,
+            resource: resource,
+            permission: permission,
+            expires_at: expiresAt || null
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Permission added successfully');
+            closeModal('addPermissionModal');
+            location.reload();
+        } else {
+            alert('Failed to add permission: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding permission');
+    });
+}
+
+function revokePermission(userId, resource, permission) {
+    if (confirm(`Are you sure you want to revoke ${permission} permission for ${userId} on ${resource}?`)) {
+        fetch('/admin/security/revoke-permission', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user_id: userId,
+                resource: resource,
+                permission: permission
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Permission revoked successfully');
+                location.reload();
+            } else {
+                alert('Failed to revoke permission: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error revoking permission');
+        });
+    }
+}
+
+// Auto-refresh every 30 seconds
+setInterval(refreshDashboard, 30000);
+</script>
+{% endblock %}

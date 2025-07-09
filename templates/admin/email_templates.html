@@ -1,0 +1,1277 @@
+{% extends "admin/base.html" %}
+{% block title %}Email Templates - VectorCraft Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .email-templates-container {
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .templates-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+    
+    .templates-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .action-button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    
+    .action-button.primary {
+        background: #667eea;
+        color: white;
+    }
+    
+    .action-button.primary:hover {
+        background: #5a67d8;
+    }
+    
+    .action-button.secondary {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    
+    .action-button.secondary:hover {
+        background: #e5e7eb;
+    }
+    
+    .template-filters {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .filters-row {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .filter-group label {
+        font-size: 0.9rem;
+        color: #374151;
+        font-weight: 500;
+    }
+    
+    .filter-group select, .filter-group input {
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+    
+    .templates-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .template-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .template-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .template-card.inactive {
+        opacity: 0.7;
+        border-left: 4px solid #6b7280;
+    }
+    
+    .template-card.active {
+        border-left: 4px solid #10b981;
+    }
+    
+    .template-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+    }
+    
+    .template-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0;
+    }
+    
+    .template-type {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .template-type.transactional {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+    
+    .template-type.marketing {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .template-type.system {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .template-subject {
+        color: #6b7280;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+        font-style: italic;
+    }
+    
+    .template-preview {
+        background: #f9fafb;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 15px;
+        font-size: 0.85rem;
+        color: #4b5563;
+        line-height: 1.4;
+        max-height: 80px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .template-preview::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 20px;
+        background: linear-gradient(transparent, #f9fafb);
+    }
+    
+    .template-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        font-size: 0.8rem;
+        color: #6b7280;
+    }
+    
+    .template-variables {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+    }
+    
+    .variable-tag {
+        background: #e0e7ff;
+        color: #3730a3;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+    
+    .template-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+    
+    .template-action {
+        padding: 6px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.2s;
+    }
+    
+    .template-action:hover {
+        background: #f9fafb;
+    }
+    
+    .template-action.primary {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    
+    .template-action.primary:hover {
+        background: #5a67d8;
+    }
+    
+    .template-action.danger {
+        background: #ef4444;
+        color: white;
+        border-color: #ef4444;
+    }
+    
+    .template-action.danger:hover {
+        background: #dc2626;
+    }
+    
+    .template-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 10px;
+        background: #f8fafc;
+        border-radius: 4px;
+    }
+    
+    .stat-value {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #1f2937;
+    }
+    
+    .stat-label {
+        font-size: 0.7rem;
+        color: #6b7280;
+        text-transform: uppercase;
+    }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+    }
+    
+    .modal-content {
+        background-color: white;
+        margin: 2% auto;
+        padding: 0;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 95vh;
+        overflow-y: auto;
+    }
+    
+    .modal-header {
+        padding: 20px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+    
+    .close-modal {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #6b7280;
+    }
+    
+    .close-modal:hover {
+        color: #374151;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: #374151;
+    }
+    
+    .form-input,
+    .form-select,
+    .form-textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-family: inherit;
+    }
+    
+    .form-textarea {
+        resize: vertical;
+        min-height: 120px;
+    }
+    
+    .form-textarea.large {
+        min-height: 200px;
+    }
+    
+    .form-help {
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin-top: 5px;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+    
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .variables-section {
+        background: #f8fafc;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .variables-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 10px;
+    }
+    
+    .variables-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .variable-item {
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        padding: 5px 10px;
+        font-size: 0.8rem;
+        color: #4b5563;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .variable-item:hover {
+        background: #667eea;
+        color: white;
+    }
+    
+    .preview-section {
+        background: #f8fafc;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .preview-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 10px;
+    }
+    
+    .preview-content {
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        padding: 15px;
+        min-height: 100px;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+    
+    .tabs {
+        display: flex;
+        border-bottom: 1px solid #e5e7eb;
+        margin-bottom: 20px;
+    }
+    
+    .tab {
+        padding: 10px 20px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+    
+    .tab.active {
+        border-bottom-color: #667eea;
+        color: #667eea;
+    }
+    
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6b7280;
+    }
+    
+    .empty-state-icon {
+        font-size: 4rem;
+        color: #d1d5db;
+        margin-bottom: 20px;
+    }
+    
+    .empty-state-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 10px;
+    }
+    
+    .empty-state-message {
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+    
+    .code-editor {
+        font-family: 'Courier New', monospace;
+        background: #1f2937;
+        color: #f9fafb;
+        border: none;
+        border-radius: 4px;
+        padding: 15px;
+        min-height: 300px;
+        resize: vertical;
+    }
+    
+    .code-editor:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #667eea;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="email-templates-container">
+    <div class="templates-header">
+        <h1 class="page-title">Email Templates</h1>
+        <div class="templates-actions">
+            <button class="action-button primary" onclick="createTemplate()">
+                <i class="fas fa-plus"></i> Create Template
+            </button>
+            <button class="action-button secondary" onclick="importTemplate()">
+                <i class="fas fa-upload"></i> Import
+            </button>
+            <button class="action-button secondary" onclick="exportTemplates()">
+                <i class="fas fa-download"></i> Export
+            </button>
+        </div>
+    </div>
+    
+    <!-- Template Filters -->
+    <div class="template-filters">
+        <div class="filters-row">
+            <div class="filter-group">
+                <label for="type-filter">Type:</label>
+                <select id="type-filter" onchange="filterTemplates()">
+                    <option value="all">All Types</option>
+                    <option value="transactional">Transactional</option>
+                    <option value="marketing">Marketing</option>
+                    <option value="system">System</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="status-filter">Status:</label>
+                <select id="status-filter" onchange="filterTemplates()">
+                    <option value="all">All</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="search-filter">Search:</label>
+                <input type="text" id="search-filter" placeholder="Search templates..." onkeyup="filterTemplates()">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Templates Grid -->
+    <div class="templates-grid">
+        {% if templates %}
+            {% for template in templates %}
+            <div class="template-card {{ 'active' if template.is_active else 'inactive' }}" 
+                 data-template-id="{{ template.template_id }}"
+                 data-type="{{ template.template_type }}"
+                 data-status="{{ 'active' if template.is_active else 'inactive' }}">
+                
+                <div class="template-header">
+                    <h3 class="template-title">{{ template.name }}</h3>
+                    <span class="template-type {{ template.template_type }}">{{ template.template_type }}</span>
+                </div>
+                
+                <div class="template-subject">{{ template.subject }}</div>
+                
+                <div class="template-preview">
+                    {{ template.body_text[:150] }}{% if template.body_text|length > 150 %}...{% endif %}
+                </div>
+                
+                <div class="template-meta">
+                    <span>Created: {{ template.created_at }}</span>
+                    <span>Updated: {{ template.updated_at }}</span>
+                </div>
+                
+                {% if template.variables %}
+                <div class="template-variables">
+                    {% for variable in template.variables %}
+                    <span class="variable-tag">{{ variable }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="template-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ template.sent_count or 0 }}</div>
+                        <div class="stat-label">Sent</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ "%.1f"|format(template.open_rate or 0) }}%</div>
+                        <div class="stat-label">Open Rate</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ "%.1f"|format(template.click_rate or 0) }}%</div>
+                        <div class="stat-label">Click Rate</div>
+                    </div>
+                </div>
+                
+                <div class="template-actions">
+                    <button class="template-action primary" onclick="editTemplate('{{ template.template_id }}')">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="template-action" onclick="previewTemplate('{{ template.template_id }}')">
+                        <i class="fas fa-eye"></i> Preview
+                    </button>
+                    <button class="template-action" onclick="duplicateTemplate('{{ template.template_id }}')">
+                        <i class="fas fa-copy"></i> Duplicate
+                    </button>
+                    <button class="template-action" onclick="testTemplate('{{ template.template_id }}')">
+                        <i class="fas fa-paper-plane"></i> Test
+                    </button>
+                    {% if template.is_active %}
+                    <button class="template-action" onclick="toggleTemplate('{{ template.template_id }}', false)">
+                        <i class="fas fa-pause"></i> Deactivate
+                    </button>
+                    {% else %}
+                    <button class="template-action" onclick="toggleTemplate('{{ template.template_id }}', true)">
+                        <i class="fas fa-play"></i> Activate
+                    </button>
+                    {% endif %}
+                    <button class="template-action danger" onclick="deleteTemplate('{{ template.template_id }}')">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <h3 class="empty-state-title">No Email Templates</h3>
+                <p class="empty-state-message">
+                    Get started by creating your first email template.<br>
+                    Templates help you send consistent, professional emails to your customers.
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create/Edit Template Modal -->
+<div id="template-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Create Email Template</h3>
+            <button class="close-modal" onclick="closeTemplateModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="template-form">
+                <div class="form-group">
+                    <label class="form-label" for="template-name">Template Name</label>
+                    <input type="text" id="template-name" class="form-input" required>
+                    <div class="form-help">A descriptive name for internal reference</div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="template-type">Type</label>
+                        <select id="template-type" class="form-select" required>
+                            <option value="transactional">Transactional</option>
+                            <option value="marketing">Marketing</option>
+                            <option value="system">System</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="template-id">Template ID</label>
+                        <input type="text" id="template-id" class="form-input" required>
+                        <div class="form-help">Unique identifier (e.g., welcome-email)</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="template-subject">Subject Line</label>
+                    <input type="text" id="template-subject" class="form-input" required>
+                    <div class="form-help">Use variables like {{username}} or {{company}}</div>
+                </div>
+                
+                <div class="variables-section">
+                    <div class="variables-title">Available Variables</div>
+                    <div class="variables-list">
+                        <span class="variable-item" onclick="insertVariable('{{username}}')">{{username}}</span>
+                        <span class="variable-item" onclick="insertVariable('{{email}}')">{{email}}</span>
+                        <span class="variable-item" onclick="insertVariable('{{company}}')">{{company}}</span>
+                        <span class="variable-item" onclick="insertVariable('{{domain_url}}')">{{domain_url}}</span>
+                        <span class="variable-item" onclick="insertVariable('{{date}}')">{{date}}</span>
+                        <span class="variable-item" onclick="insertVariable('{{time}}')">{{time}}</span>
+                        <span class="variable-item" onclick="insertVariable('{{order_id}}')">{{order_id}}</span>
+                        <span class="variable-item" onclick="insertVariable('{{amount}}')">{{amount}}</span>
+                    </div>
+                </div>
+                
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('text')">Text Version</div>
+                    <div class="tab" onclick="switchTab('html')">HTML Version</div>
+                    <div class="tab" onclick="switchTab('preview')">Preview</div>
+                </div>
+                
+                <div class="tab-content active" id="text-tab">
+                    <div class="form-group">
+                        <label class="form-label" for="template-body-text">Text Body</label>
+                        <textarea id="template-body-text" class="form-textarea large" required></textarea>
+                        <div class="form-help">Plain text version of the email</div>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="html-tab">
+                    <div class="form-group">
+                        <label class="form-label" for="template-body-html">HTML Body</label>
+                        <textarea id="template-body-html" class="code-editor" placeholder="<html>...</html>"></textarea>
+                        <div class="form-help">HTML version of the email (optional)</div>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="preview-tab">
+                    <div class="preview-section">
+                        <div class="preview-title">Email Preview</div>
+                        <div class="preview-content" id="preview-content">
+                            Enter content in the Text or HTML tabs to see preview
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="template-active" class="form-checkbox" checked>
+                        <label for="template-active">Active (can be used for sending)</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="action-button primary">
+                        <i class="fas fa-save"></i> Save Template
+                    </button>
+                    <button type="button" class="action-button secondary" onclick="testTemplatePreview()">
+                        <i class="fas fa-paper-plane"></i> Send Test Email
+                    </button>
+                    <button type="button" class="action-button secondary" onclick="closeTemplateModal()">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Template Preview Modal -->
+<div id="preview-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Template Preview</h3>
+            <button class="close-modal" onclick="closePreviewModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="preview-modal-content">
+                <!-- Preview content will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Email Modal -->
+<div id="test-email-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Send Test Email</h3>
+            <button class="close-modal" onclick="closeTestEmailModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="test-email-form">
+                <div class="form-group">
+                    <label class="form-label" for="test-email-address">Email Address</label>
+                    <input type="email" id="test-email-address" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Test Data (JSON)</label>
+                    <textarea id="test-data" class="form-textarea" placeholder='{"username": "John Doe", "email": "john@example.com"}'></textarea>
+                    <div class="form-help">Variable values to use in the test email</div>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="action-button primary">
+                        <i class="fas fa-paper-plane"></i> Send Test Email
+                    </button>
+                    <button type="button" class="action-button secondary" onclick="closeTestEmailModal()">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentTemplateId = null;
+let isEditMode = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize form handlers
+    document.getElementById('template-form').addEventListener('submit', handleTemplateSubmit);
+    document.getElementById('test-email-form').addEventListener('submit', handleTestEmailSubmit);
+    
+    // Initialize preview updates
+    document.getElementById('template-body-text').addEventListener('input', updatePreview);
+    document.getElementById('template-body-html').addEventListener('input', updatePreview);
+    document.getElementById('template-subject').addEventListener('input', updatePreview);
+});
+
+function filterTemplates() {
+    const typeFilter = document.getElementById('type-filter').value;
+    const statusFilter = document.getElementById('status-filter').value;
+    const searchFilter = document.getElementById('search-filter').value.toLowerCase();
+    
+    const templates = document.querySelectorAll('.template-card');
+    
+    templates.forEach(template => {
+        const type = template.dataset.type;
+        const status = template.dataset.status;
+        const name = template.querySelector('.template-title').textContent.toLowerCase();
+        const subject = template.querySelector('.template-subject').textContent.toLowerCase();
+        
+        let show = true;
+        
+        if (typeFilter !== 'all' && type !== typeFilter) {
+            show = false;
+        }
+        
+        if (statusFilter !== 'all' && status !== statusFilter) {
+            show = false;
+        }
+        
+        if (searchFilter && !name.includes(searchFilter) && !subject.includes(searchFilter)) {
+            show = false;
+        }
+        
+        template.style.display = show ? 'block' : 'none';
+    });
+}
+
+function createTemplate() {
+    isEditMode = false;
+    currentTemplateId = null;
+    document.getElementById('modal-title').textContent = 'Create Email Template';
+    document.getElementById('template-form').reset();
+    document.getElementById('template-active').checked = true;
+    document.getElementById('template-modal').style.display = 'block';
+    
+    // Clear preview
+    document.getElementById('preview-content').innerHTML = 'Enter content in the Text or HTML tabs to see preview';
+}
+
+function editTemplate(templateId) {
+    isEditMode = true;
+    currentTemplateId = templateId;
+    document.getElementById('modal-title').textContent = 'Edit Email Template';
+    
+    // Load template data
+    fetch(`/admin/api/email-templates/${templateId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const template = data.template;
+                document.getElementById('template-name').value = template.name;
+                document.getElementById('template-type').value = template.template_type;
+                document.getElementById('template-id').value = template.template_id;
+                document.getElementById('template-subject').value = template.subject;
+                document.getElementById('template-body-text').value = template.body_text;
+                document.getElementById('template-body-html').value = template.body_html || '';
+                document.getElementById('template-active').checked = template.is_active;
+                
+                updatePreview();
+                document.getElementById('template-modal').style.display = 'block';
+            } else {
+                showNotification('Error loading template', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error loading template', 'error');
+        });
+}
+
+function handleTemplateSubmit(e) {
+    e.preventDefault();
+    
+    const formData = {
+        name: document.getElementById('template-name').value,
+        template_type: document.getElementById('template-type').value,
+        template_id: document.getElementById('template-id').value,
+        subject: document.getElementById('template-subject').value,
+        body_text: document.getElementById('template-body-text').value,
+        body_html: document.getElementById('template-body-html').value,
+        is_active: document.getElementById('template-active').checked
+    };
+    
+    const url = isEditMode ? `/admin/api/email-templates/${currentTemplateId}` : '/admin/api/email-templates';
+    const method = isEditMode ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(`Template ${isEditMode ? 'updated' : 'created'} successfully`, 'success');
+            closeTemplateModal();
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification(`Error ${isEditMode ? 'updating' : 'creating'} template: ${data.message}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification(`Error ${isEditMode ? 'updating' : 'creating'} template`, 'error');
+    });
+}
+
+function previewTemplate(templateId) {
+    fetch(`/admin/api/email-templates/${templateId}/preview`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('preview-modal-content').innerHTML = data.preview;
+                document.getElementById('preview-modal').style.display = 'block';
+            } else {
+                showNotification('Error loading preview', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error loading preview', 'error');
+        });
+}
+
+function duplicateTemplate(templateId) {
+    fetch(`/admin/api/email-templates/${templateId}/duplicate`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Template duplicated successfully', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification('Error duplicating template', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error duplicating template', 'error');
+    });
+}
+
+function testTemplate(templateId) {
+    currentTemplateId = templateId;
+    document.getElementById('test-email-modal').style.display = 'block';
+}
+
+function handleTestEmailSubmit(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('test-email-address').value;
+    let testData = {};
+    
+    try {
+        const testDataText = document.getElementById('test-data').value;
+        if (testDataText.trim()) {
+            testData = JSON.parse(testDataText);
+        }
+    } catch (error) {
+        showNotification('Invalid test data JSON', 'error');
+        return;
+    }
+    
+    fetch(`/admin/api/email-templates/${currentTemplateId}/test`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            email: email,
+            test_data: testData
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Test email sent successfully', 'success');
+            closeTestEmailModal();
+        } else {
+            showNotification('Error sending test email', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error sending test email', 'error');
+    });
+}
+
+function toggleTemplate(templateId, activate) {
+    fetch(`/admin/api/email-templates/${templateId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_active: activate })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(`Template ${activate ? 'activated' : 'deactivated'} successfully`, 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification(`Error ${activate ? 'activating' : 'deactivating'} template`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification(`Error ${activate ? 'activating' : 'deactivating'} template`, 'error');
+    });
+}
+
+function deleteTemplate(templateId) {
+    if (!confirm('Are you sure you want to delete this template? This action cannot be undone.')) {
+        return;
+    }
+    
+    fetch(`/admin/api/email-templates/${templateId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Template deleted successfully', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification('Error deleting template', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error deleting template', 'error');
+    });
+}
+
+function switchTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+    
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+    
+    if (tabName === 'preview') {
+        updatePreview();
+    }
+}
+
+function insertVariable(variable) {
+    const activeTab = document.querySelector('.tab-content.active');
+    let textArea;
+    
+    if (activeTab.id === 'text-tab') {
+        textArea = document.getElementById('template-body-text');
+    } else if (activeTab.id === 'html-tab') {
+        textArea = document.getElementById('template-body-html');
+    } else {
+        textArea = document.getElementById('template-subject');
+    }
+    
+    const start = textArea.selectionStart;
+    const end = textArea.selectionEnd;
+    const text = textArea.value;
+    
+    textArea.value = text.substring(0, start) + variable + text.substring(end);
+    textArea.focus();
+    textArea.selectionStart = textArea.selectionEnd = start + variable.length;
+    
+    updatePreview();
+}
+
+function updatePreview() {
+    const subject = document.getElementById('template-subject').value;
+    const textBody = document.getElementById('template-body-text').value;
+    const htmlBody = document.getElementById('template-body-html').value;
+    
+    let previewContent = `<h4>Subject: ${subject}</h4>`;
+    
+    if (htmlBody.trim()) {
+        previewContent += `<div style="border: 1px solid #ddd; padding: 15px; margin-top: 10px;">${htmlBody}</div>`;
+    } else {
+        previewContent += `<div style="border: 1px solid #ddd; padding: 15px; margin-top: 10px; white-space: pre-wrap;">${textBody}</div>`;
+    }
+    
+    document.getElementById('preview-content').innerHTML = previewContent;
+}
+
+function testTemplatePreview() {
+    const email = prompt('Enter email address to send test to:');
+    if (email) {
+        // Create temporary template and send test
+        const formData = {
+            name: 'Test Template',
+            template_type: 'system',
+            template_id: 'test-' + Date.now(),
+            subject: document.getElementById('template-subject').value,
+            body_text: document.getElementById('template-body-text').value,
+            body_html: document.getElementById('template-body-html').value,
+            is_active: false
+        };
+        
+        fetch('/admin/api/email-templates/test-preview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                template: formData,
+                email: email
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Test email sent successfully', 'success');
+            } else {
+                showNotification('Error sending test email', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error sending test email', 'error');
+        });
+    }
+}
+
+function importTemplate() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const templateData = JSON.parse(e.target.result);
+                    
+                    fetch('/admin/api/email-templates/import', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(templateData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showNotification('Template imported successfully', 'success');
+                            setTimeout(() => window.location.reload(), 1000);
+                        } else {
+                            showNotification('Error importing template', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showNotification('Error importing template', 'error');
+                    });
+                } catch (error) {
+                    showNotification('Invalid template file', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+    };
+    input.click();
+}
+
+function exportTemplates() {
+    const typeFilter = document.getElementById('type-filter').value;
+    const statusFilter = document.getElementById('status-filter').value;
+    
+    const params = new URLSearchParams({
+        type: typeFilter,
+        status: statusFilter
+    });
+    
+    window.open(`/admin/export/email-templates?${params.toString()}`, '_blank');
+}
+
+function closeTemplateModal() {
+    document.getElementById('template-modal').style.display = 'none';
+    document.getElementById('template-form').reset();
+    currentTemplateId = null;
+    isEditMode = false;
+}
+
+function closePreviewModal() {
+    document.getElementById('preview-modal').style.display = 'none';
+}
+
+function closeTestEmailModal() {
+    document.getElementById('test-email-modal').style.display = 'none';
+    document.getElementById('test-email-form').reset();
+}
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 5px;
+        color: white;
+        font-weight: 500;
+        z-index: 1000;
+        opacity: 0;
+        transform: translateY(-20px);
+        transition: all 0.3s ease;
+    `;
+    
+    if (type === 'error') {
+        notification.style.backgroundColor = '#ef4444';
+    } else {
+        notification.style.backgroundColor = '#10b981';
+    }
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateY(0)';
+    }, 100);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(-20px)';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
+}
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+    const templateModal = document.getElementById('template-modal');
+    const previewModal = document.getElementById('preview-modal');
+    const testEmailModal = document.getElementById('test-email-modal');
+    
+    if (event.target === templateModal) {
+        closeTemplateModal();
+    } else if (event.target === previewModal) {
+        closePreviewModal();
+    } else if (event.target === testEmailModal) {
+        closeTestEmailModal();
+    }
+}
+</script>
+{% endblock %}

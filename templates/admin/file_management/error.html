@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Error {{ error_code }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="text-center">
+                <div class="error-code display-1 text-primary mb-4">{{ error_code }}</div>
+                <h2 class="mb-4">{{ error_message }}</h2>
+                <p class="text-muted mb-4">Something went wrong. Please try again or contact support if the problem persists.</p>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="{{ url_for('file_management.index') }}" class="btn btn-primary">
+                        <i class="fas fa-home"></i> Back to Dashboard
+                    </a>
+                    <button class="btn btn-outline-primary" onclick="location.reload()">
+                        <i class="fas fa-sync-alt"></i> Retry
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

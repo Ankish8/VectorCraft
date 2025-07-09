@@ -1,113 +1,426 @@
 {% extends "admin/base.html" %}
 
-{% block title %}Analytics - VectorCraft Admin{% endblock %}
+{% block title %}Advanced Analytics - VectorCraft Admin{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="bi bi-graph-up"></i> Analytics Dashboard</h1>
-    <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
-        <i class="bi bi-arrow-clockwise"></i> Refresh
-    </button>
-</div>
-
-<!-- Key Metrics -->
-<div class="row mb-4" id="keyMetrics">
-    <div class="col-12 text-center py-4">
-        <div class="spinner-border"></div>
-        <p class="mt-2">Loading analytics...</p>
+    <h1><i class="bi bi-graph-up"></i> Advanced Business Intelligence Dashboard</h1>
+    <div class="btn-group">
+        <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="exportData()">
+            <i class="bi bi-download"></i> Export
+        </button>
+        <button class="btn btn-outline-info btn-sm" onclick="showModelPerformance()">
+            <i class="bi bi-cpu"></i> ML Models
+        </button>
     </div>
 </div>
 
-<!-- Charts -->
-<div class="row">
-    <div class="col-lg-8 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Revenue Trend (Last 7 Days)</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="revenueChart" width="400" height="200"></canvas>
-            </div>
+<!-- Analytics Navigation Tabs -->
+<ul class="nav nav-tabs mb-4" id="analyticsTab">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#overview">Overview</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#revenue-forecast">Revenue Forecast</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#customer-behavior">Customer Behavior</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#conversion-funnel">Conversion Funnel</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#roi-dashboard">ROI Dashboard</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#predictive-analytics">Predictive Analytics</a>
+    </li>
+</ul>
+
+<div class="tab-content" id="analyticsTabContent">
+
+<!-- Overview Tab -->
+<div class="tab-pane fade show active" id="overview">
+    <!-- Key Metrics -->
+    <div class="row mb-4" id="keyMetrics">
+        <div class="col-12 text-center py-4">
+            <div class="spinner-border"></div>
+            <p class="mt-2">Loading analytics...</p>
         </div>
     </div>
     
-    <div class="col-lg-4 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Transaction Status</h5>
+    <!-- Business Insights -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Key Insights</h5>
+                </div>
+                <div class="card-body" id="keyInsights">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm"></div>
+                        <p class="mt-2 mb-0">Loading insights...</p>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <canvas id="statusChart" width="300" height="300"></canvas>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Risk Factors</h5>
+                </div>
+                <div class="card-body" id="riskFactors">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm"></div>
+                        <p class="mt-2 mb-0">Loading risk factors...</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Additional Metrics -->
-<div class="row">
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Daily Transactions</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="transactionChart" width="400" height="200"></canvas>
+    <!-- Charts -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Revenue Trend (Last 30 Days)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="revenueChart" width="400" height="200"></canvas>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Summary Stats</h5>
-            </div>
-            <div class="card-body" id="summaryStats">
-                <div class="text-center py-4">
-                    <div class="spinner-border spinner-border-sm"></div>
-                    <p class="mt-2 mb-0">Loading...</p>
+        
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Transaction Status</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart" width="300" height="300"></canvas>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Revenue Forecast Tab -->
+<div class="tab-pane fade" id="revenue-forecast">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-graph-up-arrow"></i> ML-Powered Revenue Forecast</h5>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="setForecastDays(7)">7 Days</button>
+                        <button class="btn btn-outline-primary active" onclick="setForecastDays(30)">30 Days</button>
+                        <button class="btn btn-outline-primary" onclick="setForecastDays(90)">90 Days</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="forecastChart" width="800" height="400"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Model Performance</h6>
+                </div>
+                <div class="card-body" id="modelPerformance">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Forecast Insights</h6>
+                </div>
+                <div class="card-body" id="forecastInsights">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Behavior Tab -->
+<div class="tab-pane fade" id="customer-behavior">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-people"></i> Customer Segments</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="customerSegmentChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Lifetime Value Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="lifetimeValueChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Top Customers</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="topCustomersTable">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Total Spent</th>
+                                    <th>LTV Score</th>
+                                    <th>Segment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="4" class="text-center py-3">
+                                        <div class="spinner-border spinner-border-sm"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Behavior Metrics</h6>
+                </div>
+                <div class="card-body" id="behaviorMetrics">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Conversion Funnel Tab -->
+<div class="tab-pane fade" id="conversion-funnel">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-funnel"></i> Conversion Funnel Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="funnelChart" width="800" height="400"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Conversion Metrics</h6>
+                </div>
+                <div class="card-body" id="conversionMetrics">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Optimization Suggestions</h6>
+                </div>
+                <div class="card-body" id="optimizationSuggestions">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ROI Dashboard Tab -->
+<div class="tab-pane fade" id="roi-dashboard">
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h3 class="text-success" id="roiPercentage">-</h3>
+                    <p class="text-muted mb-0">ROI Percentage</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h3 class="text-primary" id="profitMargin">-</h3>
+                    <p class="text-muted mb-0">Profit Margin</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <h3 class="text-info" id="customerLTV">-</h3>
+                    <p class="text-muted mb-0">Customer LTV</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-graph-up"></i> ROI Trend</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="roiTrendChart" width="600" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Cost Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="costBreakdownChart" width="300" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Predictive Analytics Tab -->
+<div class="tab-pane fade" id="predictive-analytics">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-crystal-ball"></i> Predictive Insights</h5>
+                </div>
+                <div class="card-body" id="predictiveInsights">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> Business Recommendations</h5>
+                </div>
+                <div class="card-body" id="businessRecommendations">
+                    <div class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-calendar-week"></i> Seasonal Patterns</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="seasonalChart" width="800" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    let revenueChart, statusChart, transactionChart;
+    let revenueChart, statusChart, transactionChart, forecastChart, customerSegmentChart, lifetimeValueChart, funnelChart, roiTrendChart, costBreakdownChart, seasonalChart;
+    let currentForecastDays = 30;
+    let analyticsData = {};
     
     function refreshData() {
         loadAnalytics();
     }
     
     function loadAnalytics() {
-        fetch('/admin/api/analytics')
+        showLoading();
+        
+        fetch('/admin/api/analytics/comprehensive')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    displayKeyMetrics(data.analytics);
-                    createRevenueChart(data.analytics.daily_data);
-                    createTransactionChart(data.analytics.daily_data);
-                    createStatusChart();
-                    displaySummaryStats(data.analytics);
+                    analyticsData = data.analytics;
+                    displayOverviewData(analyticsData);
+                    displayRevenueForecast(analyticsData.revenue_forecast);
+                    displayCustomerBehavior(analyticsData.customer_behavior);
+                    displayConversionFunnel(analyticsData.conversion_funnel);
+                    displayROIDashboard(analyticsData.roi_dashboard);
+                    displayPredictiveAnalytics(analyticsData.predictive_analytics);
                 } else {
-                    document.getElementById('keyMetrics').innerHTML = 
-                        '<div class="col-12"><div class="alert alert-danger">Error loading analytics: ' + data.error + '</div></div>';
+                    showError('Error loading analytics: ' + data.error);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                document.getElementById('keyMetrics').innerHTML = 
-                    '<div class="col-12"><div class="alert alert-danger">Error loading analytics</div></div>';
+                showError('Error loading analytics');
             });
     }
     
-    function displayKeyMetrics(analytics) {
+    function showLoading() {
+        const loadingSpinner = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div><p class="mt-2 mb-0">Loading...</p></div>';
+        document.getElementById('keyMetrics').innerHTML = '<div class="col-12">' + loadingSpinner + '</div>';
+    }
+    
+    function showError(message) {
+        document.getElementById('keyMetrics').innerHTML = '<div class="col-12"><div class="alert alert-danger">' + message + '</div></div>';
+    }
+    
+    function displayOverviewData(analytics) {
+        // Display key metrics
+        const roiData = analytics.roi_dashboard.roi_metrics;
+        const customerData = analytics.customer_behavior.behavior_metrics;
+        const conversionData = analytics.conversion_funnel.conversion_metrics;
+        
         const html = `
             <div class="col-md-3 mb-3">
                 <div class="card text-center border-success">
                     <div class="card-body">
-                        <h3 class="text-success">$${analytics.total_revenue.toFixed(2)}</h3>
+                        <h3 class="text-success">$${roiData.total_revenue.toFixed(2)}</h3>
                         <p class="text-muted mb-0">Total Revenue</p>
                     </div>
                 </div>
@@ -115,32 +428,69 @@
             <div class="col-md-3 mb-3">
                 <div class="card text-center border-primary">
                     <div class="card-body">
-                        <h3 class="text-primary">${analytics.total_transactions}</h3>
-                        <p class="text-muted mb-0">Total Transactions</p>
+                        <h3 class="text-primary">${customerData.total_customers}</h3>
+                        <p class="text-muted mb-0">Total Customers</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3 mb-3">
                 <div class="card text-center border-info">
                     <div class="card-body">
-                        <h3 class="text-info">$${analytics.avg_order_value.toFixed(2)}</h3>
-                        <p class="text-muted mb-0">Avg Order Value</p>
+                        <h3 class="text-info">${conversionData.overall_conversion_rate.toFixed(1)}%</h3>
+                        <p class="text-muted mb-0">Conversion Rate</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-3 mb-3">
                 <div class="card text-center border-warning">
                     <div class="card-body">
-                        <h3 class="text-warning">${analytics.daily_data.length}</h3>
-                        <p class="text-muted mb-0">Active Days</p>
+                        <h3 class="text-warning">${roiData.roi_percentage.toFixed(1)}%</h3>
+                        <p class="text-muted mb-0">ROI</p>
                     </div>
                 </div>
             </div>
         `;
         document.getElementById('keyMetrics').innerHTML = html;
+        
+        // Display insights
+        displayInsights(analytics);
+        
+        // Create overview charts
+        createOverviewCharts(analytics);
     }
     
-    function createRevenueChart(dailyData) {
+    function displayInsights(analytics) {
+        const insights = analytics.predictive_analytics.predictive_insights || [];
+        const riskFactors = analytics.predictive_analytics.risk_factors || [];
+        
+        let insightsHtml = '';
+        if (insights.length > 0) {
+            insightsHtml = insights.map(insight => `<li class="mb-2"><i class="bi bi-lightbulb text-warning"></i> ${insight}</li>`).join('');
+        } else {
+            insightsHtml = '<li class="text-muted">No insights available</li>';
+        }
+        
+        let riskHtml = '';
+        if (riskFactors.length > 0) {
+            riskHtml = riskFactors.map(risk => `<li class="mb-2"><i class="bi bi-exclamation-triangle text-danger"></i> ${risk}</li>`).join('');
+        } else {
+            riskHtml = '<li class="text-success"><i class="bi bi-check-circle"></i> No significant risks identified</li>';
+        }
+        
+        document.getElementById('keyInsights').innerHTML = '<ul class="list-unstyled">' + insightsHtml + '</ul>';
+        document.getElementById('riskFactors').innerHTML = '<ul class="list-unstyled">' + riskHtml + '</ul>';
+    }
+    
+    function createOverviewCharts(analytics) {
+        // Create revenue chart with historical data
+        const revenueData = analytics.revenue_forecast.historical_data || [];
+        createRevenueChart(revenueData);
+        
+        // Create status chart
+        createStatusChart();
+    }
+    
+    function createRevenueChart(historicalData) {
         const ctx = document.getElementById('revenueChart').getContext('2d');
         
         if (revenueChart) {
@@ -150,10 +500,10 @@
         revenueChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: dailyData.map(d => d.date),
+                labels: historicalData.map(d => d.date),
                 datasets: [{
                     label: 'Revenue ($)',
-                    data: dailyData.map(d => d.revenue),
+                    data: historicalData.map(d => d.actual_revenue),
                     borderColor: 'rgb(75, 192, 192)',
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     tension: 0.1
@@ -176,31 +526,104 @@
         });
     }
     
-    function createTransactionChart(dailyData) {
-        const ctx = document.getElementById('transactionChart').getContext('2d');
+    function displayRevenueForecast(forecastData) {
+        if (!forecastData || !forecastData.forecast) return;
         
-        if (transactionChart) {
-            transactionChart.destroy();
+        // Display model performance
+        const modelMetrics = forecastData.model_metrics;
+        const performanceHtml = `
+            <div class="row text-center">
+                <div class="col-4">
+                    <h4>${(modelMetrics.r_squared * 100).toFixed(1)}%</h4>
+                    <small class="text-muted">R² Score</small>
+                </div>
+                <div class="col-4">
+                    <h4>${modelMetrics.trend}</h4>
+                    <small class="text-muted">Trend</small>
+                </div>
+                <div class="col-4">
+                    <h4>${modelMetrics.confidence}</h4>
+                    <small class="text-muted">Confidence</small>
+                </div>
+            </div>
+        `;
+        document.getElementById('modelPerformance').innerHTML = performanceHtml;
+        
+        // Display forecast insights
+        const insightsHtml = forecastData.insights.map(insight => `<li class="mb-2">${insight}</li>`).join('');
+        document.getElementById('forecastInsights').innerHTML = '<ul>' + insightsHtml + '</ul>';
+        
+        // Create forecast chart
+        createForecastChart(forecastData);
+    }
+    
+    function createForecastChart(forecastData) {
+        const ctx = document.getElementById('forecastChart').getContext('2d');
+        
+        if (forecastChart) {
+            forecastChart.destroy();
         }
         
-        transactionChart = new Chart(ctx, {
-            type: 'bar',
+        const historical = forecastData.historical_data || [];
+        const forecast = forecastData.forecast || [];
+        
+        const historicalLabels = historical.map(d => d.date);
+        const forecastLabels = forecast.map(d => d.date);
+        const allLabels = [...historicalLabels, ...forecastLabels];
+        
+        const historicalData = historical.map(d => d.actual_revenue);
+        const forecastDataPoints = forecast.map(d => d.predicted_revenue);
+        const confidenceUpper = forecast.map(d => d.confidence_upper);
+        const confidenceLower = forecast.map(d => d.confidence_lower);
+        
+        forecastChart = new Chart(ctx, {
+            type: 'line',
             data: {
-                labels: dailyData.map(d => d.date),
-                datasets: [{
-                    label: 'Transactions',
-                    data: dailyData.map(d => d.transactions),
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
-                }]
+                labels: allLabels,
+                datasets: [
+                    {
+                        label: 'Historical Revenue',
+                        data: [...historicalData, ...new Array(forecastDataPoints.length).fill(null)],
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Forecast',
+                        data: [...new Array(historicalData.length).fill(null), ...forecastDataPoints],
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderDash: [5, 5],
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Confidence Upper',
+                        data: [...new Array(historicalData.length).fill(null), ...confidenceUpper],
+                        borderColor: 'rgba(255, 99, 132, 0.3)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        fill: '+1',
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Confidence Lower',
+                        data: [...new Array(historicalData.length).fill(null), ...confidenceLower],
+                        borderColor: 'rgba(255, 99, 132, 0.3)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        tension: 0.1
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(2);
+                            }
+                        }
                     }
                 }
             }
@@ -253,30 +676,330 @@
             .catch(error => console.error('Error loading transaction data for chart:', error));
     }
     
-    function displaySummaryStats(analytics) {
-        const successRate = analytics.total_transactions > 0 ? 
-            ((analytics.total_transactions / analytics.total_transactions) * 100).toFixed(1) : 0;
+    function displayCustomerBehavior(customerData) {
+        if (!customerData || !customerData.customer_segments) return;
         
-        const html = `
+        // Display behavior metrics
+        const metrics = customerData.behavior_metrics;
+        const metricsHtml = `
             <div class="row text-center">
                 <div class="col-6 mb-3">
-                    <h4>${successRate}%</h4>
-                    <small class="text-muted">Success Rate</small>
+                    <h4>${metrics.total_customers}</h4>
+                    <small class="text-muted">Total Customers</small>
                 </div>
                 <div class="col-6 mb-3">
-                    <h4>${analytics.daily_data.length}</h4>
-                    <small class="text-muted">Active Days</small>
+                    <h4>${metrics.repeat_customer_rate.toFixed(1)}%</h4>
+                    <small class="text-muted">Repeat Rate</small>
                 </div>
-                <div class="col-12">
-                    <small class="text-muted">
-                        <strong>Peak Day:</strong> 
-                        ${analytics.daily_data.length > 0 ? 
-                          analytics.daily_data.reduce((a, b) => a.revenue > b.revenue ? a : b).date : 'N/A'}
-                    </small>
+                <div class="col-6 mb-3">
+                    <h4>${metrics.high_value_customers}</h4>
+                    <small class="text-muted">High Value</small>
+                </div>
+                <div class="col-6 mb-3">
+                    <h4>${metrics.at_risk_customers}</h4>
+                    <small class="text-muted">At Risk</small>
                 </div>
             </div>
         `;
-        document.getElementById('summaryStats').innerHTML = html;
+        document.getElementById('behaviorMetrics').innerHTML = metricsHtml;
+        
+        // Display top customers
+        const topCustomers = customerData.top_customers || [];
+        const tableBody = topCustomers.map(customer => `
+            <tr>
+                <td>${customer.email}</td>
+                <td>$${customer.total_spent.toFixed(2)}</td>
+                <td>${customer.lifetime_value_score.toFixed(1)}</td>
+                <td><span class="badge bg-${getSegmentColor(customer.segment)}">${customer.segment}</span></td>
+            </tr>
+        `).join('');
+        
+        document.getElementById('topCustomersTable').getElementsByTagName('tbody')[0].innerHTML = tableBody;
+        
+        // Create customer segment chart
+        createCustomerSegmentChart(customerData.customer_segments);
+    }
+    
+    function getSegmentColor(segment) {
+        const colors = {
+            'Champions': 'success',
+            'Loyal Customers': 'primary',
+            'Potential Loyalists': 'info',
+            'At Risk': 'warning',
+            'Cannot Lose Them': 'danger'
+        };
+        return colors[segment] || 'secondary';
+    }
+    
+    function createCustomerSegmentChart(segments) {
+        const ctx = document.getElementById('customerSegmentChart').getContext('2d');
+        
+        if (customerSegmentChart) {
+            customerSegmentChart.destroy();
+        }
+        
+        customerSegmentChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: segments.map(s => s.segment),
+                datasets: [{
+                    data: segments.map(s => s.customer_count),
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.8)',
+                        'rgba(0, 123, 255, 0.8)',
+                        'rgba(23, 162, 184, 0.8)',
+                        'rgba(255, 193, 7, 0.8)',
+                        'rgba(220, 53, 69, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+    
+    function displayConversionFunnel(funnelData) {
+        if (!funnelData || !funnelData.conversion_metrics) return;
+        
+        // Display conversion metrics
+        const metrics = funnelData.conversion_metrics;
+        const metricsHtml = `
+            <div class="row text-center">
+                <div class="col-6 mb-3">
+                    <h4>${metrics.overall_conversion_rate.toFixed(1)}%</h4>
+                    <small class="text-muted">Conversion Rate</small>
+                </div>
+                <div class="col-6 mb-3">
+                    <h4>${metrics.failure_rate.toFixed(1)}%</h4>
+                    <small class="text-muted">Failure Rate</small>
+                </div>
+                <div class="col-6 mb-3">
+                    <h4>${metrics.total_conversions}</h4>
+                    <small class="text-muted">Total Conversions</small>
+                </div>
+                <div class="col-6 mb-3">
+                    <h4>${metrics.avg_completion_time.toFixed(1)}h</h4>
+                    <small class="text-muted">Avg Completion Time</small>
+                </div>
+            </div>
+        `;
+        document.getElementById('conversionMetrics').innerHTML = metricsHtml;
+        
+        // Display optimization suggestions
+        const suggestions = funnelData.optimization_suggestions || [];
+        const suggestionsHtml = suggestions.map(suggestion => `<li class="mb-2">${suggestion}</li>`).join('');
+        document.getElementById('optimizationSuggestions').innerHTML = '<ul>' + suggestionsHtml + '</ul>';
+        
+        // Create funnel chart
+        createFunnelChart(funnelData.funnel_stages);
+    }
+    
+    function createFunnelChart(stages) {
+        const ctx = document.getElementById('funnelChart').getContext('2d');
+        
+        if (funnelChart) {
+            funnelChart.destroy();
+        }
+        
+        funnelChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: stages.map(s => s.stage),
+                datasets: [
+                    {
+                        label: 'Visitors',
+                        data: stages.map(s => s.visitors),
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Conversions',
+                        data: stages.map(s => s.conversions),
+                        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+    
+    function displayROIDashboard(roiData) {
+        if (!roiData || !roiData.roi_metrics) return;
+        
+        const metrics = roiData.roi_metrics;
+        
+        // Update ROI metrics cards
+        document.getElementById('roiPercentage').textContent = metrics.roi_percentage.toFixed(1) + '%';
+        document.getElementById('profitMargin').textContent = metrics.profit_margin.toFixed(1) + '%';
+        document.getElementById('customerLTV').textContent = '$' + metrics.customer_lifetime_value.toFixed(2);
+        
+        // Create ROI trend chart
+        createROITrendChart(roiData.monthly_trend);
+        
+        // Create cost breakdown chart
+        createCostBreakdownChart(roiData.cost_breakdown);
+    }
+    
+    function createROITrendChart(monthlyData) {
+        const ctx = document.getElementById('roiTrendChart').getContext('2d');
+        
+        if (roiTrendChart) {
+            roiTrendChart.destroy();
+        }
+        
+        roiTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: monthlyData.map(d => d.month),
+                datasets: [{
+                    label: 'ROI %',
+                    data: monthlyData.map(d => d.roi_percentage),
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function createCostBreakdownChart(costData) {
+        const ctx = document.getElementById('costBreakdownChart').getContext('2d');
+        
+        if (costBreakdownChart) {
+            costBreakdownChart.destroy();
+        }
+        
+        costBreakdownChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(costData),
+                datasets: [{
+                    data: Object.values(costData),
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 205, 86, 0.8)',
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)',
+                        'rgba(255, 159, 64, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+    
+    function displayPredictiveAnalytics(predictiveData) {
+        if (!predictiveData) return;
+        
+        // Display predictive insights
+        const insights = predictiveData.predictive_insights || [];
+        const insightsHtml = insights.map(insight => `<li class="mb-2">${insight}</li>`).join('');
+        document.getElementById('predictiveInsights').innerHTML = '<ul>' + insightsHtml + '</ul>';
+        
+        // Display business recommendations
+        const recommendations = predictiveData.business_recommendations || [];
+        const recommendationsHtml = recommendations.map(rec => `<li class="mb-2">${rec}</li>`).join('');
+        document.getElementById('businessRecommendations').innerHTML = '<ul>' + recommendationsHtml + '</ul>';
+        
+        // Create seasonal patterns chart
+        createSeasonalChart(predictiveData.seasonal_patterns);
+    }
+    
+    function createSeasonalChart(seasonalData) {
+        const ctx = document.getElementById('seasonalChart').getContext('2d');
+        
+        if (seasonalChart) {
+            seasonalChart.destroy();
+        }
+        
+        seasonalChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: seasonalData.map(d => `Day ${d.day_of_week}, ${d.hour}:00`),
+                datasets: [{
+                    label: 'Transactions',
+                    data: seasonalData.map(d => d.transactions),
+                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+    
+    // Additional functions
+    function setForecastDays(days) {
+        currentForecastDays = days;
+        // Update active button
+        document.querySelectorAll('.btn-group button').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        // Reload forecast data
+        fetch(`/admin/api/analytics/revenue-forecast?days=${days}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayRevenueForecast(data.forecast);
+                }
+            })
+            .catch(error => console.error('Error loading forecast:', error));
+    }
+    
+    function exportData() {
+        const exportUrl = '/admin/api/analytics/export?format=json&component=all';
+        window.open(exportUrl, '_blank');
+    }
+    
+    function showModelPerformance() {
+        fetch('/admin/api/analytics/model-performance')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const performance = data.model_performance;
+                    alert(`Model Performance:\n\nRevenue Model R²: ${(performance.revenue_model.r_squared * 100).toFixed(1)}%\nTrend: ${performance.revenue_model.trend}\nConfidence: ${performance.revenue_model.confidence}`);
+                }
+            })
+            .catch(error => console.error('Error loading model performance:', error));
     }
     
     // Load data on page load
@@ -284,7 +1007,10 @@
         loadAnalytics();
     });
     
-    // Make refreshData available globally
+    // Make functions available globally
     window.refreshData = refreshData;
+    window.setForecastDays = setForecastDays;
+    window.exportData = exportData;
+    window.showModelPerformance = showModelPerformance;
 </script>
 {% endblock %}
