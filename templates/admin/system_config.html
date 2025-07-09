@@ -306,20 +306,52 @@ input:checked + .slider:before {
         
         <div class="form-group">
             <label class="form-label">Environment</label>
-            <select class="form-select">
-                <option>Production</option>
-                <option>Sandbox</option>
+            <select class="form-select" id="paypal-environment" onchange="togglePayPalEnvironment()">
+                <option value="sandbox" {% if paypal_config.environment == 'sandbox' %}selected{% endif %}>Sandbox (Testing)</option>
+                <option value="live" {% if paypal_config.environment == 'live' %}selected{% endif %}>Live (Production)</option>
             </select>
         </div>
         
-        <div class="form-group">
-            <label class="form-label">Client ID</label>
-            <input type="text" class="form-input" placeholder="Enter PayPal Client ID">
+        <!-- Sandbox Configuration -->
+        <div id="sandbox-config" style="display: {% if paypal_config.environment == 'sandbox' %}block{% else %}none{% endif %};">
+            <div style="padding: 15px; background: #fff3cd; border-radius: 8px; margin-bottom: 20px;">
+                <strong>🧪 Sandbox Environment</strong><br>
+                <span style="color: #856404;">Use these credentials for testing payments</span>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Sandbox Client ID</label>
+                <input type="text" class="form-input" id="sandbox-client-id" 
+                       value="{{ paypal_config.sandbox_client_id or '' }}" 
+                       placeholder="Enter PayPal Sandbox Client ID">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Sandbox Client Secret</label>
+                <input type="password" class="form-input" id="sandbox-client-secret" 
+                       placeholder="{% if paypal_config.has_sandbox_secret %}••••••••••••••••{% else %}Enter PayPal Sandbox Client Secret{% endif %}">
+            </div>
         </div>
         
-        <div class="form-group">
-            <label class="form-label">Client Secret</label>
-            <input type="password" class="form-input" placeholder="Enter PayPal Client Secret">
+        <!-- Live Configuration -->
+        <div id="live-config" style="display: {% if paypal_config.environment == 'live' %}block{% else %}none{% endif %};">
+            <div style="padding: 15px; background: #f8d7da; border-radius: 8px; margin-bottom: 20px;">
+                <strong>🔴 Live Environment</strong><br>
+                <span style="color: #721c24;">Use these credentials for real payments - Handle with care!</span>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Live Client ID</label>
+                <input type="text" class="form-input" id="live-client-id" 
+                       value="{{ paypal_config.live_client_id or '' }}" 
+                       placeholder="Enter PayPal Live Client ID">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Live Client Secret</label>
+                <input type="password" class="form-input" id="live-client-secret" 
+                       placeholder="{% if paypal_config.has_live_secret %}••••••••••••••••{% else %}Enter PayPal Live Client Secret{% endif %}">
+            </div>
         </div>
         
         <div class="connection-test">
@@ -598,7 +630,51 @@ input:checked + .slider:before {
 <script>
 // Configuration save functions
 function savePayPalConfig() {
-    showFlashMessage('PayPal configuration saved successfully!', 'success');
+    const environment = document.getElementById('paypal-environment').value;
+    const sandboxClientId = document.getElementById('sandbox-client-id').value;
+    const sandboxClientSecret = document.getElementById('sandbox-client-secret').value;
+    const liveClientId = document.getElementById('live-client-id').value;
+    const liveClientSecret = document.getElementById('live-client-secret').value;
+    
+    const configData = {
+        environment: environment,
+        sandbox_client_id: sandboxClientId,
+        sandbox_client_secret: sandboxClientSecret,
+        live_client_id: liveClientId,
+        live_client_secret: liveClientSecret
+    };
+    
+    // Show loading state
+    const button = event.target;
+    button.textContent = 'Saving...';
+    button.disabled = true;
+    
+    fetch('/admin/system-config/paypal', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(configData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showFlashMessage('PayPal configuration saved successfully!', 'success');
+            // Clear password fields for security
+            document.getElementById('sandbox-client-secret').value = '';
+            document.getElementById('live-client-secret').value = '';
+        } else {
+            showFlashMessage('Failed to save PayPal configuration: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showFlashMessage('Error saving PayPal configuration', 'error');
+    })
+    .finally(() => {
+        button.textContent = 'Save Configuration';
+        button.disabled = false;
+    });
 }
 
 function saveEmailConfig() {
@@ -621,6 +697,21 @@ function saveSecurityConfig() {
     showFlashMessage('Security configuration saved successfully!', 'success');
 }
 
+// Environment toggle function
+function togglePayPalEnvironment() {
+    const environment = document.getElementById('paypal-environment').value;
+    const sandboxConfig = document.getElementById('sandbox-config');
+    const liveConfig = document.getElementById('live-config');
+    
+    if (environment === 'sandbox') {
+        sandboxConfig.style.display = 'block';
+        liveConfig.style.display = 'none';
+    } else {
+        sandboxConfig.style.display = 'none';
+        liveConfig.style.display = 'block';
+    }
+}
+
 // Test functions
 function testPayPal() {
     const resultDiv = document.getElementById('paypal-test-result');
@@ -628,10 +719,27 @@ function testPayPal() {
     resultDiv.className = 'test-result';
     resultDiv.textContent = 'Testing PayPal connection...';
     
-    setTimeout(() => {
-        resultDiv.className = 'test-result test-success';
-        resultDiv.textContent = '✅ PayPal connection successful! API accessible.';
-    }, 2000);
+    fetch('/admin/system-config/paypal/test', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.className = 'test-result test-success';
+            resultDiv.textContent = '✅ PayPal connection successful! API accessible.';
+        } else {
+            resultDiv.className = 'test-result test-error';
+            resultDiv.textContent = '❌ PayPal connection failed: ' + data.message;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        resultDiv.className = 'test-result test-error';
+        resultDiv.textContent = '❌ PayPal connection test failed';
+    });
 }
 
 function testEmail() {

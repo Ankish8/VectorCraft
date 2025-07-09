@@ -17,10 +17,10 @@ from services.rule_engine import rule_engine, RuleOperator, LogicalOperator, Rul
 from services.rule_engine import RuleCondition, RuleGroup, RuleAction, DecisionNode, BusinessRule as RuleEngineBusinessRule
 from database import db
 
-# Create blueprint
-business_logic_bp = Blueprint('business_logic', __name__, url_prefix='/admin/business-logic')
+# Import admin blueprint
+from . import admin_bp
 
-@business_logic_bp.route('/')
+@admin_bp.route('/business-logic')
 @login_required
 def dashboard():
     """Main business logic dashboard"""
@@ -81,7 +81,7 @@ def dashboard():
                              dashboard_data={},
                              current_section='dashboard')
 
-@business_logic_bp.route('/rules')
+@admin_bp.route('/business-logic/rules')
 @login_required
 def rules_management():
     """Business rules management interface"""
@@ -145,7 +145,7 @@ def rules_management():
                              rules=[],
                              current_section='rules')
 
-@business_logic_bp.route('/rules/create', methods=['GET', 'POST'])
+@admin_bp.route('/business-logic/rules/create', methods=['GET', 'POST'])
 @login_required
 def create_rule():
     """Create new business rule"""
@@ -236,7 +236,7 @@ def create_rule():
                 flash(f'Error creating rule: {str(e)}', 'error')
                 return redirect(url_for('business_logic.rules_management'))
 
-@business_logic_bp.route('/rules/<rule_id>')
+@admin_bp.route('/business-logic/rules/<rule_id>')
 @login_required
 def rule_details(rule_id):
     """View rule details"""
@@ -271,7 +271,7 @@ def rule_details(rule_id):
         flash(f'Error loading rule details: {str(e)}', 'error')
         return redirect(url_for('business_logic.rules_management'))
 
-@business_logic_bp.route('/rules/<rule_id>/test', methods=['POST'])
+@admin_bp.route('/business-logic/rules/<rule_id>/test', methods=['POST'])
 @login_required
 def test_rule(rule_id):
     """Test a business rule"""
@@ -304,7 +304,7 @@ def test_rule(rule_id):
         db.log_system_event('error', 'business_logic_admin', f'Rule test error: {str(e)}')
         return jsonify({'success': False, 'error': str(e)}), 400
 
-@business_logic_bp.route('/workflows')
+@admin_bp.route('/business-logic/workflows')
 @login_required
 def workflows_management():
     """Workflow management interface"""
@@ -364,7 +364,7 @@ def workflows_management():
                              workflows=[],
                              current_section='workflows')
 
-@business_logic_bp.route('/workflows/create', methods=['GET', 'POST'])
+@admin_bp.route('/business-logic/workflows/create', methods=['GET', 'POST'])
 @login_required
 def create_workflow():
     """Create new workflow"""
@@ -446,7 +446,7 @@ def create_workflow():
                 flash(f'Error creating workflow: {str(e)}', 'error')
                 return redirect(url_for('business_logic.workflows_management'))
 
-@business_logic_bp.route('/workflows/<workflow_id>/trigger', methods=['POST'])
+@admin_bp.route('/business-logic/workflows/<workflow_id>/trigger', methods=['POST'])
 @login_required
 def trigger_workflow(workflow_id):
     """Trigger a workflow execution"""
@@ -475,7 +475,7 @@ def trigger_workflow(workflow_id):
         db.log_system_event('error', 'business_logic_admin', f'Workflow trigger error: {str(e)}')
         return jsonify({'success': False, 'error': str(e)}), 400
 
-@business_logic_bp.route('/analytics')
+@admin_bp.route('/business-logic/analytics')
 @login_required
 def analytics():
     """Business logic analytics dashboard"""
@@ -534,7 +534,7 @@ def analytics():
                              analytics_data={},
                              current_section='analytics')
 
-@business_logic_bp.route('/process-optimization')
+@admin_bp.route('/business-logic/process-optimization')
 @login_required
 def process_optimization():
     """Business process optimization dashboard"""
@@ -569,7 +569,7 @@ def process_optimization():
                              optimization_data={},
                              current_section='process_optimization')
 
-@business_logic_bp.route('/customer-lifecycle')
+@admin_bp.route('/business-logic/customer-lifecycle')
 @login_required
 def customer_lifecycle():
     """Customer lifecycle management dashboard"""
@@ -604,7 +604,7 @@ def customer_lifecycle():
                              lifecycle_data={},
                              current_section='customer_lifecycle')
 
-@business_logic_bp.route('/integrations')
+@admin_bp.route('/business-logic/integrations')
 @login_required
 def integrations():
     """Integration and API management dashboard"""

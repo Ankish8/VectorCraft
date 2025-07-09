@@ -19,8 +19,8 @@ from services.security_service import security_service
 
 logger = logging.getLogger(__name__)
 
-# Create security blueprint
-security_bp = Blueprint('security', __name__, url_prefix='/admin/security')
+# Import admin blueprint
+from . import admin_bp
 
 def admin_required(f):
     """Decorator to require admin authentication"""
@@ -47,7 +47,7 @@ def log_admin_action(action: str, resource: str, details: Dict = None):
 
 # ========== SECURITY DASHBOARD ==========
 
-@security_bp.route('/')
+@admin_bp.route('/security')
 @admin_required
 def dashboard():
     """Security dashboard main page"""
@@ -86,7 +86,7 @@ def dashboard():
         logger.error(f"Security dashboard error: {e}")
         return jsonify({'error': 'Failed to load security dashboard'}), 500
 
-@security_bp.route('/metrics')
+@admin_bp.route('/security/metrics')
 @admin_required
 def get_metrics():
     """Get security metrics API endpoint"""
@@ -99,7 +99,7 @@ def get_metrics():
 
 # ========== SECURITY EVENTS ==========
 
-@security_bp.route('/events')
+@admin_bp.route('/security/events')
 @admin_required
 def get_security_events():
     """Get security events with filtering"""
@@ -125,7 +125,7 @@ def get_security_events():
         logger.error(f"Failed to get security events: {e}")
         return jsonify({'error': 'Failed to get security events'}), 500
 
-@security_bp.route('/events/<event_id>')
+@admin_bp.route('/security/events/<event_id>')
 @admin_required
 def get_security_event(event_id):
     """Get specific security event details"""
@@ -196,7 +196,7 @@ def get_threat_indicators():
         logger.error(f"Failed to get threat indicators: {e}")
         return []
 
-@security_bp.route('/threats')
+@admin_bp.route('/security/threats')
 @admin_required
 def get_threats():
     """Get threat indicators API endpoint"""
@@ -207,7 +207,7 @@ def get_threats():
         logger.error(f"Failed to get threat indicators: {e}")
         return jsonify({'error': 'Failed to get threat indicators'}), 500
 
-@security_bp.route('/threats/<indicator_id>', methods=['DELETE'])
+@admin_bp.route('/security/threats/<indicator_id>', methods=['DELETE'])
 @admin_required
 def delete_threat_indicator(indicator_id):
     """Delete a threat indicator"""
@@ -257,7 +257,7 @@ def get_blocked_ips():
         logger.error(f"Failed to get blocked IPs: {e}")
         return []
 
-@security_bp.route('/blocked-ips')
+@admin_bp.route('/security/blocked-ips')
 @admin_required
 def get_blocked_ips_api():
     """Get blocked IPs API endpoint"""
@@ -268,7 +268,7 @@ def get_blocked_ips_api():
         logger.error(f"Failed to get blocked IPs: {e}")
         return jsonify({'error': 'Failed to get blocked IPs'}), 500
 
-@security_bp.route('/block-ip', methods=['POST'])
+@admin_bp.route('/security/block-ip', methods=['POST'])
 @admin_required
 def block_ip():
     """Block an IP address"""
@@ -295,7 +295,7 @@ def block_ip():
         logger.error(f"Failed to block IP: {e}")
         return jsonify({'error': 'Failed to block IP'}), 500
 
-@security_bp.route('/unblock-ip', methods=['POST'])
+@admin_bp.route('/security/unblock-ip', methods=['POST'])
 @admin_required
 def unblock_ip():
     """Unblock an IP address"""
@@ -357,7 +357,7 @@ def get_access_permissions():
         logger.error(f"Failed to get access permissions: {e}")
         return []
 
-@security_bp.route('/permissions')
+@admin_bp.route('/security/permissions')
 @admin_required
 def get_permissions():
     """Get access permissions API endpoint"""
@@ -368,7 +368,7 @@ def get_permissions():
         logger.error(f"Failed to get permissions: {e}")
         return jsonify({'error': 'Failed to get permissions'}), 500
 
-@security_bp.route('/add-permission', methods=['POST'])
+@admin_bp.route('/security/add-permission', methods=['POST'])
 @admin_required
 def add_permission():
     """Add access permission"""
@@ -400,7 +400,7 @@ def add_permission():
         logger.error(f"Failed to add permission: {e}")
         return jsonify({'error': 'Failed to add permission'}), 500
 
-@security_bp.route('/revoke-permission', methods=['POST'])
+@admin_bp.route('/security/revoke-permission', methods=['POST'])
 @admin_required
 def revoke_permission():
     """Revoke access permission"""
@@ -430,7 +430,7 @@ def revoke_permission():
 
 # ========== AUDIT LOGS ==========
 
-@security_bp.route('/audit')
+@admin_bp.route('/security/audit')
 @admin_required
 def audit_logs():
     """Audit logs page"""
@@ -583,7 +583,7 @@ def get_audit_statistics():
         logger.error(f"Failed to get audit statistics: {e}")
         return {}
 
-@security_bp.route('/audit/export')
+@admin_bp.route('/security/audit/export')
 @admin_required
 def export_audit_logs():
     """Export audit logs to CSV"""
@@ -678,7 +678,7 @@ def export_audit_logs():
 
 # ========== SECURITY ANALYTICS ==========
 
-@security_bp.route('/analytics')
+@admin_bp.route('/security/analytics')
 @admin_required
 def security_analytics():
     """Security analytics and reporting"""

@@ -22,8 +22,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# Create blueprint
-performance_bp = Blueprint('performance', __name__, url_prefix='/admin/performance')
+# Import admin blueprint
+from . import admin_bp
 
 def require_performance_services(f):
     """Decorator to check if performance services are available"""
@@ -34,7 +34,7 @@ def require_performance_services(f):
         return f(*args, **kwargs)
     return decorated_function
 
-@performance_bp.route('/')
+@admin_bp.route('/performance')
 @require_performance_services
 def dashboard():
     """Main performance dashboard"""
@@ -73,7 +73,7 @@ def dashboard():
         flash(f"Error loading performance dashboard: {str(e)}", 'error')
         return render_template('admin/error.html', error=str(e))
 
-@performance_bp.route('/api/real-time-metrics')
+@admin_bp.route('/performance/api/real-time-metrics')
 @require_performance_services
 def api_real_time_metrics():
     """API endpoint for real-time metrics"""
@@ -84,7 +84,7 @@ def api_real_time_metrics():
         logger.error(f"Real-time metrics API error: {e}")
         return jsonify({'error': str(e)}), 500
 
-@performance_bp.route('/api/optimization-status')
+@admin_bp.route('/performance/api/optimization-status')
 @require_performance_services
 def api_optimization_status():
     """API endpoint for optimization status"""
@@ -95,7 +95,7 @@ def api_optimization_status():
         logger.error(f"Optimization status API error: {e}")
         return jsonify({'error': str(e)}), 500
 
-@performance_bp.route('/api/optimization-recommendations')
+@admin_bp.route('/performance/api/optimization-recommendations')
 @require_performance_services
 def api_optimization_recommendations():
     """API endpoint for optimization recommendations"""
@@ -106,7 +106,7 @@ def api_optimization_recommendations():
         logger.error(f"Optimization recommendations API error: {e}")
         return jsonify({'error': str(e)}), 500
 
-@performance_bp.route('/api/tuning-parameters', methods=['GET', 'POST'])
+@admin_bp.route('/performance/api/tuning-parameters', methods=['GET', 'POST'])
 @require_performance_services
 def api_tuning_parameters():
     """API endpoint for tuning parameters"""
@@ -140,7 +140,7 @@ def api_tuning_parameters():
             logger.error(f"Get tuning parameters API error: {e}")
             return jsonify({'error': str(e)}), 500
 
-@performance_bp.route('/benchmarks')
+@admin_bp.route('/performance/benchmarks')
 @require_performance_services
 def benchmarks():
     """Benchmark management page"""
@@ -175,7 +175,7 @@ def benchmarks():
         flash(f"Error loading benchmarks: {str(e)}", 'error')
         return render_template('admin/error.html', error=str(e))
 
-@performance_bp.route('/api/benchmark/run', methods=['POST'])
+@admin_bp.route('/performance/api/benchmark/run', methods=['POST'])
 @require_performance_services
 def api_run_benchmark():
     """API endpoint to run benchmark test"""
@@ -206,7 +206,7 @@ def api_run_benchmark():
         logger.error(f"Run benchmark API error: {e}")
         return jsonify({'error': str(e)}), 500
 
-@performance_bp.route('/api/benchmark/status/<test_id>')
+@admin_bp.route('/performance/api/benchmark/status/<test_id>')
 @require_performance_services
 def api_benchmark_status(test_id):
     """API endpoint to get benchmark status"""
@@ -235,7 +235,7 @@ def api_benchmark_status(test_id):
         logger.error(f"Benchmark status API error: {e}")
         return jsonify({'error': str(e)}), 500
 
-@performance_bp.route('/api/benchmark/history/<test_id>')
+@admin_bp.route('/performance/api/benchmark/history/<test_id>')
 @require_performance_services
 def api_benchmark_history(test_id):
     """API endpoint to get benchmark history"""
@@ -262,7 +262,7 @@ def api_benchmark_history(test_id):
         logger.error(f"Benchmark history API error: {e}")
         return jsonify({'error': str(e)}), 500
 
-@performance_bp.route('/api/benchmark/compare', methods=['POST'])
+@admin_bp.route('/performance/api/benchmark/compare', methods=['POST'])
 @require_performance_services
 def api_benchmark_compare():
     """API endpoint to compare benchmark results"""
@@ -292,7 +292,7 @@ def api_benchmark_compare():
         logger.error(f"Benchmark comparison API error: {e}")
         return jsonify({'error': str(e)}), 500
 
-@performance_bp.route('/optimization')
+@admin_bp.route('/performance/optimization')
 @require_performance_services
 def optimization():
     """Optimization management page"""
@@ -316,7 +316,7 @@ def optimization():
         flash(f"Error loading optimization page: {str(e)}", 'error')
         return render_template('admin/error.html', error=str(e))
 
-@performance_bp.route('/monitoring')
+@admin_bp.route('/performance/monitoring')
 @require_performance_services
 def monitoring():
     """Performance monitoring page"""
@@ -340,7 +340,7 @@ def monitoring():
         flash(f"Error loading monitoring page: {str(e)}", 'error')
         return render_template('admin/error.html', error=str(e))
 
-@performance_bp.route('/api/performance-history')
+@admin_bp.route('/performance/api/performance-history')
 @require_performance_services
 def api_performance_history():
     """API endpoint for performance history"""
@@ -365,7 +365,7 @@ def api_performance_history():
         logger.error(f"Performance history API error: {e}")
         return jsonify({'error': str(e)}), 500
 
-@performance_bp.route('/api/system-health')
+@admin_bp.route('/performance/api/system-health')
 @require_performance_services
 def api_system_health():
     """API endpoint for system health check"""
@@ -400,7 +400,7 @@ def api_system_health():
         logger.error(f"System health API error: {e}")
         return jsonify({'error': str(e)}), 500
 
-@performance_bp.route('/api/export-metrics')
+@admin_bp.route('/performance/api/export-metrics')
 @require_performance_services
 def api_export_metrics():
     """API endpoint to export performance metrics"""

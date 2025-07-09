@@ -13,11 +13,11 @@ from services.file_service import file_service
 from services.monitoring.system_logger import system_logger
 from database_optimized import db_optimized
 
-# Create blueprint
-file_management_bp = Blueprint('file_management', __name__, url_prefix='/admin/files')
+# Import admin blueprint
+from . import admin_bp
 
 
-@file_management_bp.route('/')
+@admin_bp.route('/files')
 def index():
     """File management dashboard"""
     try:
@@ -47,7 +47,7 @@ def index():
                              vectorization_analytics={}, optimization_opportunities={})
 
 
-@file_management_bp.route('/analytics')
+@admin_bp.route('/files/analytics')
 def analytics():
     """File analytics page"""
     try:
@@ -72,7 +72,7 @@ def analytics():
                              processing_metrics={}, days=30)
 
 
-@file_management_bp.route('/storage')
+@admin_bp.route('/files/storage')
 def storage_management():
     """Storage management page"""
     try:
@@ -98,7 +98,7 @@ def storage_management():
                              optimization_analysis={})
 
 
-@file_management_bp.route('/vectorization')
+@admin_bp.route('/files/vectorization')
 def vectorization_monitoring():
     """Vectorization monitoring page"""
     try:
@@ -131,7 +131,7 @@ def vectorization_monitoring():
                              quality_metrics={}, performance_suggestions=[], days=30)
 
 
-@file_management_bp.route('/quality')
+@admin_bp.route('/files/quality')
 def quality_analyzer():
     """Quality analyzer page"""
     try:
@@ -157,7 +157,7 @@ def quality_analyzer():
                              quality_trends={})
 
 
-@file_management_bp.route('/optimizer')
+@admin_bp.route('/files/optimizer')
 def file_optimizer():
     """File processing optimizer page"""
     try:
@@ -185,7 +185,7 @@ def file_optimizer():
 
 # API Routes
 
-@file_management_bp.route('/api/analytics/<int:days>')
+@admin_bp.route('/files/api/analytics/<int:days>')
 def api_analytics(days):
     """API endpoint for file analytics"""
     try:
@@ -195,7 +195,7 @@ def api_analytics(days):
         return jsonify({'error': str(e)}), 500
 
 
-@file_management_bp.route('/api/storage')
+@admin_bp.route('/files/api/storage')
 def api_storage():
     """API endpoint for storage information"""
     try:
@@ -205,7 +205,7 @@ def api_storage():
         return jsonify({'error': str(e)}), 500
 
 
-@file_management_bp.route('/api/vectorization/<int:days>')
+@admin_bp.route('/files/api/vectorization/<int:days>')
 def api_vectorization(days):
     """API endpoint for vectorization analytics"""
     try:
@@ -215,7 +215,7 @@ def api_vectorization(days):
         return jsonify({'error': str(e)}), 500
 
 
-@file_management_bp.route('/api/real-time-metrics')
+@admin_bp.route('/files/api/real-time-metrics')
 def api_real_time_metrics():
     """API endpoint for real-time metrics"""
     try:
@@ -225,7 +225,7 @@ def api_real_time_metrics():
         return jsonify({'error': str(e)}), 500
 
 
-@file_management_bp.route('/api/quality-metrics/<int:days>')
+@admin_bp.route('/files/api/quality-metrics/<int:days>')
 def api_quality_metrics(days):
     """API endpoint for quality metrics"""
     try:
@@ -235,7 +235,7 @@ def api_quality_metrics(days):
         return jsonify({'error': str(e)}), 500
 
 
-@file_management_bp.route('/api/optimization-opportunities')
+@admin_bp.route('/files/api/optimization-opportunities')
 def api_optimization_opportunities():
     """API endpoint for optimization opportunities"""
     try:
@@ -247,7 +247,7 @@ def api_optimization_opportunities():
 
 # Action Routes
 
-@file_management_bp.route('/action/optimize', methods=['POST'])
+@admin_bp.route('/files/action/optimize', methods=['POST'])
 def action_optimize():
     """Perform storage optimization"""
     try:
@@ -269,7 +269,7 @@ def action_optimize():
         return jsonify({'error': str(e)}), 500
 
 
-@file_management_bp.route('/action/cleanup-temp', methods=['POST'])
+@admin_bp.route('/files/action/cleanup-temp', methods=['POST'])
 def action_cleanup_temp():
     """Clean up temporary files"""
     try:
@@ -291,7 +291,7 @@ def action_cleanup_temp():
         return jsonify({'error': str(e)}), 500
 
 
-@file_management_bp.route('/action/refresh-analytics', methods=['POST'])
+@admin_bp.route('/files/action/refresh-analytics', methods=['POST'])
 def action_refresh_analytics():
     """Refresh analytics data"""
     try:
@@ -314,7 +314,7 @@ def action_refresh_analytics():
         return jsonify({'error': str(e)}), 500
 
 
-@file_management_bp.route('/action/export-analytics', methods=['POST'])
+@admin_bp.route('/files/action/export-analytics', methods=['POST'])
 def action_export_analytics():
     """Export analytics data"""
     try:
