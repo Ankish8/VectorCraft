@@ -17,6 +17,8 @@ RUN apt-get update && apt-get install -y \
     libtiff-dev \
     libwebp-dev \
     libopencv-dev \
+    libffi-dev \
+    libssl-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -32,6 +34,8 @@ COPY requirements.txt requirements_minimal.txt ./
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip
+# Install cryptography first (needs system dependencies)
+RUN pip install --no-cache-dir cryptography>=3.4.0
 RUN pip install --no-cache-dir -r requirements.txt || \
     pip install --no-cache-dir -r requirements_minimal.txt
 # Install VTracer - it should work on most systems with precompiled wheels
@@ -46,16 +50,13 @@ RUN chmod +x /app/entrypoint.sh
 
 # Create necessary directories
 RUN mkdir -p uploads results output static/images data
-RUN chown -R vectorcraft:vectorcraft /app
 
-# Switch to non-root user
-USER vectorcraft
-
-# app.py is already the updated version with landing page and email integration
-# RUN cp app_with_auth.py app.py
-
-# Initialize database
+# Initialize database (before switching to non-root user)
 RUN python database.py
+
+# Set ownership and switch to non-root user
+RUN chown -R vectorcraft:vectorcraft /app
+USER vectorcraft
 
 # Expose port
 EXPOSE 8080

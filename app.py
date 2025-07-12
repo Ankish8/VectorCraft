@@ -9,6 +9,7 @@ import time
 import uuid
 import logging
 import secrets
+import json
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -26,6 +27,7 @@ from database import db
 from services.email_service import email_service
 from services.paypal_service import paypal_service
 from services.monitoring import health_monitor, system_logger, alert_manager
+from email_queue_processor import start_email_processor
 
 app = Flask(__name__)
 # Use environment variable for secret key, generate secure fallback
@@ -109,11 +111,17 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
+            # For API endpoints, return JSON error instead of redirect
+            if request.path.startswith('/admin/api/'):
+                return jsonify({'success': False, 'error': 'Authentication required'}), 401
             flash('Please log in to access admin features.', 'error')
             return redirect(url_for('login', next=request.url))
         
         # Check if user is admin (username 'admin' or email contains 'admin')
         if current_user.username != 'admin' and 'admin' not in current_user.email.lower():
+            # For API endpoints, return JSON error instead of redirect
+            if request.path.startswith('/admin/api/'):
+                return jsonify({'success': False, 'error': 'Admin access required'}), 403
             flash('Admin access required.', 'error')
             return redirect(url_for('dashboard'))
         
@@ -147,6 +155,11 @@ def too_large(error):
                          code=413,
                          message="The file you uploaded is too large. Maximum size is 16MB.",
                          title="File Too Large"), 413
+
+@app.route('/favicon.ico')
+def favicon():
+    """Serve favicon"""
+    return '', 204
 
 @app.route('/')
 def index():
@@ -920,6 +933,20 @@ def capture_paypal_order():
             f"New customer: {email} (username: {username})\nAmount: ${amount:.2f}\nPayPal Order: {order_id}\nTransaction: {capture_result.get('transaction_id')}"
         )
         
+        # Trigger email automations for purchase event
+        try:
+            trigger_email_automations('purchase', {
+                'email': email,
+                'username': username,
+                'password': password,  # Include password for credentials email
+                'amount': amount,
+                'order_id': order_id,
+                'transaction_id': transaction_id
+            })
+        except Exception as e:
+            system_logger.warning('email', f'Failed to trigger email automations: {str(e)}',
+                                 user_email=email, transaction_id=transaction_id)
+        
         # Log successful payment completion
         system_logger.info('payment', f'Payment completed successfully - ${amount:.2f}',
                           user_email=email, transaction_id=transaction_id,
@@ -1058,6 +1085,68 @@ def health_check():
         'vectorizers': ['standard', 'advanced'],
         'supported_formats': list(ALLOWED_EXTENSIONS)
     })
+
+# Email Tracking Routes
+@app.route('/track/open/<tracking_id>')
+def track_email_open(tracking_id):
+    """Track email open event"""
+    try:
+        # Record the open event
+        db.record_email_tracking(
+            tracking_id=tracking_id,
+            event_type='opened',
+            user_agent=request.headers.get('User-Agent', ''),
+            ip_address=request.remote_addr
+        )
+        
+        # Return a 1x1 transparent pixel
+        from flask import Response
+        import base64
+        
+        # 1x1 transparent PNG pixel
+        pixel_data = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAGAhQAAAg==')
+        
+        response = Response(pixel_data, mimetype='image/png')
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+        
+    except Exception as e:
+        print(f"Error tracking email open: {e}")
+        # Still return the pixel even if tracking fails
+        pixel_data = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAGAhQAAAg==')
+        return Response(pixel_data, mimetype='image/png')
+
+@app.route('/track/click/<tracking_id>')
+def track_email_click(tracking_id):
+    """Track email click event and redirect"""
+    try:
+        # Get the original URL from query parameters
+        original_url = request.args.get('url', '')
+        
+        if original_url:
+            # Record the click event
+            db.record_email_tracking(
+                tracking_id=tracking_id,
+                event_type='clicked',
+                user_agent=request.headers.get('User-Agent', ''),
+                ip_address=request.remote_addr,
+                metadata={'clicked_url': original_url}
+            )
+            
+            # Redirect to the original URL
+            return redirect(original_url)
+        else:
+            return "Invalid tracking link", 400
+            
+    except Exception as e:
+        print(f"Error tracking email click: {e}")
+        # Still redirect if tracking fails
+        original_url = request.args.get('url', '')
+        if original_url:
+            return redirect(original_url)
+        return "Invalid tracking link", 400
 
 # Admin Dashboard Routes
 @app.route('/admin')
@@ -1291,7 +1380,7 @@ def admin_api_smtp_save():
         )
         
         # Log the configuration change
-        system_logger.log_event(
+        system_logger.log(
             level='INFO',
             component='admin',
             message='SMTP configuration updated',
@@ -1305,7 +1394,7 @@ def admin_api_smtp_save():
         })
         
     except Exception as e:
-        system_logger.log_event(
+        system_logger.log(
             level='ERROR',
             component='admin',
             message=f'Failed to save SMTP configuration: {str(e)}',
@@ -1341,7 +1430,7 @@ def admin_api_smtp_test():
         )
         
         # Log the test
-        system_logger.log_event(
+        system_logger.log(
             level='INFO' if success else 'WARNING',
             component='admin',
             message=f'SMTP connection test: {message}',
@@ -1355,7 +1444,7 @@ def admin_api_smtp_test():
         })
         
     except Exception as e:
-        system_logger.log_event(
+        system_logger.log(
             level='ERROR',
             component='admin',
             message=f'SMTP test failed with exception: {str(e)}',
@@ -1403,7 +1492,7 @@ def admin_api_paypal_save():
         )
         
         # Log the configuration change
-        system_logger.log_event(
+        system_logger.log(
             level='INFO',
             component='admin',
             message='PayPal configuration updated',
@@ -1417,7 +1506,7 @@ def admin_api_paypal_save():
         })
         
     except Exception as e:
-        system_logger.log_event(
+        system_logger.log(
             level='ERROR',
             component='admin',
             message=f'Failed to save PayPal configuration: {str(e)}',
@@ -1451,7 +1540,7 @@ def admin_api_paypal_test():
         )
         
         # Log the test
-        system_logger.log_event(
+        system_logger.log(
             level='INFO' if success else 'WARNING',
             component='admin',
             message=f'PayPal connection test ({environment}): {message}',
@@ -1465,12 +1554,744 @@ def admin_api_paypal_test():
         })
         
     except Exception as e:
-        system_logger.log_event(
+        system_logger.log(
             level='ERROR',
             component='admin',
             message=f'PayPal test failed with exception: {str(e)}',
             user_email=current_user.email
         )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Email Marketing API Endpoints
+@app.route('/admin/api/email/templates')
+@admin_required
+def admin_api_email_templates():
+    """API endpoint to get email templates"""
+    try:
+        category = request.args.get('category')
+        templates = db.get_email_templates(category=category)
+        
+        return jsonify({
+            'success': True,
+            'templates': templates,
+            'total': len(templates)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/templates', methods=['POST'])
+@admin_required  
+def admin_api_email_templates_create():
+    """API endpoint to create email template"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('name') or not data.get('subject') or not data.get('content_html'):
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+        
+        template_id = db.create_email_template(
+            name=data['name'],
+            subject=data['subject'],
+            content_html=data['content_html'],
+            content_json=data.get('content_json'),
+            variables=data.get('variables'),
+            description=data.get('description'),
+            category=data.get('category', 'general')
+        )
+        
+        if template_id:
+            # Log the action
+            system_logger.log(
+                level='INFO',
+                component='email',
+                message=f'Email template created: {data["name"]}',
+                user_email=current_user.email,
+                details={'template_id': template_id, 'category': data.get('category', 'general')}
+            )
+            
+            return jsonify({
+                'success': True,
+                'template_id': template_id,
+                'message': 'Template created successfully'
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Failed to create template'}), 500
+            
+    except Exception as e:
+        system_logger.log(
+            level='ERROR',
+            component='email',
+            message=f'Failed to create email template: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/templates/<int:template_id>')
+@admin_required
+def admin_api_email_template_get(template_id):
+    """API endpoint to get specific email template"""
+    try:
+        template = db.get_email_template(template_id)
+        
+        if template:
+            return jsonify({
+                'success': True,
+                'template': template
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Template not found'}), 404
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/templates/<int:template_id>', methods=['PUT'])
+@admin_required
+def admin_api_email_template_update(template_id):
+    """API endpoint to update email template"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        success = db.update_email_template(
+            template_id=template_id,
+            name=data.get('name'),
+            subject=data.get('subject'),
+            content_html=data.get('content_html'),
+            content_json=data.get('content_json'),
+            variables=data.get('variables'),
+            description=data.get('description'),
+            category=data.get('category')
+        )
+        
+        if success:
+            # Log the action
+            system_logger.log(
+                level='INFO',
+                component='email',
+                message=f'Email template updated: {template_id}',
+                user_email=current_user.email,
+                details={'template_id': template_id}
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': 'Template updated successfully'
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Failed to update template or template not found'}), 404
+            
+    except Exception as e:
+        system_logger.log(
+            level='ERROR',
+            component='email',
+            message=f'Failed to update email template {template_id}: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/templates/<int:template_id>', methods=['DELETE'])
+@admin_required
+def admin_api_email_template_delete(template_id):
+    """API endpoint to delete email template"""
+    try:
+        success = db.delete_email_template(template_id)
+        
+        if success:
+            # Log the action
+            system_logger.log(
+                level='INFO',
+                component='email',
+                message=f'Email template deleted: {template_id}',
+                user_email=current_user.email,
+                details={'template_id': template_id}
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': 'Template deleted successfully'
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Failed to delete template or template not found'}), 404
+            
+    except Exception as e:
+        system_logger.log(
+            level='ERROR',
+            component='email',
+            message=f'Failed to delete email template {template_id}: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/automations')
+@admin_required
+def admin_api_email_automations():
+    """API endpoint to get email automations"""
+    try:
+        # Get ALL automations (both active and inactive) so user can manage them
+        automations = db.get_email_automations(active_only=False)
+        
+        return jsonify({
+            'success': True,
+            'automations': automations,
+            'total': len(automations)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/automations', methods=['POST'])
+@admin_required  
+def admin_api_email_automations_create():
+    """API endpoint to create email automation"""
+    try:
+        data = request.get_json()
+        
+        required_fields = ['name', 'trigger_type', 'template_id']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+        
+        automation_id = db.create_email_automation(
+            name=data['name'],
+            trigger_type=data['trigger_type'],
+            template_id=data['template_id'],
+            delay_hours=data.get('delay_hours', 0),
+            trigger_condition=data.get('trigger_condition'),
+            description=data.get('description'),
+            send_time=data.get('send_time')
+        )
+        
+        if automation_id:
+            # Log the action
+            system_logger.log(
+                level='INFO',
+                component='email',
+                message=f'Email automation created: {data["name"]}',
+                user_email=current_user.email,
+                details={'automation_id': automation_id, 'trigger_type': data['trigger_type']}
+            )
+            
+            return jsonify({
+                'success': True,
+                'automation_id': automation_id,
+                'message': 'Automation created successfully'
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Failed to create automation'}), 500
+            
+    except Exception as e:
+        system_logger.log(
+            level='ERROR',
+            component='email',
+            message=f'Failed to create email automation: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/automations/<int:automation_id>')
+@admin_required
+def admin_api_email_automation_get(automation_id):
+    """API endpoint to get specific email automation"""
+    try:
+        automation = db.get_email_automation(automation_id)
+        
+        if automation:
+            return jsonify({
+                'success': True,
+                'automation': automation
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Automation not found'}), 404
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/automations/<int:automation_id>', methods=['PUT'])
+@admin_required
+def admin_api_email_automation_update(automation_id):
+    """API endpoint to update email automation"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        success = db.update_email_automation(
+            automation_id=automation_id,
+            name=data.get('name'),
+            trigger_type=data.get('trigger_type'),
+            template_id=data.get('template_id'),
+            delay_hours=data.get('delay_hours'),
+            trigger_condition=data.get('trigger_condition'),
+            description=data.get('description'),
+            send_time=data.get('send_time'),
+            is_active=data.get('is_active')
+        )
+        
+        if success:
+            # Log the action
+            system_logger.log(
+                level='INFO',
+                component='email',
+                message=f'Email automation updated: {automation_id}',
+                user_email=current_user.email,
+                details={'automation_id': automation_id}
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': 'Automation updated successfully'
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Failed to update automation or automation not found'}), 404
+            
+    except Exception as e:
+        system_logger.log(
+            level='ERROR',
+            component='email',
+            message=f'Failed to update email automation {automation_id}: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/automations/<int:automation_id>', methods=['DELETE'])
+@admin_required
+def admin_api_email_automation_delete(automation_id):
+    """API endpoint to delete email automation"""
+    try:
+        success = db.delete_email_automation(automation_id)
+        
+        if success:
+            # Log the action
+            system_logger.log(
+                level='INFO',
+                component='email',
+                message=f'Email automation deleted: {automation_id}',
+                user_email=current_user.email,
+                details={'automation_id': automation_id}
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': 'Automation deleted successfully'
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Failed to delete automation or automation not found'}), 404
+            
+    except Exception as e:
+        system_logger.log(
+            level='ERROR',
+            component='email',
+            message=f'Failed to delete email automation {automation_id}: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/queue')
+@admin_required
+def admin_api_email_queue():
+    """API endpoint to get email queue status"""
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        pending_emails = db.get_pending_emails(limit=limit)
+        
+        return jsonify({
+            'success': True,
+            'queue': pending_emails,
+            'total': len(pending_emails)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/analytics')
+@admin_required
+def admin_api_email_analytics():
+    """API endpoint to get email analytics"""
+    try:
+        days = request.args.get('days', 30, type=int)
+        analytics = db.get_email_analytics(days=days)
+        
+        return jsonify({
+            'success': True,
+            'analytics': analytics,
+            'period_days': days
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/templates/top')
+@admin_required
+def admin_api_email_templates_top():
+    """API endpoint to get top performing email templates"""
+    try:
+        days = request.args.get('days', 30, type=int)
+        limit = request.args.get('limit', 5, type=int)
+        
+        templates = db.get_top_performing_templates(limit=limit, days=days)
+        return jsonify({
+            'success': True,
+            'templates': templates
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/activity/recent')
+@admin_required
+def admin_api_email_activity_recent():
+    """API endpoint to get recent email activity"""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        
+        activities = db.get_recent_email_activity(limit=limit)
+        
+        # Format timestamps for display
+        for activity in activities:
+            if activity.get('timestamp'):
+                from datetime import datetime
+                try:
+                    timestamp = datetime.fromisoformat(activity['timestamp'].replace('Z', '+00:00'))
+                    now = datetime.now()
+                    
+                    # Calculate time difference
+                    diff = now - timestamp
+                    
+                    if diff.seconds < 60:
+                        activity['time_ago'] = 'Just now'
+                    elif diff.seconds < 3600:
+                        minutes = diff.seconds // 60
+                        activity['time_ago'] = f'{minutes} minute{"s" if minutes != 1 else ""} ago'
+                    elif diff.days == 0:
+                        hours = diff.seconds // 3600
+                        activity['time_ago'] = f'{hours} hour{"s" if hours != 1 else ""} ago'
+                    elif diff.days == 1:
+                        activity['time_ago'] = 'Yesterday'
+                    else:
+                        activity['time_ago'] = f'{diff.days} days ago'
+                except:
+                    activity['time_ago'] = 'Recently'
+            else:
+                activity['time_ago'] = 'Unknown'
+        
+        return jsonify({
+            'success': True,
+            'activities': activities
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/test', methods=['POST'])
+@admin_required
+def admin_api_email_test():
+    """API endpoint to send test email"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('email') or not data.get('template_id'):
+            return jsonify({'success': False, 'error': 'Missing email or template_id'}), 400
+        
+        # Get template
+        template = db.get_email_template(data['template_id'])
+        if not template:
+            return jsonify({'success': False, 'error': 'Template not found'}), 404
+        
+        # Parse variables for template replacement
+        try:
+            variables = json.loads(data.get('variables', '{}'))
+        except json.JSONDecodeError:
+            return jsonify({'success': False, 'error': 'Invalid JSON in variables'}), 400
+        
+        # Replace variables in template content BEFORE queuing
+        subject_with_vars = email_service._replace_variables(template['subject'], variables)
+        content_with_vars = email_service._replace_variables(template['content_html'], variables)
+        
+        # Queue test email with variables already replaced
+        queue_id, tracking_id = db.queue_email(
+            recipient_email=data['email'],
+            recipient_name=data.get('name', 'Test User'),
+            template_id=template['id'],
+            subject=f"[TEST] {subject_with_vars}",
+            content_html=content_with_vars,
+            variables_json=json.dumps({})  # Variables already replaced
+        )
+        
+        if queue_id:
+            # Log the action
+            system_logger.log(
+                level='INFO',
+                component='email',
+                message=f'Test email queued for {data["email"]}',
+                user_email=current_user.email,
+                details={'template_id': template['id'], 'tracking_id': tracking_id}
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': 'Test email queued successfully',
+                'tracking_id': tracking_id
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Failed to queue test email'}), 500
+            
+    except Exception as e:
+        system_logger.log(
+            level='ERROR',
+            component='email',
+            message=f'Failed to send test email: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Email Testing API Routes
+@app.route('/admin/api/email/test/smtp-status')
+@admin_required
+def admin_api_email_test_smtp_status():
+    """Check SMTP configuration status"""
+    try:
+        smtp_configured = email_service.enabled
+        smtp_server = getattr(email_service, 'smtp_server', None)
+        from_email = getattr(email_service, 'from_email', None)
+        
+        return jsonify({
+            'success': True,
+            'smtp_configured': smtp_configured,
+            'smtp_server': smtp_server,
+            'from_email': from_email,
+            'config_source': getattr(email_service, 'config_source', 'unknown')
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/test/smtp', methods=['POST'])
+@admin_required
+def admin_api_email_test_smtp():
+    """Send a simple SMTP test email"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('email'):
+            return jsonify({'success': False, 'message': 'Email address is required'}), 400
+        
+        # Send test email directly via email service
+        from datetime import datetime
+        from services.email_service import email_service
+        
+        subject = data.get('subject', 'SMTP Test - VectorCraft')
+        message = data.get('message', 'This is a test email from VectorCraft SMTP configuration.')
+        
+        # Replace variables in message
+        message = message.replace('{{ current_time }}', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        message = message.replace('{{ smtp_server }}', getattr(email_service, 'smtp_server', 'Unknown'))
+        
+        success = email_service.send_plain_email(data['email'], subject, message)
+        
+        if success:
+            system_logger.info('email', f'SMTP test email sent to {data["email"]}', 
+                             user_email=current_user.email)
+            return jsonify({
+                'success': True,
+                'message': 'Test email sent successfully!',
+                'details': f'Email sent to {data["email"]} via {getattr(email_service, "smtp_server", "SMTP server")}'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to send test email',
+                'details': 'Check SMTP configuration and server logs'
+            })
+            
+    except Exception as e:
+        system_logger.error('email', f'SMTP test failed: {str(e)}', user_email=current_user.email)
+        return jsonify({
+            'success': False,
+            'message': 'SMTP test failed',
+            'details': str(e)
+        }), 500
+
+@app.route('/admin/api/email/test/template', methods=['POST'])
+@admin_required
+def admin_api_email_test_template():
+    """Send a template test email with variables"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('email') or not data.get('template_id'):
+            return jsonify({'success': False, 'message': 'Email and template_id are required'}), 400
+        
+        # Get template
+        template = db.get_email_template(data['template_id'])
+        if not template:
+            return jsonify({'success': False, 'message': 'Template not found'}), 404
+        
+        # Generate tracking ID
+        tracking_id = str(uuid.uuid4())
+        
+        # Send email directly via email service with variables
+        variables = data.get('variables', {})
+        variables['domain_url'] = os.getenv('DOMAIN_URL', 'http://localhost:8080')
+        
+        success = email_service.send_automated_email(
+            to_email=data['email'],
+            subject=f"[TEST] {template['subject']}",
+            content_html=template['content_html'],
+            tracking_id=tracking_id,
+            variables=variables
+        )
+        
+        if success:
+            # Record tracking
+            db.record_email_tracking(
+                tracking_id=tracking_id,
+                event_type='sent',
+                metadata={
+                    'email_address': data['email'],
+                    'template_id': template['id'],
+                    'test_email': True
+                }
+            )
+            
+            system_logger.info('email', f'Template test email sent to {data["email"]}', 
+                             user_email=current_user.email,
+                             details={'template_id': template['id'], 'tracking_id': tracking_id})
+            
+            return jsonify({
+                'success': True,
+                'message': 'Template email sent successfully!',
+                'tracking_id': tracking_id
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to send template email'
+            })
+            
+    except Exception as e:
+        system_logger.error('email', f'Template test failed: {str(e)}', user_email=current_user.email)
+        return jsonify({'success': False, 'message': f'Template test failed: {str(e)}'}), 500
+
+@app.route('/admin/api/email/test/automation', methods=['POST'])
+@admin_required
+def admin_api_email_test_automation():
+    """Test email automation by triggering it manually"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('email'):
+            return jsonify({'success': False, 'message': 'Email address is required'}), 400
+        
+        # Create test context for purchase automation
+        test_context = {
+            'email': data['email'],
+            'username': data.get('username', 'testuser'),
+            'amount': data.get('amount', 19.99),
+            'transaction_id': data.get('transaction_id', f'TEST_{int(time.time())}')
+        }
+        
+        # Trigger purchase automation
+        trigger_email_automations('purchase', test_context)
+        
+        # Count queued emails for this user
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            cursor = conn.execute('SELECT COUNT(*) FROM email_queue WHERE recipient_email = ? AND status = "pending"', (data['email'],))
+            queued_count = cursor.fetchone()[0]
+        
+        system_logger.info('email', f'Purchase automation triggered for {data["email"]}', 
+                         user_email=current_user.email,
+                         details=test_context)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Purchase automation triggered successfully!',
+            'emails_queued': queued_count
+        })
+        
+    except Exception as e:
+        system_logger.error('email', f'Automation test failed: {str(e)}', user_email=current_user.email)
+        return jsonify({'success': False, 'message': f'Automation test failed: {str(e)}'}), 500
+
+@app.route('/admin/api/email/test/preview', methods=['POST'])
+@admin_required
+def admin_api_email_test_preview():
+    """Preview email template with variables"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('template_id'):
+            return jsonify({'success': False, 'message': 'Template ID is required'}), 400
+        
+        # Get template
+        template = db.get_email_template(data['template_id'])
+        if not template:
+            return jsonify({'success': False, 'message': 'Template not found'}), 404
+        
+        # Apply variables
+        variables = data.get('variables', {})
+        variables['domain_url'] = os.getenv('DOMAIN_URL', 'https://thevectorcraft.com')
+        
+        preview_html = email_service._replace_variables(template['content_html'], variables)
+        preview_subject = email_service._replace_variables(template['subject'], variables)
+        
+        return jsonify({
+            'success': True,
+            'preview_html': preview_html,
+            'preview_subject': preview_subject
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Preview failed: {str(e)}'}), 500
+
+@app.route('/admin/api/email/test/process-queue', methods=['POST'])
+@admin_required
+def admin_api_email_test_process_queue():
+    """Manually process email queue"""
+    try:
+        from email_queue_processor import email_processor
+        
+        # Get pending emails count before processing
+        pending_before = len(db.get_pending_emails(100))
+        
+        # Process emails
+        email_processor.process_pending_emails(limit=50)
+        
+        # Get pending emails count after processing
+        pending_after = len(db.get_pending_emails(100))
+        processed_count = pending_before - pending_after
+        
+        system_logger.info('email', f'Manual queue processing: {processed_count} emails processed', 
+                         user_email=current_user.email)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Queue processed successfully!',
+            'processed_count': processed_count,
+            'remaining_pending': pending_after
+        })
+        
+    except Exception as e:
+        system_logger.error('email', f'Queue processing failed: {str(e)}', user_email=current_user.email)
+        return jsonify({'success': False, 'message': f'Queue processing failed: {str(e)}'}), 500
+
+@app.route('/admin/api/email/queue/status')
+@admin_required
+def admin_api_email_queue_status():
+    """Get email queue status"""
+    try:
+        pending_emails = db.get_pending_emails(100)
+        
+        # Get last processed email
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            cursor = conn.execute('SELECT sent_at FROM email_queue WHERE status = "sent" ORDER BY sent_at DESC LIMIT 1')
+            result = cursor.fetchone()
+            last_processed = result[0] if result else None
+        
+        return jsonify({
+            'success': True,
+            'pending_count': len(pending_emails),
+            'last_processed': last_processed
+        })
+        
+    except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/admin/transactions')
@@ -1509,14 +2330,426 @@ def admin_settings():
     """Admin settings page"""
     return render_template('admin/settings.html')
 
+@app.route('/admin/email')
+@admin_required
+def admin_email():
+    """Email marketing dashboard"""
+    return render_template('admin/email/dashboard.html')
+
+@app.route('/admin/email/templates')
+@admin_required
+def admin_email_templates():
+    """Email templates management page"""
+    return render_template('admin/email/templates.html')
+
+@app.route('/admin/email/templates/new')
+@admin_required
+def admin_email_templates_new():
+    """Create new email template page"""
+    return render_template('admin/email/template_editor_new.html')
+
+@app.route('/admin/email/templates/<int:template_id>/edit')
+@admin_required
+def admin_email_templates_edit(template_id):
+    """Edit email template page"""
+    return render_template('admin/email/template_editor_new.html', template_id=template_id)
+
+@app.route('/admin/email/automations')
+@admin_required
+def admin_email_automations():
+    """Email automations management page"""
+    return render_template('admin/email/automations.html')
+
+@app.route('/admin/email/automations/new')
+@admin_required
+def admin_email_automations_new():
+    """Create new email automation page"""
+    return render_template('admin/email/automation_editor.html')
+
+@app.route('/admin/email/automations/<int:automation_id>/edit')
+@admin_required
+def admin_email_automations_edit(automation_id):
+    """Edit email automation page"""
+    return render_template('admin/email/automation_editor.html', automation_id=automation_id)
+
+@app.route('/admin/email/campaigns')
+@admin_required
+def admin_email_campaigns():
+    """Email campaigns management page"""
+    return render_template('admin/email/campaigns.html')
+
+# Campaign API Routes
+@app.route('/admin/api/email/campaigns')
+@admin_required
+def admin_api_email_campaigns_get():
+    """API endpoint to get all email campaigns"""
+    try:
+        campaigns = db.get_all_email_campaigns()
+        return jsonify({
+            'success': True,
+            'campaigns': campaigns
+        })
+    except Exception as e:
+        system_logger.log(
+            level='ERROR',
+            component='email',
+            message=f'Failed to get email campaigns: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/campaigns', methods=['POST'])
+@admin_required
+def admin_api_email_campaigns_create():
+    """API endpoint to create email campaign"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('name'):
+            return jsonify({'success': False, 'error': 'Campaign name is required'}), 400
+        
+        campaign_id = db.create_email_campaign(
+            name=data.get('name'),
+            description=data.get('description'),
+            template_id=data.get('template_id'),
+            status=data.get('status', 'draft'),
+            send_at=data.get('send_at'),
+            recipient_list=data.get('recipient_list'),
+            subject_override=data.get('subject_override')
+        )
+        
+        if campaign_id:
+            system_logger.log(
+                level='INFO',
+                component='email',
+                message=f'Email campaign created: {campaign_id}',
+                user_email=current_user.email,
+                details={'campaign_id': campaign_id, 'name': data.get('name')}
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': 'Campaign created successfully',
+                'campaign_id': campaign_id
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Failed to create campaign'}), 500
+            
+    except Exception as e:
+        system_logger.log(
+            level='ERROR',
+            component='email',
+            message=f'Failed to create email campaign: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/campaigns/<int:campaign_id>')
+@admin_required
+def admin_api_email_campaign_get(campaign_id):
+    """API endpoint to get specific email campaign"""
+    try:
+        campaign = db.get_email_campaign(campaign_id)
+        
+        if campaign:
+            return jsonify({
+                'success': True,
+                'campaign': campaign
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Campaign not found'}), 404
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/campaigns/<int:campaign_id>', methods=['PUT'])
+@admin_required
+def admin_api_email_campaign_update(campaign_id):
+    """API endpoint to update email campaign"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        success = db.update_email_campaign(campaign_id, **data)
+        
+        if success:
+            system_logger.log(
+                level='INFO',
+                component='email',
+                message=f'Email campaign updated: {campaign_id}',
+                user_email=current_user.email,
+                details={'campaign_id': campaign_id}
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': 'Campaign updated successfully'
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Failed to update campaign or campaign not found'}), 404
+            
+    except Exception as e:
+        system_logger.log(
+            level='ERROR',
+            component='email',
+            message=f'Failed to update email campaign {campaign_id}: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/campaigns/<int:campaign_id>', methods=['DELETE'])
+@admin_required
+def admin_api_email_campaign_delete(campaign_id):
+    """API endpoint to delete email campaign"""
+    try:
+        success = db.delete_email_campaign(campaign_id)
+        
+        if success:
+            system_logger.log(
+                level='INFO',
+                component='email',
+                message=f'Email campaign deleted: {campaign_id}',
+                user_email=current_user.email,
+                details={'campaign_id': campaign_id}
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': 'Campaign deleted successfully'
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Campaign not found'}), 404
+            
+    except Exception as e:
+        system_logger.log(
+            level='ERROR',
+            component='email',
+            message=f'Failed to delete email campaign {campaign_id}: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/email/campaigns/stats')
+@admin_required
+def admin_api_email_campaigns_stats():
+    """API endpoint to get campaign statistics"""
+    try:
+        stats = db.get_campaign_statistics()
+        return jsonify({
+            'success': True,
+            'stats': stats
+        })
+    except Exception as e:
+        system_logger.log(
+            level='ERROR',
+            component='email',
+            message=f'Failed to get campaign statistics: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/email/analytics')
+@admin_required
+def admin_email_analytics():
+    """Email analytics page"""
+    return render_template('admin/email/analytics.html')
+
+@app.route('/admin/email/test')
+@admin_required
+def admin_email_test():
+    """Email testing page"""
+    return render_template('admin/email/test_email.html')
+
+# Email tracking endpoints
+@app.route('/email/track/<tracking_id>/open.png')
+def email_track_open(tracking_id):
+    """Track email opens with 1x1 transparent pixel"""
+    try:
+        # Get user agent and IP
+        user_agent = request.headers.get('User-Agent', '')
+        ip_address = request.remote_addr
+        
+        # Track the open event
+        db.track_email_event(tracking_id, 'opened', user_agent=user_agent, ip_address=ip_address)
+        
+        # Return 1x1 transparent pixel
+        from io import BytesIO
+        import base64
+        
+        # 1x1 transparent PNG in base64
+        pixel_data = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==')
+        
+        response = app.response_class(
+            pixel_data,
+            mimetype='image/png',
+            headers={
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
+        )
+        return response
+        
+    except Exception as e:
+        print(f"Error tracking email open: {e}")
+        # Still return pixel even if tracking fails
+        pixel_data = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==')
+        return app.response_class(pixel_data, mimetype='image/png')
+
+@app.route('/email/track/<tracking_id>/click')
+def email_track_click(tracking_id):
+    """Track email clicks and redirect"""
+    try:
+        # Get redirect URL from query parameter
+        redirect_url = request.args.get('url', '/')
+        
+        # Get user agent and IP
+        user_agent = request.headers.get('User-Agent', '')
+        ip_address = request.remote_addr
+        
+        # Track the click event
+        db.track_email_event(tracking_id, 'clicked', event_data=redirect_url, user_agent=user_agent, ip_address=ip_address)
+        
+        # Redirect to the target URL
+        return redirect(redirect_url)
+        
+    except Exception as e:
+        print(f"Error tracking email click: {e}")
+        # Still redirect even if tracking fails
+        redirect_url = request.args.get('url', '/')
+        return redirect(redirect_url)
+
 @app.route('/admin-test')
 def admin_test():
     """Test page to verify admin monitoring system is working"""
     return render_template('admin_test.html')
 
+def trigger_email_automations(trigger_type, context_data):
+    """
+    Trigger email automations based on events
+    
+    Args:
+        trigger_type (str): Type of trigger (purchase, welcome, followup, etc.)
+        context_data (dict): Data context for email variables
+    """
+    try:
+        # Get all active automations for this trigger type
+        automations = db.get_email_automations_by_trigger(trigger_type)
+        
+        if not automations:
+            return
+        
+        email = context_data.get('email')
+        if not email:
+            raise ValueError("Email address is required in context_data")
+        
+        for automation in automations:
+            try:
+                # Calculate send time based on delay (use UTC)
+                send_time = datetime.utcnow()
+                if automation.get('delay_hours', 0) > 0:
+                    from datetime import timedelta
+                    send_time += timedelta(hours=automation['delay_hours'])
+                
+                # Get template details
+                template = db.get_email_template(automation['template_id'])
+                if not template:
+                    system_logger.warning('email', f'Template {automation["template_id"]} not found for automation {automation["id"]}')
+                    continue
+                
+                # Check if email is not unsubscribed
+                if db.is_email_unsubscribed(email):
+                    system_logger.info('email', f'Skipping automation for unsubscribed email: {email}')
+                    continue
+                
+                # Generate unique tracking ID
+                tracking_id = str(uuid.uuid4())
+                
+                # Replace variables in email content
+                email_content = replace_email_variables(template['content_html'], context_data, tracking_id)
+                email_subject = replace_email_variables(template['subject'], context_data, tracking_id)
+                
+                # Queue the email
+                queue_id, _ = db.queue_email(
+                    to_email=email,
+                    subject=email_subject,
+                    content_html=email_content,
+                    template_id=template['id'],
+                    automation_id=automation['id'],
+                    tracking_id=tracking_id,
+                    send_time=send_time,
+                    context_data=context_data
+                )
+                
+                if queue_id:
+                    system_logger.info('email', f'Queued automation email: {automation["name"]} for {email}',
+                                     details={
+                                         'automation_id': automation['id'],
+                                         'template_id': template['id'],
+                                         'tracking_id': tracking_id,
+                                         'send_time': send_time.isoformat()
+                                     })
+                else:
+                    system_logger.warning('email', f'Failed to queue automation email: {automation["name"]} for {email}')
+                    
+            except Exception as e:
+                system_logger.error('email', f'Error processing automation {automation["id"]}: {str(e)}')
+                continue
+                
+    except Exception as e:
+        system_logger.error('email', f'Error triggering email automations for {trigger_type}: {str(e)}')
+        raise
+
+def replace_email_variables(content, context_data, tracking_id):
+    """
+    Replace variables in email content with actual values
+    
+    Args:
+        content (str): Email content with variables like {{username}}
+        context_data (dict): Data to replace variables
+        tracking_id (str): Unique tracking ID for this email
+    
+    Returns:
+        str: Content with variables replaced
+    """
+    try:
+        if not content:
+            return content
+        
+        # Standard variables
+        variables = {
+            'username': context_data.get('username', ''),
+            'email': context_data.get('email', ''),
+            'password': context_data.get('password', ''),
+            'amount': context_data.get('amount', ''),
+            'order_id': context_data.get('order_id', ''),
+            'transaction_id': context_data.get('transaction_id', ''),
+            'tracking_pixel_url': f"{os.getenv('DOMAIN_URL', 'http://localhost:8080')}/email/tracking/{tracking_id}",
+            'unsubscribe_url': f"{os.getenv('DOMAIN_URL', 'http://localhost:8080')}/email/unsubscribe/{context_data.get('email', '')}",
+            'company_name': 'VectorCraft',
+            'current_year': str(datetime.now().year),
+            'current_date': datetime.now().strftime('%B %d, %Y')
+        }
+        
+        # Replace tracking pixel placeholder
+        content = content.replace('{{tracking_pixel_url}}', variables['tracking_pixel_url'])
+        
+        # Replace all other variables
+        for key, value in variables.items():
+            placeholder = f'{{{{{key}}}}}'
+            content = content.replace(placeholder, str(value))
+        
+        return content
+        
+    except Exception as e:
+        system_logger.error('email', f'Error replacing email variables: {str(e)}')
+        return content
+
 if __name__ == '__main__':
     # Determine debug mode based on environment
-    debug_mode = os.getenv('FLASK_ENV') != 'production'
+    debug_mode = True  # Enable debug mode to see errors
     env_name = os.getenv('FLASK_ENV', 'development')
     
     print("🚀 Starting VectorCraft - Professional Vector Conversion with Authentication...")
@@ -1535,4 +2768,9 @@ if __name__ == '__main__':
     print("\n💡 Convert any image to a crisp, scalable vector!")
     print(" Press Ctrl+C to stop the server")
     
-    app.run(debug=debug_mode, host='0.0.0.0', port=8080)
+    # Start the email queue processor
+    print("📧 Starting email automation processor...")
+    start_email_processor()
+    print("✅ Email automation ready!")
+    
+    app.run(debug=debug_mode, host='0.0.0.0', port=5004)

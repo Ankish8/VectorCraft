@@ -1,0 +1,350 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Email Automations - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <h1 class="text-3xl font-bold tracking-tight">Email Automations</h1>
+        <p class="text-muted-foreground">Set up automated email workflows</p>
+    </div>
+    <div class="flex space-x-2">
+        <button onclick="refreshAutomations()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+            <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+            Refresh
+        </button>
+        <button onclick="showCreateModal()" class="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+            <i data-lucide="plus" class="mr-2 h-4 w-4"></i>
+            New Automation
+        </button>
+    </div>
+</div>
+
+<!-- Automation Types Filter -->
+<div class="mb-6">
+    <div class="flex flex-wrap gap-2">
+        <button onclick="filterAutomations('all')" class="automation-filter active px-3 py-1 text-sm rounded-full border border-border bg-background hover:bg-accent transition-colors" data-trigger="all">
+            All Automations
+        </button>
+        <button onclick="filterAutomations('purchase')" class="automation-filter px-3 py-1 text-sm rounded-full border border-border bg-background hover:bg-accent transition-colors" data-trigger="purchase">
+            Purchase
+        </button>
+        <button onclick="filterAutomations('welcome')" class="automation-filter px-3 py-1 text-sm rounded-full border border-border bg-background hover:bg-accent transition-colors" data-trigger="welcome">
+            Welcome
+        </button>
+        <button onclick="filterAutomations('followup')" class="automation-filter px-3 py-1 text-sm rounded-full border border-border bg-background hover:bg-accent transition-colors" data-trigger="followup">
+            Follow-up
+        </button>
+    </div>
+</div>
+
+<!-- Automations Grid -->
+<div id="automationsContainer" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div class="col-span-full flex flex-col items-center justify-center py-12">
+        <div class="animate-spin mb-4">
+            <i data-lucide="loader" class="h-8 w-8 text-muted-foreground"></i>
+        </div>
+        <p class="text-muted-foreground">Loading automations...</p>
+    </div>
+</div>
+
+<!-- Empty State -->
+<div id="emptyState" class="hidden text-center py-12">
+    <div class="flex justify-center mb-4">
+        <div class="p-3 bg-muted rounded-full">
+            <i data-lucide="zap" class="h-8 w-8 text-muted-foreground"></i>
+        </div>
+    </div>
+    <h3 class="text-lg font-semibold mb-2">No automations created yet</h3>
+    <p class="text-muted-foreground mb-6">Create your first email automation to get started</p>
+    <button onclick="showCreateModal()" class="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+        <i data-lucide="plus" class="mr-2 h-4 w-4"></i>
+        Create First Automation
+    </button>
+</div>
+
+<!-- Create Automation Modal -->
+<div id="createModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center p-6 border-b border-border">
+                <h3 class="text-xl font-semibold">Create Email Automation</h3>
+                <button onclick="closeCreateModal()" class="p-2 hover:bg-accent rounded">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <form id="createForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Automation Name</label>
+                            <input type="text" id="automationName" class="w-full px-3 py-2 border border-border rounded-md" placeholder="e.g. Welcome Email Series" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Trigger Type</label>
+                            <select id="triggerType" class="w-full px-3 py-2 border border-border rounded-md" required>
+                                <option value="">Select trigger...</option>
+                                <option value="purchase">After Purchase</option>
+                                <option value="welcome">New User Welcome</option>
+                                <option value="followup">Follow-up Email</option>
+                                <option value="abandoned">Abandoned Cart</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Email Template</label>
+                            <select id="templateId" class="w-full px-3 py-2 border border-border rounded-md" required>
+                                <option value="">Loading templates...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Delay (hours)</label>
+                            <input type="number" id="delayHours" class="w-full px-3 py-2 border border-border rounded-md" min="0" value="0" placeholder="0 = immediate">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Description</label>
+                        <textarea id="automationDescription" class="w-full px-3 py-2 border border-border rounded-md" rows="3" placeholder="Describe what this automation does..."></textarea>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-2 pt-4">
+                        <button type="button" onclick="closeCreateModal()" class="px-4 py-2 text-sm border border-border rounded-md hover:bg-accent transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                            Create Automation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let automations = [];
+    let templates = [];
+    let currentFilter = 'all';
+    
+    function refreshAutomations() {
+        loadAutomations();
+    }
+    
+    function loadAutomations() {
+        fetch('/admin/api/email/automations')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    automations = data.automations;
+                    displayAutomations();
+                } else {
+                    console.error('Failed to load automations:', data.error);
+                    document.getElementById('automationsContainer').innerHTML = 
+                        '<div class="col-span-full p-4 border border-red-200 bg-red-50 text-red-800 rounded-lg">Error loading automations: ' + data.error + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading automations:', error);
+                document.getElementById('automationsContainer').innerHTML = 
+                    '<div class="col-span-full p-4 border border-red-200 bg-red-50 text-red-800 rounded-lg">Error loading automations</div>';
+            });
+    }
+    
+    function loadTemplates() {
+        fetch('/admin/api/email/templates')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    templates = data.templates;
+                    const select = document.getElementById('templateId');
+                    select.innerHTML = '<option value="">Select template...</option>';
+                    templates.forEach(template => {
+                        select.innerHTML += `<option value="${template.id}">${template.name}</option>`;
+                    });
+                } else {
+                    console.error('Failed to load templates:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading templates:', error);
+            });
+    }
+    
+    function displayAutomations() {
+        const container = document.getElementById('automationsContainer');
+        const emptyState = document.getElementById('emptyState');
+        
+        let filteredAutomations = automations;
+        if (currentFilter !== 'all') {
+            filteredAutomations = automations.filter(automation => automation.trigger_type === currentFilter);
+        }
+        
+        if (filteredAutomations.length === 0) {
+            container.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            return;
+        }
+        
+        container.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+        
+        container.innerHTML = filteredAutomations.map(automation => `
+            <div class="bg-card rounded-lg border border-border overflow-hidden hover:shadow-md transition-shadow">
+                <div class="p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground">${automation.trigger_type}</span>
+                        <div class="flex items-center space-x-1">
+                            <button onclick="toggleAutomation(${automation.id}, ${!automation.is_active})" class="p-1 hover:bg-accent rounded ${automation.is_active ? 'text-green-600' : 'text-red-600'}" title="${automation.is_active ? 'Disable' : 'Enable'}">
+                                <i data-lucide="${automation.is_active ? 'toggle-right' : 'toggle-left'}" class="h-4 w-4"></i>
+                            </button>
+                            <button onclick="editAutomation(${automation.id})" class="p-1 hover:bg-accent rounded" title="Edit">
+                                <i data-lucide="edit" class="h-4 w-4"></i>
+                            </button>
+                            <button onclick="deleteAutomation(${automation.id}, '${automation.name}')" class="p-1 hover:bg-accent rounded text-destructive" title="Delete">
+                                <i data-lucide="trash-2" class="h-4 w-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <h3 class="font-semibold mb-2">${automation.name}</h3>
+                    <p class="text-sm text-muted-foreground mb-3">${automation.template_name || 'Template not found'}</p>
+                    ${automation.description ? `<p class="text-xs text-muted-foreground mb-3">${automation.description}</p>` : ''}
+                    <div class="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Delay: ${automation.delay_hours || 0}h</span>
+                        <span class="${automation.is_active ? 'text-green-600' : 'text-red-600'}">${automation.is_active ? 'Active' : 'Inactive'}</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        lucide.createIcons();
+    }
+    
+    function filterAutomations(trigger) {
+        currentFilter = trigger;
+        
+        // Update filter buttons
+        document.querySelectorAll('.automation-filter').forEach(btn => {
+            btn.classList.remove('active', 'bg-primary', 'text-primary-foreground');
+            btn.classList.add('bg-background');
+        });
+        
+        const activeBtn = document.querySelector(`[data-trigger="${trigger}"]`);
+        activeBtn.classList.add('active', 'bg-primary', 'text-primary-foreground');
+        activeBtn.classList.remove('bg-background');
+        
+        displayAutomations();
+    }
+    
+    function showCreateModal() {
+        document.getElementById('createModal').classList.remove('hidden');
+        loadTemplates();
+    }
+    
+    function closeCreateModal() {
+        document.getElementById('createModal').classList.add('hidden');
+        document.getElementById('createForm').reset();
+    }
+    
+    function toggleAutomation(automationId, newStatus) {
+        fetch(`/admin/api/email/automations/${automationId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                is_active: newStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadAutomations();
+            } else {
+                alert('Error updating automation: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error updating automation:', error);
+            alert('Error updating automation');
+        });
+    }
+    
+    function editAutomation(automationId) {
+        window.location.href = `/admin/email/automations/${automationId}/edit`;
+    }
+    
+    function deleteAutomation(automationId, automationName) {
+        if (confirm(`Are you sure you want to delete "${automationName}"?`)) {
+            fetch(`/admin/api/email/automations/${automationId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadAutomations();
+                } else {
+                    alert('Error deleting automation: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting automation:', error);
+                alert('Error deleting automation');
+            });
+        }
+    }
+    
+    // Handle form submission
+    document.getElementById('createForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            name: document.getElementById('automationName').value,
+            trigger_type: document.getElementById('triggerType').value,
+            template_id: parseInt(document.getElementById('templateId').value),
+            delay_hours: parseInt(document.getElementById('delayHours').value) || 0,
+            description: document.getElementById('automationDescription').value
+        };
+        
+        fetch('/admin/api/email/automations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeCreateModal();
+                loadAutomations();
+                alert('Automation created successfully!');
+            } else {
+                alert('Error creating automation: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error creating automation:', error);
+            alert('Error creating automation');
+        });
+    });
+    
+    // Load automations on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        lucide.createIcons();
+        loadAutomations();
+    });
+    
+    // Make functions available globally
+    window.refreshAutomations = refreshAutomations;
+    window.filterAutomations = filterAutomations;
+    window.showCreateModal = showCreateModal;
+    window.closeCreateModal = closeCreateModal;
+    window.toggleAutomation = toggleAutomation;
+    window.deleteAutomation = deleteAutomation;
+</script>
+{% endblock %}

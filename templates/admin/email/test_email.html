@@ -1,0 +1,698 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Email Testing - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <h1 class="text-3xl font-bold tracking-tight">Email Testing</h1>
+        <p class="text-muted-foreground">Test SMTP configuration and email templates</p>
+    </div>
+    <div class="flex space-x-2">
+        <button onclick="refreshStatus()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+            <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+            Refresh Status
+        </button>
+    </div>
+</div>
+
+<!-- SMTP Status Overview -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-card rounded-lg border border-border p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">SMTP Connection</h3>
+            <div id="smtpStatus" class="w-3 h-3 rounded-full bg-gray-400"></div>
+        </div>
+        <div id="smtpDetails" class="text-sm text-muted-foreground">
+            <p>Checking connection...</p>
+        </div>
+    </div>
+    
+    <div class="bg-card rounded-lg border border-border p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Email Automations</h3>
+            <div id="automationStatus" class="w-3 h-3 rounded-full bg-gray-400"></div>
+        </div>
+        <div id="automationDetails" class="text-sm text-muted-foreground">
+            <p>Checking automations...</p>
+        </div>
+        <div id="automationControls" class="mt-4 hidden">
+            <!-- Automation controls will be loaded here -->
+        </div>
+    </div>
+    
+    <div class="bg-card rounded-lg border border-border p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Queue Processor</h3>
+            <div id="queueStatus" class="w-3 h-3 rounded-full bg-gray-400"></div>
+        </div>
+        <div id="queueDetails" class="text-sm text-muted-foreground">
+            <p>Checking queue processor...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Test Email Forms -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Quick SMTP Test -->
+    <div class="bg-card rounded-lg border border-border">
+        <div class="px-6 py-4 border-b border-border">
+            <h3 class="text-lg font-semibold">Quick SMTP Test</h3>
+            <p class="text-sm text-muted-foreground">Send a simple test email to verify SMTP configuration</p>
+        </div>
+        <div class="p-6">
+            <form id="smtpTestForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Test Email Address</label>
+                    <input type="email" id="testEmail" class="w-full px-3 py-2 border border-border rounded-md" placeholder="your@email.com" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Subject</label>
+                    <input type="text" id="testSubject" class="w-full px-3 py-2 border border-border rounded-md" value="SMTP Test - VectorCraft" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Message</label>
+                    <textarea id="testMessage" class="w-full px-3 py-2 border border-border rounded-md" rows="3" required>This is a test email from VectorCraft to verify SMTP configuration is working properly.
+
+Current time: {{ current_time }}
+Server: {{ smtp_server }}</textarea>
+                </div>
+                <button type="submit" class="w-full bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors">
+                    <i data-lucide="send" class="mr-2 h-4 w-4 inline"></i>
+                    Send Test Email
+                </button>
+            </form>
+            <div id="smtpTestResult" class="mt-4 hidden"></div>
+        </div>
+    </div>
+    
+    <!-- Template Test -->
+    <div class="bg-card rounded-lg border border-border">
+        <div class="px-6 py-4 border-b border-border">
+            <h3 class="text-lg font-semibold">Template Test</h3>
+            <p class="text-sm text-muted-foreground">Send a template email with variables</p>
+        </div>
+        <div class="p-6">
+            <form id="templateTestForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Template</label>
+                    <select id="templateSelect" class="w-full px-3 py-2 border border-border rounded-md" required>
+                        <option value="">Loading templates...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Recipient Email</label>
+                    <input type="email" id="templateEmail" class="w-full px-3 py-2 border border-border rounded-md" placeholder="recipient@email.com" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Test Variables (JSON)</label>
+                    <textarea id="testVariables" class="w-full px-3 py-2 border border-border rounded-md font-mono text-sm" rows="4">{
+  "username": "testuser",
+  "email": "test@example.com",
+  "amount": "29.99",
+  "transaction_id": "TEST123",
+  "login_url": "{{ domain_url }}/login"
+}</textarea>
+                </div>
+                <div class="flex space-x-2">
+                    <button type="button" onclick="previewTemplate()" class="flex-1 border border-border px-4 py-2 rounded-md hover:bg-accent transition-colors">
+                        <i data-lucide="eye" class="mr-2 h-4 w-4 inline"></i>
+                        Preview
+                    </button>
+                    <button type="submit" class="flex-1 bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors">
+                        <i data-lucide="mail" class="mr-2 h-4 w-4 inline"></i>
+                        Send Template
+                    </button>
+                </div>
+            </form>
+            <div id="templateTestResult" class="mt-4 hidden"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Automation Test -->
+<div class="mt-6 bg-card rounded-lg border border-border">
+    <div class="px-6 py-4 border-b border-border">
+        <h3 class="text-lg font-semibold">Automation Test</h3>
+        <p class="text-sm text-muted-foreground">Trigger email automations manually</p>
+    </div>
+    <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h4 class="font-medium mb-4">Purchase Automation Test</h4>
+                <form id="purchaseTestForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Customer Email</label>
+                        <input type="email" id="purchaseEmail" class="w-full px-3 py-2 border border-border rounded-md" placeholder="customer@email.com" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Username</label>
+                            <input type="text" id="purchaseUsername" class="w-full px-3 py-2 border border-border rounded-md" value="testuser" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Amount</label>
+                            <input type="number" id="purchaseAmount" class="w-full px-3 py-2 border border-border rounded-md" value="19.99" step="0.01" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Transaction ID</label>
+                        <input type="text" id="purchaseTransactionId" class="w-full px-3 py-2 border border-border rounded-md" value="TEST_AUTO_123" required>
+                    </div>
+                    <button type="submit" class="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
+                        <i data-lucide="zap" class="mr-2 h-4 w-4 inline"></i>
+                        Trigger Purchase Automation
+                    </button>
+                </form>
+            </div>
+            
+            <div>
+                <h4 class="font-medium mb-4">Email Queue Status</h4>
+                <div id="queueInfo" class="space-y-2">
+                    <div class="text-sm">
+                        <span class="font-medium">Pending Emails:</span>
+                        <span id="pendingCount" class="text-muted-foreground">Loading...</span>
+                    </div>
+                    <div class="text-sm">
+                        <span class="font-medium">Last Processed:</span>
+                        <span id="lastProcessed" class="text-muted-foreground">Loading...</span>
+                    </div>
+                </div>
+                <button onclick="processPendingEmails()" class="w-full mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                    <i data-lucide="play" class="mr-2 h-4 w-4 inline"></i>
+                    Process Pending Emails Now
+                </button>
+                <div id="queueProcessResult" class="mt-4 hidden"></div>
+            </div>
+        </div>
+        <div id="automationTestResult" class="mt-4 hidden"></div>
+    </div>
+</div>
+
+<!-- Template Preview Modal -->
+<div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50" style="z-index: 9999;">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden relative" style="z-index: 10000;">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h3 class="text-xl font-semibold text-gray-900">Email Template Preview</h3>
+                <button onclick="closePreview()" class="p-2 hover:bg-gray-100 rounded-md transition-colors">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <div id="previewContent" class="border border-gray-200 rounded-lg overflow-hidden bg-white">
+                    <!-- Email preview will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let templates = [];
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        lucide.createIcons();
+        loadTemplates();
+        refreshStatus();
+        
+        // Form submissions
+        document.getElementById('smtpTestForm').addEventListener('submit', handleSMTPTest);
+        document.getElementById('templateTestForm').addEventListener('submit', handleTemplateTest);
+        document.getElementById('purchaseTestForm').addEventListener('submit', handlePurchaseTest);
+    });
+    
+    function loadTemplates() {
+        fetch('/admin/api/email/templates')
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('templateSelect');
+                select.innerHTML = '<option value="">Select template...</option>';
+                
+                if (data.success && data.templates) {
+                    templates = data.templates;
+                    data.templates.forEach(template => {
+                        select.innerHTML += `<option value="${template.id}">${template.name}</option>`;
+                    });
+                } else {
+                    select.innerHTML = '<option value="">No templates found</option>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading templates:', error);
+                document.getElementById('templateSelect').innerHTML = '<option value="">Error loading templates</option>';
+            });
+    }
+    
+    function refreshStatus() {
+        checkSMTPStatus();
+        checkAutomationStatus();
+        checkQueueStatus();
+    }
+    
+    function checkSMTPStatus() {
+        fetch('/admin/api/email/test/smtp-status')
+            .then(response => response.json())
+            .then(data => {
+                const statusDot = document.getElementById('smtpStatus');
+                const details = document.getElementById('smtpDetails');
+                
+                if (data.success && data.smtp_configured) {
+                    statusDot.className = 'w-3 h-3 rounded-full bg-green-500';
+                    details.innerHTML = `
+                        <p>✅ SMTP Configured</p>
+                        <p class="text-xs">Server: ${data.smtp_server || 'Not specified'}</p>
+                        <p class="text-xs">From: ${data.from_email || 'Not specified'}</p>
+                    `;
+                } else {
+                    statusDot.className = 'w-3 h-3 rounded-full bg-red-500';
+                    details.innerHTML = `<p>❌ SMTP Not Configured</p>`;
+                }
+            })
+            .catch(error => {
+                document.getElementById('smtpStatus').className = 'w-3 h-3 rounded-full bg-red-500';
+                document.getElementById('smtpDetails').innerHTML = `<p>❌ Error checking status</p>`;
+            });
+    }
+    
+    function checkAutomationStatus() {
+        fetch('/admin/api/email/automations')
+            .then(response => response.json())
+            .then(data => {
+                const statusDot = document.getElementById('automationStatus');
+                const details = document.getElementById('automationDetails');
+                const controls = document.getElementById('automationControls');
+                
+                if (data.success && data.automations) {
+                    const activeCount = data.automations.filter(a => a.is_active).length;
+                    const totalCount = data.automations.length;
+                    
+                    if (activeCount > 0) {
+                        statusDot.className = 'w-3 h-3 rounded-full bg-green-500';
+                        details.innerHTML = `
+                            <p>✅ ${activeCount}/${totalCount} Active</p>
+                            <p class="text-xs">Automations running</p>
+                        `;
+                    } else {
+                        statusDot.className = 'w-3 h-3 rounded-full bg-yellow-500';
+                        details.innerHTML = `
+                            <p>⚠️ No Active Automations</p>
+                            <p class="text-xs">${totalCount} automations disabled</p>
+                        `;
+                    }
+                    
+                    // Show automation controls
+                    controls.innerHTML = data.automations.map(automation => `
+                        <div class="flex items-center justify-between p-3 border border-border rounded-md mb-2">
+                            <div>
+                                <h4 class="font-medium">${automation.name}</h4>
+                                <p class="text-xs text-muted-foreground">Trigger: ${automation.trigger_type}</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs px-2 py-1 rounded-full ${automation.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${automation.is_active ? 'ACTIVE' : 'DISABLED'}
+                                </span>
+                                <button onclick="toggleAutomationStatus(${automation.id}, ${!automation.is_active})" 
+                                        class="px-3 py-1 text-xs rounded-md ${automation.is_active ? 'bg-red-100 text-red-800 hover:bg-red-200' : 'bg-green-100 text-green-800 hover:bg-green-200'} transition-colors">
+                                    ${automation.is_active ? 'Disable' : 'Enable'}
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                    controls.classList.remove('hidden');
+                    
+                } else {
+                    statusDot.className = 'w-3 h-3 rounded-full bg-red-500';
+                    details.innerHTML = `<p>❌ No Automations Found</p>`;
+                    controls.classList.add('hidden');
+                }
+            })
+            .catch(error => {
+                document.getElementById('automationStatus').className = 'w-3 h-3 rounded-full bg-red-500';
+                document.getElementById('automationDetails').innerHTML = `<p>❌ Error checking automations</p>`;
+                document.getElementById('automationControls').classList.add('hidden');
+            });
+    }
+    
+    function checkQueueStatus() {
+        fetch('/admin/api/email/queue/status')
+            .then(response => response.json())
+            .then(data => {
+                const statusDot = document.getElementById('queueStatus');
+                const details = document.getElementById('queueDetails');
+                const pendingCount = document.getElementById('pendingCount');
+                const lastProcessed = document.getElementById('lastProcessed');
+                
+                if (data.success) {
+                    statusDot.className = 'w-3 h-3 rounded-full bg-green-500';
+                    details.innerHTML = `
+                        <p>✅ Queue Active</p>
+                        <p class="text-xs">${data.pending_count || 0} pending emails</p>
+                    `;
+                    pendingCount.textContent = data.pending_count || 0;
+                    lastProcessed.textContent = data.last_processed || 'Never';
+                } else {
+                    statusDot.className = 'w-3 h-3 rounded-full bg-red-500';
+                    details.innerHTML = `<p>❌ Queue Error</p>`;
+                    pendingCount.textContent = 'Error';
+                    lastProcessed.textContent = 'Error';
+                }
+            })
+            .catch(error => {
+                document.getElementById('queueStatus').className = 'w-3 h-3 rounded-full bg-red-500';
+                document.getElementById('queueDetails').innerHTML = `<p>❌ Queue Unavailable</p>`;
+            });
+    }
+    
+    function handleSMTPTest(e) {
+        e.preventDefault();
+        
+        const resultDiv = document.getElementById('smtpTestResult');
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i data-lucide="loader" class="mr-2 h-4 w-4 inline animate-spin"></i>Sending...';
+        submitBtn.disabled = true;
+        
+        const formData = {
+            email: document.getElementById('testEmail').value,
+            subject: document.getElementById('testSubject').value,
+            message: document.getElementById('testMessage').value
+        };
+        
+        fetch('/admin/api/email/test/smtp', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            resultDiv.className = `mt-4 p-4 rounded-md ${data.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`;
+            resultDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i data-lucide="${data.success ? 'check-circle' : 'x-circle'}" class="h-5 w-5 ${data.success ? 'text-green-600' : 'text-red-600'} mr-2"></i>
+                    <span class="font-medium ${data.success ? 'text-green-800' : 'text-red-800'}">${data.message}</span>
+                </div>
+                ${data.details ? `<div class="mt-2 text-sm ${data.success ? 'text-green-700' : 'text-red-700'}">${data.details}</div>` : ''}
+            `;
+            resultDiv.classList.remove('hidden');
+            lucide.createIcons();
+        })
+        .catch(error => {
+            resultDiv.className = 'mt-4 p-4 rounded-md bg-red-50 border border-red-200';
+            resultDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i data-lucide="x-circle" class="h-5 w-5 text-red-600 mr-2"></i>
+                    <span class="font-medium text-red-800">Error sending test email</span>
+                </div>
+                <div class="mt-2 text-sm text-red-700">${error.message}</div>
+            `;
+            resultDiv.classList.remove('hidden');
+            lucide.createIcons();
+        })
+        .finally(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            lucide.createIcons();
+        });
+    }
+    
+    function handleTemplateTest(e) {
+        e.preventDefault();
+        
+        const resultDiv = document.getElementById('templateTestResult');
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i data-lucide="loader" class="mr-2 h-4 w-4 inline animate-spin"></i>Sending...';
+        submitBtn.disabled = true;
+        
+        let variables;
+        try {
+            variables = JSON.parse(document.getElementById('testVariables').value);
+        } catch (error) {
+            resultDiv.className = 'mt-4 p-4 rounded-md bg-red-50 border border-red-200';
+            resultDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i data-lucide="x-circle" class="h-5 w-5 text-red-600 mr-2"></i>
+                    <span class="font-medium text-red-800">Invalid JSON in variables</span>
+                </div>
+            `;
+            resultDiv.classList.remove('hidden');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            lucide.createIcons();
+            return;
+        }
+        
+        const formData = {
+            template_id: document.getElementById('templateSelect').value,
+            email: document.getElementById('templateEmail').value,
+            variables: variables
+        };
+        
+        fetch('/admin/api/email/test/template', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            resultDiv.className = `mt-4 p-4 rounded-md ${data.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`;
+            resultDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i data-lucide="${data.success ? 'check-circle' : 'x-circle'}" class="h-5 w-5 ${data.success ? 'text-green-600' : 'text-red-600'} mr-2"></i>
+                    <span class="font-medium ${data.success ? 'text-green-800' : 'text-red-800'}">${data.message}</span>
+                </div>
+                ${data.tracking_id ? `<div class="mt-2 text-sm ${data.success ? 'text-green-700' : 'text-red-700'}">Tracking ID: ${data.tracking_id}</div>` : ''}
+            `;
+            resultDiv.classList.remove('hidden');
+            lucide.createIcons();
+        })
+        .catch(error => {
+            resultDiv.className = 'mt-4 p-4 rounded-md bg-red-50 border border-red-200';
+            resultDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i data-lucide="x-circle" class="h-5 w-5 text-red-600 mr-2"></i>
+                    <span class="font-medium text-red-800">Error sending template email</span>
+                </div>
+            `;
+            resultDiv.classList.remove('hidden');
+            lucide.createIcons();
+        })
+        .finally(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            lucide.createIcons();
+        });
+    }
+    
+    function handlePurchaseTest(e) {
+        e.preventDefault();
+        
+        const resultDiv = document.getElementById('automationTestResult');
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i data-lucide="loader" class="mr-2 h-4 w-4 inline animate-spin"></i>Triggering...';
+        submitBtn.disabled = true;
+        
+        const formData = {
+            email: document.getElementById('purchaseEmail').value,
+            username: document.getElementById('purchaseUsername').value,
+            amount: parseFloat(document.getElementById('purchaseAmount').value),
+            transaction_id: document.getElementById('purchaseTransactionId').value
+        };
+        
+        fetch('/admin/api/email/test/automation', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            resultDiv.className = `mt-4 p-4 rounded-md ${data.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`;
+            resultDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i data-lucide="${data.success ? 'check-circle' : 'x-circle'}" class="h-5 w-5 ${data.success ? 'text-green-600' : 'text-red-600'} mr-2"></i>
+                    <span class="font-medium ${data.success ? 'text-green-800' : 'text-red-800'}">${data.message}</span>
+                </div>
+                ${data.emails_queued ? `<div class="mt-2 text-sm ${data.success ? 'text-green-700' : 'text-red-700'}">${data.emails_queued} email(s) queued for processing</div>` : ''}
+            `;
+            resultDiv.classList.remove('hidden');
+            
+            // Refresh queue status
+            setTimeout(checkQueueStatus, 1000);
+            
+            lucide.createIcons();
+        })
+        .catch(error => {
+            resultDiv.className = 'mt-4 p-4 rounded-md bg-red-50 border border-red-200';
+            resultDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i data-lucide="x-circle" class="h-5 w-5 text-red-600 mr-2"></i>
+                    <span class="font-medium text-red-800">Error triggering automation</span>
+                </div>
+            `;
+            resultDiv.classList.remove('hidden');
+            lucide.createIcons();
+        })
+        .finally(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            lucide.createIcons();
+        });
+    }
+    
+    function processPendingEmails() {
+        const resultDiv = document.getElementById('queueProcessResult');
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        
+        btn.innerHTML = '<i data-lucide="loader" class="mr-2 h-4 w-4 inline animate-spin"></i>Processing...';
+        btn.disabled = true;
+        
+        fetch('/admin/api/email/test/process-queue', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            resultDiv.className = `mt-4 p-4 rounded-md ${data.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`;
+            resultDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i data-lucide="${data.success ? 'check-circle' : 'x-circle'}" class="h-5 w-5 ${data.success ? 'text-green-600' : 'text-red-600'} mr-2"></i>
+                    <span class="font-medium ${data.success ? 'text-green-800' : 'text-red-800'}">${data.message}</span>
+                </div>
+                ${data.processed_count !== undefined ? `<div class="mt-2 text-sm ${data.success ? 'text-green-700' : 'text-red-700'}">Processed ${data.processed_count} email(s)</div>` : ''}
+            `;
+            resultDiv.classList.remove('hidden');
+            
+            // Refresh queue status
+            setTimeout(checkQueueStatus, 1000);
+            
+            lucide.createIcons();
+        })
+        .catch(error => {
+            resultDiv.className = 'mt-4 p-4 rounded-md bg-red-50 border border-red-200';
+            resultDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i data-lucide="x-circle" class="h-5 w-5 text-red-600 mr-2"></i>
+                    <span class="font-medium text-red-800">Error processing queue</span>
+                </div>
+            `;
+            resultDiv.classList.remove('hidden');
+            lucide.createIcons();
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            lucide.createIcons();
+        });
+    }
+    
+    function previewTemplate() {
+        const templateId = document.getElementById('templateSelect').value;
+        if (!templateId) {
+            alert('Please select a template first');
+            return;
+        }
+        
+        let variables;
+        try {
+            variables = JSON.parse(document.getElementById('testVariables').value);
+        } catch (error) {
+            alert('Invalid JSON in variables');
+            return;
+        }
+        
+        fetch('/admin/api/email/test/preview', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                template_id: templateId,
+                variables: variables
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('previewContent').innerHTML = data.preview_html;
+                document.getElementById('previewModal').classList.remove('hidden');
+            } else {
+                alert('Error generating preview: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error loading preview: ' + error.message);
+        });
+    }
+    
+    function closePreview() {
+        const modal = document.getElementById('previewModal');
+        modal.classList.add('hidden');
+    }
+    
+    // Close modal when clicking outside
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('previewModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closePreview();
+                }
+            });
+        }
+    });
+    
+    function toggleAutomationStatus(automationId, newStatus) {
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = 'Updating...';
+        btn.disabled = true;
+        
+        fetch(`/admin/api/email/automations/${automationId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                is_active: newStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Refresh the automation status display
+                checkAutomationStatus();
+                
+                // Show success message
+                const statusText = newStatus ? 'enabled' : 'disabled';
+                alert(`Automation ${statusText} successfully!`);
+            } else {
+                alert('Error updating automation: ' + (data.error || 'Unknown error'));
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error updating automation:', error);
+            alert('Error updating automation: ' + error.message);
+            btn.textContent = originalText;
+            btn.disabled = false;
+        });
+    }
+    
+    // Global functions
+    window.refreshStatus = refreshStatus;
+    window.previewTemplate = previewTemplate;
+    window.closePreview = closePreview;
+    window.processPendingEmails = processPendingEmails;
+    window.toggleAutomationStatus = toggleAutomationStatus;
+</script>
+{% endblock %}

@@ -1,0 +1,421 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Email Campaigns - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <h1 class="text-3xl font-bold tracking-tight">Email Campaigns</h1>
+        <p class="text-muted-foreground">Manage and monitor your email campaigns</p>
+    </div>
+    <div class="flex space-x-2">
+        <button onclick="refreshCampaigns()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+            <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+            Refresh
+        </button>
+        <button onclick="showCreateModal()" class="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+            <i data-lucide="plus" class="mr-2 h-4 w-4"></i>
+            New Campaign
+        </button>
+    </div>
+</div>
+
+<!-- Campaign Status Filter -->
+<div class="mb-6">
+    <div class="flex flex-wrap gap-2">
+        <button onclick="filterCampaigns('all')" class="campaign-filter active px-3 py-1 text-sm rounded-full border border-border bg-background hover:bg-accent transition-colors" data-status="all">
+            All Campaigns
+        </button>
+        <button onclick="filterCampaigns('draft')" class="campaign-filter px-3 py-1 text-sm rounded-full border border-border bg-background hover:bg-accent transition-colors" data-status="draft">
+            Draft
+        </button>
+        <button onclick="filterCampaigns('scheduled')" class="campaign-filter px-3 py-1 text-sm rounded-full border border-border bg-background hover:bg-accent transition-colors" data-status="scheduled">
+            Scheduled
+        </button>
+        <button onclick="filterCampaigns('sent')" class="campaign-filter px-3 py-1 text-sm rounded-full border border-border bg-background hover:bg-accent transition-colors" data-status="sent">
+            Sent
+        </button>
+    </div>
+</div>
+
+<!-- Campaign Analytics Overview -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-card rounded-lg border border-border p-4 text-center">
+        <div class="flex justify-center mb-2">
+            <div class="p-2 bg-blue-100 rounded-full">
+                <i data-lucide="send" class="h-6 w-6 text-blue-600"></i>
+            </div>
+        </div>
+        <h3 class="text-2xl font-bold text-blue-600 mb-1" id="totalCampaigns">-</h3>
+        <p class="text-sm font-medium text-muted-foreground">Total Campaigns</p>
+    </div>
+    
+    <div class="bg-card rounded-lg border border-border p-4 text-center">
+        <div class="flex justify-center mb-2">
+            <div class="p-2 bg-green-100 rounded-full">
+                <i data-lucide="users" class="h-6 w-6 text-green-600"></i>
+            </div>
+        </div>
+        <h3 class="text-2xl font-bold text-green-600 mb-1" id="totalRecipients">-</h3>
+        <p class="text-sm font-medium text-muted-foreground">Total Recipients</p>
+    </div>
+    
+    <div class="bg-card rounded-lg border border-border p-4 text-center">
+        <div class="flex justify-center mb-2">
+            <div class="p-2 bg-purple-100 rounded-full">
+                <i data-lucide="mail-open" class="h-6 w-6 text-purple-600"></i>
+            </div>
+        </div>
+        <h3 class="text-2xl font-bold text-purple-600 mb-1" id="avgOpenRate">-</h3>
+        <p class="text-sm font-medium text-muted-foreground">Avg Open Rate</p>
+    </div>
+    
+    <div class="bg-card rounded-lg border border-border p-4 text-center">
+        <div class="flex justify-center mb-2">
+            <div class="p-2 bg-orange-100 rounded-full">
+                <i data-lucide="mouse-pointer-click" class="h-6 w-6 text-orange-600"></i>
+            </div>
+        </div>
+        <h3 class="text-2xl font-bold text-orange-600 mb-1" id="avgClickRate">-</h3>
+        <p class="text-sm font-medium text-muted-foreground">Avg Click Rate</p>
+    </div>
+</div>
+
+<!-- Campaigns Grid -->
+<div id="campaignsContainer" class="space-y-4">
+    <div class="flex flex-col items-center justify-center py-12">
+        <div class="animate-spin mb-4">
+            <i data-lucide="loader" class="h-8 w-8 text-muted-foreground"></i>
+        </div>
+        <p class="text-muted-foreground">Loading campaigns...</p>
+    </div>
+</div>
+
+<!-- Empty State -->
+<div id="emptyState" class="hidden text-center py-12">
+    <div class="flex justify-center mb-4">
+        <div class="p-3 bg-muted rounded-full">
+            <i data-lucide="send" class="h-8 w-8 text-muted-foreground"></i>
+        </div>
+    </div>
+    <h3 class="text-lg font-semibold mb-2">No campaigns created yet</h3>
+    <p class="text-muted-foreground mb-6">Create your first email campaign to get started</p>
+    <button onclick="showCreateModal()" class="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+        <i data-lucide="plus" class="mr-2 h-4 w-4"></i>
+        Create First Campaign
+    </button>
+</div>
+
+<!-- Create Campaign Modal -->
+<div id="createModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center p-6 border-b border-border">
+                <h3 class="text-xl font-semibold">Create Email Campaign</h3>
+                <button onclick="closeCreateModal()" class="p-2 hover:bg-accent rounded">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <form id="createForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Campaign Name</label>
+                            <input type="text" id="campaignName" class="w-full px-3 py-2 border border-border rounded-md" placeholder="e.g. Summer Sale Newsletter" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Email Template</label>
+                            <select id="templateId" class="w-full px-3 py-2 border border-border rounded-md" required>
+                                <option value="">Loading templates...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Recipients</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="recipients" value="all" class="mr-2" checked>
+                                All users
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="recipients" value="custom" class="mr-2">
+                                Custom list (comma separated emails)
+                            </label>
+                        </div>
+                        <textarea id="customEmails" class="w-full px-3 py-2 border border-border rounded-md mt-2 hidden" rows="3" placeholder="email1@example.com, email2@example.com"></textarea>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Send Time</label>
+                            <select id="sendTime" class="w-full px-3 py-2 border border-border rounded-md">
+                                <option value="now">Send Now</option>
+                                <option value="schedule">Schedule for Later</option>
+                            </select>
+                        </div>
+                        <div id="scheduledTimeContainer" class="hidden">
+                            <label class="block text-sm font-medium mb-2">Scheduled Date & Time</label>
+                            <input type="datetime-local" id="scheduledTime" class="w-full px-3 py-2 border border-border rounded-md">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Description</label>
+                        <textarea id="campaignDescription" class="w-full px-3 py-2 border border-border rounded-md" rows="3" placeholder="Describe this campaign..."></textarea>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-2 pt-4">
+                        <button type="button" onclick="closeCreateModal()" class="px-4 py-2 text-sm border border-border rounded-md hover:bg-accent transition-colors">
+                            Cancel
+                        </button>
+                        <button type="button" onclick="saveDraft()" class="px-4 py-2 text-sm border border-border rounded-md hover:bg-accent transition-colors">
+                            Save as Draft
+                        </button>
+                        <button type="submit" class="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                            Create & Send
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let campaigns = [];
+    let templates = [];
+    let currentFilter = 'all';
+    
+    function refreshCampaigns() {
+        loadCampaigns();
+        loadCampaignStats();
+    }
+    
+    function loadCampaigns() {
+        fetch('/admin/api/email/campaigns')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    campaigns = data.campaigns;
+                    displayCampaigns();
+                } else {
+                    console.error('Failed to load campaigns:', data.error);
+                    document.getElementById('campaignsContainer').innerHTML = 
+                        '<div class="col-span-full p-4 border border-red-200 bg-red-50 text-red-800 rounded-lg">Error loading campaigns: ' + data.error + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading campaigns:', error);
+                document.getElementById('campaignsContainer').innerHTML = 
+                    '<div class="col-span-full p-4 border border-red-200 bg-red-50 text-red-800 rounded-lg">Error loading campaigns</div>';
+            });
+    }
+    
+    function loadCampaignStats() {
+        fetch('/admin/api/email/campaigns/stats')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const stats = data.stats;
+                    document.getElementById('totalCampaigns').textContent = stats.total_campaigns;
+                    document.getElementById('totalRecipients').textContent = stats.total_recipients;
+                    document.getElementById('avgOpenRate').textContent = stats.avg_open_rate + '%';
+                    document.getElementById('avgClickRate').textContent = stats.avg_click_rate + '%';
+                } else {
+                    console.error('Failed to load campaign stats:', data.error);
+                    // Set default values on error
+                    document.getElementById('totalCampaigns').textContent = '0';
+                    document.getElementById('totalRecipients').textContent = '0';
+                    document.getElementById('avgOpenRate').textContent = '0.0%';
+                    document.getElementById('avgClickRate').textContent = '0.0%';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading campaign stats:', error);
+                // Set default values on error
+                document.getElementById('totalCampaigns').textContent = '0';
+                document.getElementById('totalRecipients').textContent = '0';
+                document.getElementById('avgOpenRate').textContent = '0.0%';
+                document.getElementById('avgClickRate').textContent = '0.0%';
+            });
+    }
+    
+    function loadTemplates() {
+        fetch('/admin/api/email/templates')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    templates = data.templates;
+                    const select = document.getElementById('templateId');
+                    select.innerHTML = '<option value="">Select template...</option>';
+                    templates.forEach(template => {
+                        select.innerHTML += `<option value="${template.id}">${template.name}</option>`;
+                    });
+                } else {
+                    console.error('Failed to load templates:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading templates:', error);
+            });
+    }
+    
+    function displayCampaigns() {
+        const container = document.getElementById('campaignsContainer');
+        const emptyState = document.getElementById('emptyState');
+        
+        let filteredCampaigns = campaigns;
+        if (currentFilter !== 'all') {
+            filteredCampaigns = campaigns.filter(campaign => campaign.status === currentFilter);
+        }
+        
+        if (filteredCampaigns.length === 0) {
+            container.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            return;
+        }
+        
+        container.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+        
+        container.innerHTML = filteredCampaigns.map(campaign => {
+            const openRate = campaign.sent_count > 0 ? ((campaign.open_count / campaign.sent_count) * 100).toFixed(1) : '0.0';
+            const clickRate = campaign.sent_count > 0 ? ((campaign.click_count / campaign.sent_count) * 100).toFixed(1) : '0.0';
+            
+            return `
+                <div class="bg-card rounded-lg border border-border p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <h3 class="text-lg font-semibold">${campaign.name}</h3>
+                            <span class="text-xs px-2 py-1 rounded-full ${getStatusColor(campaign.status)}">${campaign.status}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="viewCampaign(${campaign.id})" class="p-2 hover:bg-accent rounded" title="View Details">
+                                <i data-lucide="eye" class="h-4 w-4"></i>
+                            </button>
+                            <button onclick="duplicateCampaign(${campaign.id})" class="p-2 hover:bg-accent rounded" title="Duplicate">
+                                <i data-lucide="copy" class="h-4 w-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-blue-600">${campaign.recipients_count || 0}</div>
+                            <div class="text-xs text-muted-foreground">Recipients</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-green-600">${campaign.sent_count || 0}</div>
+                            <div class="text-xs text-muted-foreground">Sent</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-purple-600">${openRate}%</div>
+                            <div class="text-xs text-muted-foreground">Open Rate</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-orange-600">${clickRate}%</div>
+                            <div class="text-xs text-muted-foreground">Click Rate</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between text-sm text-muted-foreground">
+                        <span>Template: ${campaign.template_name}</span>
+                        <span>${campaign.sent_at ? 'Sent: ' + new Date(campaign.sent_at).toLocaleDateString() : 'Created: ' + new Date(campaign.created_at).toLocaleDateString()}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        lucide.createIcons();
+    }
+    
+    function getStatusColor(status) {
+        switch(status) {
+            case 'sent': return 'bg-green-100 text-green-800';
+            case 'scheduled': return 'bg-blue-100 text-blue-800';
+            case 'draft': return 'bg-gray-100 text-gray-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    }
+    
+    function filterCampaigns(status) {
+        currentFilter = status;
+        
+        // Update filter buttons
+        document.querySelectorAll('.campaign-filter').forEach(btn => {
+            btn.classList.remove('active', 'bg-primary', 'text-primary-foreground');
+            btn.classList.add('bg-background');
+        });
+        
+        const activeBtn = document.querySelector(`[data-status="${status}"]`);
+        activeBtn.classList.add('active', 'bg-primary', 'text-primary-foreground');
+        activeBtn.classList.remove('bg-background');
+        
+        displayCampaigns();
+    }
+    
+    function showCreateModal() {
+        document.getElementById('createModal').classList.remove('hidden');
+        loadTemplates();
+    }
+    
+    function closeCreateModal() {
+        document.getElementById('createModal').classList.add('hidden');
+        document.getElementById('createForm').reset();
+        document.getElementById('customEmails').classList.add('hidden');
+        document.getElementById('scheduledTimeContainer').classList.add('hidden');
+    }
+    
+    function viewCampaign(campaignId) {
+        alert('Campaign details view coming soon!');
+    }
+    
+    function duplicateCampaign(campaignId) {
+        alert('Campaign duplication coming soon!');
+    }
+    
+    function saveDraft() {
+        alert('Save as draft coming soon!');
+    }
+    
+    // Handle recipient type change
+    document.addEventListener('change', function(e) {
+        if (e.target.name === 'recipients') {
+            const customEmails = document.getElementById('customEmails');
+            if (e.target.value === 'custom') {
+                customEmails.classList.remove('hidden');
+            } else {
+                customEmails.classList.add('hidden');
+            }
+        }
+        
+        if (e.target.id === 'sendTime') {
+            const scheduledContainer = document.getElementById('scheduledTimeContainer');
+            if (e.target.value === 'schedule') {
+                scheduledContainer.classList.remove('hidden');
+            } else {
+                scheduledContainer.classList.add('hidden');
+            }
+        }
+    });
+    
+    // Load campaigns on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        lucide.createIcons();
+        loadCampaigns();
+        loadCampaignStats();
+    });
+    
+    // Make functions available globally
+    window.refreshCampaigns = refreshCampaigns;
+    window.filterCampaigns = filterCampaigns;
+    window.showCreateModal = showCreateModal;
+    window.closeCreateModal = closeCreateModal;
+    window.viewCampaign = viewCampaign;
+    window.duplicateCampaign = duplicateCampaign;
+    window.saveDraft = saveDraft;
+</script>
+{% endblock %}

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if automation_id %}Edit{% else %}Create{% endif %} Email Automation - VectorCraft Admin</title>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            border: 1px solid #d1d5db;
+            background: white;
+            color: #374151;
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: #f9fafb;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .form-grid {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .form-section {
+            background: white;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            padding: 1.5rem;
+        }
+
+        .form-section h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1e293b;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        select.form-control {
+            cursor: pointer;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-help {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            margin-bottom: 1rem;
+        }
+
+        .success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #16a34a;
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{% if automation_id %}Edit Email Automation{% else %}Create Email Automation{% endif %}</h1>
+        <div class="btn-group">
+            <a href="/admin/email/automations" class="btn">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+                Back to Automations
+            </a>
+            <button onclick="saveAutomation()" class="btn btn-success" id="saveBtn">
+                <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                Save Automation
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="messageArea"></div>
+
+        <div class="form-grid">
+            <div class="form-section">
+                <h2>Basic Information</h2>
+                
+                <div class="form-group">
+                    <label for="name">Automation Name</label>
+                    <input type="text" id="name" class="form-control" placeholder="Enter automation name">
+                    <div class="form-help">A descriptive name for this automation</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" class="form-control" placeholder="Describe what this automation does"></textarea>
+                    <div class="form-help">Optional description for this automation</div>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="is_active" checked>
+                    <label for="is_active">Active</label>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Trigger Configuration</h2>
+                
+                <div class="form-group">
+                    <label for="trigger_type">Trigger Type</label>
+                    <select id="trigger_type" class="form-control">
+                        <option value="purchase">Purchase Completed</option>
+                        <option value="signup">User Signup</option>
+                        <option value="activity">User Activity</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="custom">Custom Event</option>
+                    </select>
+                    <div class="form-help">When should this automation trigger?</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="trigger_condition">Trigger Condition</label>
+                    <input type="text" id="trigger_condition" class="form-control" placeholder="e.g., status=completed">
+                    <div class="form-help">Optional condition that must be met (e.g., status=completed)</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="delay_hours">Delay (Hours)</label>
+                    <input type="number" id="delay_hours" class="form-control" value="0" min="0">
+                    <div class="form-help">How many hours to wait before sending (0 = immediate)</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="send_time">Send Time (Optional)</label>
+                    <input type="time" id="send_time" class="form-control">
+                    <div class="form-help">Specific time to send (only for scheduled triggers)</div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Email Template</h2>
+                
+                <div class="form-group">
+                    <label for="template_id">Email Template</label>
+                    <select id="template_id" class="form-control">
+                        <option value="">Select a template...</option>
+                    </select>
+                    <div class="form-help">Choose the email template to use for this automation</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isEditMode = {% if automation_id %}true{% else %}false{% endif %};
+        let automationId = {% if automation_id %}{{ automation_id }}{% else %}null{% endif %};
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/admin/api/email/templates');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const select = document.getElementById('template_id');
+                    select.innerHTML = '<option value="">Select a template...</option>';
+                    
+                    data.templates.forEach(template => {
+                        const option = document.createElement('option');
+                        option.value = template.id;
+                        option.textContent = template.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading templates:', error);
+            }
+        }
+
+        async function loadAutomation() {
+            if (!isEditMode) return;
+
+            try {
+                const response = await fetch(`/admin/api/email/automations/${automationId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const automation = data.automation;
+                    document.getElementById('name').value = automation.name || '';
+                    document.getElementById('description').value = automation.description || '';
+                    document.getElementById('trigger_type').value = automation.trigger_type || '';
+                    document.getElementById('trigger_condition').value = automation.trigger_condition || '';
+                    document.getElementById('delay_hours').value = automation.delay_hours || 0;
+                    document.getElementById('send_time').value = automation.send_time || '';
+                    document.getElementById('template_id').value = automation.template_id || '';
+                    document.getElementById('is_active').checked = automation.is_active;
+                }
+            } catch (error) {
+                showMessage('Error loading automation: ' + error.message, 'error');
+            }
+        }
+
+        async function saveAutomation() {
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.classList.add('loading');
+            saveBtn.textContent = 'Saving...';
+
+            try {
+                const formData = {
+                    name: document.getElementById('name').value,
+                    description: document.getElementById('description').value,
+                    trigger_type: document.getElementById('trigger_type').value,
+                    trigger_condition: document.getElementById('trigger_condition').value,
+                    delay_hours: parseInt(document.getElementById('delay_hours').value) || 0,
+                    send_time: document.getElementById('send_time').value,
+                    template_id: parseInt(document.getElementById('template_id').value),
+                    is_active: document.getElementById('is_active').checked
+                };
+
+                if (!formData.name || !formData.trigger_type || !formData.template_id) {
+                    throw new Error('Please fill in all required fields');
+                }
+
+                const url = isEditMode 
+                    ? `/admin/api/email/automations/${automationId}`
+                    : '/admin/api/email/automations';
+                
+                const method = isEditMode ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    if (!isEditMode) {
+                        // Redirect to edit mode after creation
+                        setTimeout(() => {
+                            window.location.href = `/admin/email/automations/${data.automation_id}/edit`;
+                        }, 1000);
+                    }
+                } else {
+                    throw new Error(data.error);
+                }
+
+            } catch (error) {
+                showMessage('Error saving automation: ' + error.message, 'error');
+            } finally {
+                saveBtn.classList.remove('loading');
+                saveBtn.innerHTML = '<i data-lucide="save" style="width: 16px; height: 16px;"></i> Save Automation';
+                lucide.createIcons();
+            }
+        }
+
+        function showMessage(message, type) {
+            const messageArea = document.getElementById('messageArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            messageArea.innerHTML = '';
+            messageArea.appendChild(messageDiv);
+            
+            // Auto-hide success messages
+            if (type === 'success') {
+                setTimeout(() => {
+                    messageDiv.remove();
+                }, 3000);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTemplates().then(() => {
+                if (isEditMode) {
+                    loadAutomation();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

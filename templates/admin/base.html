@@ -174,7 +174,39 @@
                 Analytics
             </a>
             
-            <!-- Divider -->
+            <!-- Email Marketing Section -->
+            <div class="border-t border-border my-4"></div>
+            <div class="px-3 py-2">
+                <h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email Marketing</h4>
+            </div>
+            
+            <a href="{{ url_for('admin_email') }}" 
+               class="sidebar-nav-item {% if request.endpoint in ['admin_email'] %}active{% endif %} flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                <i data-lucide="mail" class="mr-3 h-4 w-4"></i>
+                Dashboard
+            </a>
+            <a href="{{ url_for('admin_email_templates') }}" 
+               class="sidebar-nav-item {% if request.endpoint in ['admin_email_templates', 'admin_email_templates_new', 'admin_email_templates_edit'] %}active{% endif %} flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                <i data-lucide="file-text" class="mr-3 h-4 w-4"></i>
+                Templates
+            </a>
+            <a href="{{ url_for('admin_email_automations') }}" 
+               class="sidebar-nav-item {% if request.endpoint == 'admin_email_automations' %}active{% endif %} flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                <i data-lucide="zap" class="mr-3 h-4 w-4"></i>
+                Automations
+            </a>
+            <a href="{{ url_for('admin_email_campaigns') }}" 
+               class="sidebar-nav-item {% if request.endpoint == 'admin_email_campaigns' %}active{% endif %} flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                <i data-lucide="send" class="mr-3 h-4 w-4"></i>
+                Campaigns
+            </a>
+            <a href="{{ url_for('admin_email_analytics') }}" 
+               class="sidebar-nav-item {% if request.endpoint == 'admin_email_analytics' %}active{% endif %} flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                <i data-lucide="bar-chart-3" class="mr-3 h-4 w-4"></i>
+                Email Analytics
+            </a>
+            
+            <!-- Settings Section -->
             <div class="border-t border-border my-4"></div>
             
             <a href="{{ url_for('admin_settings') }}" 
@@ -256,6 +288,37 @@
                         <i data-lucide="trending-up" class="mr-3 h-4 w-4"></i>
                         Analytics
                     </a>
+                    
+                    <!-- Email Marketing Mobile Section -->
+                    <div class="border-t border-border my-4"></div>
+                    <div class="px-3 py-2">
+                        <h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email Marketing</h4>
+                    </div>
+                    <a href="{{ url_for('admin_email') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
+                        <i data-lucide="mail" class="mr-3 h-4 w-4"></i>
+                        Dashboard
+                    </a>
+                    <a href="{{ url_for('admin_email_templates') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
+                        <i data-lucide="file-text" class="mr-3 h-4 w-4"></i>
+                        Templates
+                    </a>
+                    <a href="{{ url_for('admin_email_automations') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
+                        <i data-lucide="zap" class="mr-3 h-4 w-4"></i>
+                        Automations
+                    </a>
+                    <a href="{{ url_for('admin_email_campaigns') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
+                        <i data-lucide="send" class="mr-3 h-4 w-4"></i>
+                        Campaigns
+                    </a>
+                    <a href="{{ url_for('admin_email_analytics') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
+                        <i data-lucide="bar-chart-3" class="mr-3 h-4 w-4"></i>
+                        Email Analytics
+                    </a>
+                    <a href="{{ url_for('admin_email_test') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
+                        <i data-lucide="mail-check" class="mr-3 h-4 w-4"></i>
+                        Email Testing
+                    </a>
+                    
                     <a href="{{ url_for('admin_settings') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
                         <i data-lucide="settings" class="mr-3 h-4 w-4"></i>
                         Settings

@@ -16,3 +16,5 @@ flask-login>=0.6.0
 werkzeug>=2.0.0
 python-dotenv>=0.19.0
 vtracer>=0.6.0
+requests>=2.25.0
+cryptography>=3.4.0

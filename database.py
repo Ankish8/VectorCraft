@@ -142,6 +142,107 @@ class Database:
                 )
             ''')
             
+            # Email automation tables
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS email_templates (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    subject TEXT NOT NULL,
+                    content_html TEXT NOT NULL,
+                    content_json TEXT,
+                    variables TEXT,
+                    description TEXT,
+                    category TEXT DEFAULT 'general',
+                    is_active INTEGER DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS email_automations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    trigger_type TEXT NOT NULL CHECK(trigger_type IN ('purchase', 'signup', 'scheduled', 'activity', 'custom')),
+                    trigger_condition TEXT,
+                    template_id INTEGER NOT NULL,
+                    delay_hours INTEGER DEFAULT 0,
+                    send_time TEXT,
+                    is_active INTEGER DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (template_id) REFERENCES email_templates (id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS email_campaigns (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    template_id INTEGER NOT NULL,
+                    target_audience TEXT,
+                    scheduled_at TIMESTAMP,
+                    sent_at TIMESTAMP,
+                    status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'scheduled', 'sending', 'sent', 'cancelled')),
+                    total_recipients INTEGER DEFAULT 0,
+                    emails_sent INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (template_id) REFERENCES email_templates (id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS email_queue (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    recipient_email TEXT NOT NULL,
+                    recipient_name TEXT,
+                    template_id INTEGER,
+                    campaign_id INTEGER,
+                    automation_id INTEGER,
+                    subject TEXT NOT NULL,
+                    content_html TEXT NOT NULL,
+                    variables_json TEXT,
+                    scheduled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    sent_at TIMESTAMP,
+                    opened_at TIMESTAMP,
+                    clicked_at TIMESTAMP,
+                    status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'sending', 'sent', 'failed', 'bounced')),
+                    error_message TEXT,
+                    attempts INTEGER DEFAULT 0,
+                    tracking_id TEXT UNIQUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (template_id) REFERENCES email_templates (id),
+                    FOREIGN KEY (campaign_id) REFERENCES email_campaigns (id),
+                    FOREIGN KEY (automation_id) REFERENCES email_automations (id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS email_tracking (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tracking_id TEXT NOT NULL,
+                    queue_id INTEGER NOT NULL,
+                    event_type TEXT NOT NULL CHECK(event_type IN ('sent', 'delivered', 'opened', 'clicked', 'bounced', 'unsubscribed')),
+                    event_data TEXT,
+                    user_agent TEXT,
+                    ip_address TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (queue_id) REFERENCES email_queue (id)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS email_unsubscribes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    email TEXT NOT NULL UNIQUE,
+                    reason TEXT,
+                    unsubscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
             # Create indexes for performance
             conn.execute('CREATE INDEX IF NOT EXISTS idx_transactions_email ON transactions(email)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status)')
@@ -151,6 +252,18 @@ class Database:
             conn.execute('CREATE INDEX IF NOT EXISTS idx_system_logs_level ON system_logs(level)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_system_logs_created_at ON system_logs(created_at)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_admin_alerts_resolved ON admin_alerts(resolved)')
+            
+            # Email automation indexes
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_email_templates_category ON email_templates(category)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_email_templates_is_active ON email_templates(is_active)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_email_automations_trigger_type ON email_automations(trigger_type)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_email_automations_is_active ON email_automations(is_active)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_email_queue_status ON email_queue(status)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_email_queue_scheduled_at ON email_queue(scheduled_at)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_email_queue_tracking_id ON email_queue(tracking_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_email_tracking_tracking_id ON email_tracking(tracking_id)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_email_tracking_event_type ON email_tracking(event_type)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_email_unsubscribes_email ON email_unsubscribes(email)')
             
             conn.commit()
             
@@ -661,6 +774,663 @@ class Database:
             return False, f"Connection error: {str(e)}"
         except Exception as e:
             return False, f"Error: {str(e)}"
+    
+    # Email Template Management
+    def create_email_template(self, name, subject, content_html, content_json=None, variables=None, description=None, category='general'):
+        """Create a new email template"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute('''
+                    INSERT INTO email_templates (name, subject, content_html, content_json, variables, description, category)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (name, subject, content_html, content_json, variables, description, category))
+                return cursor.lastrowid
+        except Exception as e:
+            print(f"Error creating email template: {e}")
+            return None
+    
+    def get_email_templates(self, category=None, active_only=True):
+        """Get all email templates"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                query = 'SELECT * FROM email_templates'
+                params = []
+                
+                conditions = []
+                if active_only:
+                    conditions.append('is_active = 1')
+                if category:
+                    conditions.append('category = ?')
+                    params.append(category)
+                
+                if conditions:
+                    query += ' WHERE ' + ' AND '.join(conditions)
+                
+                query += ' ORDER BY created_at DESC'
+                
+                cursor = conn.execute(query, params)
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            print(f"Error fetching email templates: {e}")
+            return []
+    
+    def get_email_template(self, template_id):
+        """Get a specific email template"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute('SELECT * FROM email_templates WHERE id = ?', (template_id,))
+                row = cursor.fetchone()
+                return dict(row) if row else None
+        except Exception as e:
+            print(f"Error fetching email template: {e}")
+            return None
+    
+    def update_email_template(self, template_id, name=None, subject=None, content_html=None, content_json=None, variables=None, description=None, category=None):
+        """Update an email template"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                updates = []
+                params = []
+                
+                if name is not None:
+                    updates.append('name = ?')
+                    params.append(name)
+                if subject is not None:
+                    updates.append('subject = ?')
+                    params.append(subject)
+                if content_html is not None:
+                    updates.append('content_html = ?')
+                    params.append(content_html)
+                if content_json is not None:
+                    updates.append('content_json = ?')
+                    params.append(content_json)
+                if variables is not None:
+                    updates.append('variables = ?')
+                    params.append(variables)
+                if description is not None:
+                    updates.append('description = ?')
+                    params.append(description)
+                if category is not None:
+                    updates.append('category = ?')
+                    params.append(category)
+                
+                if updates:
+                    updates.append('updated_at = CURRENT_TIMESTAMP')
+                    params.append(template_id)
+                    
+                    query = f'UPDATE email_templates SET {", ".join(updates)} WHERE id = ?'
+                    conn.execute(query, params)
+                    return conn.total_changes > 0
+                return False
+        except Exception as e:
+            print(f"Error updating email template: {e}")
+            return False
+    
+    def delete_email_template(self, template_id):
+        """Delete an email template (soft delete)"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute('UPDATE email_templates SET is_active = 0 WHERE id = ?', (template_id,))
+                return conn.total_changes > 0
+        except Exception as e:
+            print(f"Error deleting email template: {e}")
+            return False
+    
+    # Email Automation Management
+    def create_email_automation(self, name, trigger_type, template_id, delay_hours=0, trigger_condition=None, description=None, send_time=None):
+        """Create a new email automation"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute('''
+                    INSERT INTO email_automations (name, description, trigger_type, trigger_condition, template_id, delay_hours, send_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (name, description, trigger_type, trigger_condition, template_id, delay_hours, send_time))
+                return cursor.lastrowid
+        except Exception as e:
+            print(f"Error creating email automation: {e}")
+            return None
+    
+    def get_email_automations(self, active_only=True):
+        """Get all email automations"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                query = '''
+                    SELECT a.*, t.name as template_name, t.subject as template_subject
+                    FROM email_automations a
+                    LEFT JOIN email_templates t ON a.template_id = t.id
+                '''
+                
+                if active_only:
+                    query += ' WHERE a.is_active = 1'
+                
+                query += ' ORDER BY a.created_at DESC'
+                
+                cursor = conn.execute(query)
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            print(f"Error fetching email automations: {e}")
+            return []
+    
+    def get_email_automation(self, automation_id):
+        """Get a specific email automation"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute('''
+                    SELECT a.*, t.name as template_name, t.subject as template_subject
+                    FROM email_automations a
+                    LEFT JOIN email_templates t ON a.template_id = t.id
+                    WHERE a.id = ?
+                ''', (automation_id,))
+                row = cursor.fetchone()
+                return dict(row) if row else None
+        except Exception as e:
+            print(f"Error fetching email automation: {e}")
+            return None
+    
+    def update_email_automation(self, automation_id, **kwargs):
+        """Update an email automation"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                updates = []
+                params = []
+                
+                allowed_fields = ['name', 'description', 'trigger_type', 'trigger_condition', 'template_id', 'delay_hours', 'send_time', 'is_active']
+                
+                for field, value in kwargs.items():
+                    if field in allowed_fields and value is not None:
+                        updates.append(f'{field} = ?')
+                        params.append(value)
+                
+                if updates:
+                    updates.append('updated_at = CURRENT_TIMESTAMP')
+                    params.append(automation_id)
+                    
+                    query = f'UPDATE email_automations SET {", ".join(updates)} WHERE id = ?'
+                    conn.execute(query, params)
+                    return conn.total_changes > 0
+                return False
+        except Exception as e:
+            print(f"Error updating email automation: {e}")
+            return False
+    
+    def delete_email_automation(self, automation_id):
+        """Delete an email automation"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute('DELETE FROM email_automations WHERE id = ?', (automation_id,))
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"Error deleting email automation: {e}")
+            return False
+    
+    def get_email_automations_by_trigger(self, trigger_type):
+        """Get active email automations by trigger type"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute('''
+                    SELECT * FROM email_automations
+                    WHERE trigger_type = ? AND is_active = 1
+                    ORDER BY created_at ASC
+                ''', (trigger_type,))
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            print(f"Error fetching email automations by trigger: {e}")
+            return []
+    
+    def is_email_unsubscribed(self, email):
+        """Check if email is unsubscribed"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute('''
+                    SELECT COUNT(*) FROM email_unsubscribes
+                    WHERE email = ?
+                ''', (email,))
+                return cursor.fetchone()[0] > 0
+        except Exception as e:
+            print(f"Error checking unsubscribe status: {e}")
+            return False
+    
+    def record_email_tracking(self, tracking_id, event_type, queue_id=None, user_agent=None, ip_address=None, metadata=None):
+        """Record email tracking event"""
+        try:
+            import json
+            event_data = json.dumps(metadata) if metadata else None
+            
+            # If queue_id is not provided, try to find it from tracking_id
+            if not queue_id:
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.execute('SELECT id FROM email_queue WHERE tracking_id = ?', (tracking_id,))
+                    result = cursor.fetchone()
+                    if result:
+                        queue_id = result[0]
+                    else:
+                        # If no queue_id found, just insert with NULL queue_id
+                        queue_id = None
+            
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute('''
+                    INSERT INTO email_tracking (tracking_id, queue_id, event_type, event_data, user_agent, ip_address)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (tracking_id, queue_id, event_type, event_data, user_agent, ip_address))
+                return cursor.lastrowid
+        except Exception as e:
+            print(f"Error recording email tracking: {e}")
+            return None
+    
+    # Email Campaign Management
+    def create_email_campaign(self, name, description=None, template_id=None, status='draft', 
+                             send_at=None, recipient_list=None, subject_override=None):
+        """Create a new email campaign"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute('''
+                    INSERT INTO email_campaigns (name, description, template_id, status, 
+                                               send_at, recipient_list, subject_override, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ''', (name, description, template_id, status, send_at, recipient_list, subject_override))
+                return cursor.lastrowid
+        except Exception as e:
+            print(f"Error creating email campaign: {e}")
+            return None
+    
+    def get_all_email_campaigns(self):
+        """Get all email campaigns with their statistics"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                campaigns = conn.execute('''
+                    SELECT 
+                        c.*,
+                        t.name as template_name,
+                        COUNT(DISTINCT eq.id) as recipients_count,
+                        COUNT(DISTINCT CASE WHEN eq.status = 'sent' THEN eq.id END) as sent_count,
+                        COUNT(DISTINCT et.id) as open_count,
+                        COUNT(DISTINCT CASE WHEN et.event_type = 'click' THEN et.id END) as click_count
+                    FROM email_campaigns c
+                    LEFT JOIN email_templates t ON c.template_id = t.id
+                    LEFT JOIN email_queue eq ON c.id = eq.campaign_id
+                    LEFT JOIN email_tracking et ON eq.tracking_id = et.tracking_id AND et.event_type IN ('open', 'click')
+                    GROUP BY c.id
+                    ORDER BY c.created_at DESC
+                ''').fetchall()
+                
+                return [dict(campaign) for campaign in campaigns]
+        except Exception as e:
+            print(f"Error getting email campaigns: {e}")
+            return []
+    
+    def get_email_campaign(self, campaign_id):
+        """Get a specific email campaign"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                campaign = conn.execute('''
+                    SELECT 
+                        c.*,
+                        t.name as template_name,
+                        COUNT(DISTINCT eq.id) as recipients_count,
+                        COUNT(DISTINCT CASE WHEN eq.status = 'sent' THEN eq.id END) as sent_count,
+                        COUNT(DISTINCT et.id) as open_count,
+                        COUNT(DISTINCT CASE WHEN et.event_type = 'click' THEN et.id END) as click_count
+                    FROM email_campaigns c
+                    LEFT JOIN email_templates t ON c.template_id = t.id
+                    LEFT JOIN email_queue eq ON c.id = eq.campaign_id
+                    LEFT JOIN email_tracking et ON eq.tracking_id = et.tracking_id AND et.event_type IN ('open', 'click')
+                    WHERE c.id = ?
+                    GROUP BY c.id
+                ''', (campaign_id,)).fetchone()
+                
+                return dict(campaign) if campaign else None
+        except Exception as e:
+            print(f"Error getting email campaign: {e}")
+            return None
+    
+    def update_email_campaign(self, campaign_id, **kwargs):
+        """Update an email campaign"""
+        try:
+            if not kwargs:
+                return False
+                
+            with sqlite3.connect(self.db_path) as conn:
+                # Build dynamic UPDATE query
+                updates = []
+                params = []
+                
+                for field, value in kwargs.items():
+                    if field in ['name', 'description', 'template_id', 'status', 'send_at', 
+                               'recipient_list', 'subject_override']:
+                        updates.append(f'{field} = ?')
+                        params.append(value)
+                
+                if updates:
+                    params.append(campaign_id)
+                    query = f'UPDATE email_campaigns SET {", ".join(updates)} WHERE id = ?'
+                    conn.execute(query, params)
+                    return conn.total_changes > 0
+                return False
+        except Exception as e:
+            print(f"Error updating email campaign: {e}")
+            return False
+    
+    def delete_email_campaign(self, campaign_id):
+        """Delete an email campaign"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute('DELETE FROM email_campaigns WHERE id = ?', (campaign_id,))
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"Error deleting email campaign: {e}")
+            return False
+    
+    def get_campaign_statistics(self):
+        """Get overall campaign statistics"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Get total campaigns
+                total_campaigns = conn.execute('SELECT COUNT(*) FROM email_campaigns').fetchone()[0]
+                
+                # Get total recipients (unique emails across all campaigns)
+                total_recipients = conn.execute('''
+                    SELECT COUNT(DISTINCT recipient_email) 
+                    FROM email_queue 
+                    WHERE campaign_id IS NOT NULL
+                ''').fetchone()[0]
+                
+                # Get average open rate
+                open_stats = conn.execute('''
+                    SELECT 
+                        COUNT(DISTINCT eq.id) as total_sent,
+                        COUNT(DISTINCT et.id) as total_opens
+                    FROM email_queue eq
+                    LEFT JOIN email_tracking et ON eq.tracking_id = et.tracking_id AND et.event_type = 'open'
+                    WHERE eq.campaign_id IS NOT NULL AND eq.status = 'sent'
+                ''').fetchone()
+                
+                # Get average click rate
+                click_stats = conn.execute('''
+                    SELECT 
+                        COUNT(DISTINCT eq.id) as total_sent,
+                        COUNT(DISTINCT et.id) as total_clicks
+                    FROM email_queue eq
+                    LEFT JOIN email_tracking et ON eq.tracking_id = et.tracking_id AND et.event_type = 'click'
+                    WHERE eq.campaign_id IS NOT NULL AND eq.status = 'sent'
+                ''').fetchone()
+                
+                # Calculate rates
+                avg_open_rate = 0
+                avg_click_rate = 0
+                
+                if open_stats[0] > 0:
+                    avg_open_rate = (open_stats[1] / open_stats[0]) * 100
+                
+                if click_stats[0] > 0:
+                    avg_click_rate = (click_stats[1] / click_stats[0]) * 100
+                
+                return {
+                    'total_campaigns': total_campaigns,
+                    'total_recipients': total_recipients,
+                    'avg_open_rate': round(avg_open_rate, 1),
+                    'avg_click_rate': round(avg_click_rate, 1)
+                }
+        except Exception as e:
+            print(f"Error getting campaign statistics: {e}")
+            return {
+                'total_campaigns': 0,
+                'total_recipients': 0,
+                'avg_open_rate': 0.0,
+                'avg_click_rate': 0.0
+            }
+    
+    # Email Queue Management
+    def queue_email(self, to_email=None, subject=None, content_html=None, template_id=None, automation_id=None, 
+                   tracking_id=None, send_time=None, context_data=None, recipient_email=None, campaign_id=None,
+                   recipient_name=None, variables_json=None, scheduled_at=None):
+        """Add email to queue"""
+        try:
+            import uuid
+            import json
+            
+            # Handle both old and new parameter names for backward compatibility
+            email = to_email or recipient_email
+            send_at = send_time or scheduled_at
+            
+            if not tracking_id:
+                tracking_id = str(uuid.uuid4())
+            
+            # Convert context_data to JSON string if provided
+            variables = variables_json
+            if context_data:
+                variables = json.dumps(context_data)
+            
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute('''
+                    INSERT INTO email_queue (recipient_email, recipient_name, template_id, campaign_id, automation_id, 
+                                           subject, content_html, variables_json, scheduled_at, tracking_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (email, recipient_name, template_id, campaign_id, automation_id, 
+                      subject, content_html, variables, send_at, tracking_id))
+                
+                return cursor.lastrowid, tracking_id
+        except Exception as e:
+            print(f"Error queueing email: {e}")
+            return None, None
+    
+    def get_pending_emails(self, limit=100):
+        """Get pending emails from queue"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                # Get current UTC timestamp for comparison
+                from datetime import datetime
+                current_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+                
+                cursor = conn.execute('''
+                    SELECT * FROM email_queue 
+                    WHERE status = 'pending'
+                    ORDER BY scheduled_at ASC
+                    LIMIT ?
+                ''', (limit,))
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            print(f"Error fetching pending emails: {e}")
+            return []
+    
+    def update_email_status(self, queue_id, status, error_message=None, sent_at=None):
+        """Update email status in queue"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                if sent_at:
+                    conn.execute('''
+                        UPDATE email_queue 
+                        SET status = ?, error_message = ?, sent_at = ?, attempts = attempts + 1
+                        WHERE id = ?
+                    ''', (status, error_message, sent_at, queue_id))
+                else:
+                    conn.execute('''
+                        UPDATE email_queue 
+                        SET status = ?, error_message = ?, attempts = attempts + 1
+                        WHERE id = ?
+                    ''', (status, error_message, queue_id))
+                return conn.total_changes > 0
+        except Exception as e:
+            print(f"Error updating email status: {e}")
+            return False
+    
+    # Email Tracking
+    def track_email_event(self, tracking_id, event_type, event_data=None, user_agent=None, ip_address=None):
+        """Track email events (open, click, etc.)"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Get queue_id from tracking_id
+                cursor = conn.execute('SELECT id FROM email_queue WHERE tracking_id = ?', (tracking_id,))
+                queue_row = cursor.fetchone()
+                
+                if queue_row:
+                    queue_id = queue_row[0]
+                    
+                    # Insert tracking event
+                    conn.execute('''
+                        INSERT INTO email_tracking (tracking_id, queue_id, event_type, event_data, user_agent, ip_address)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (tracking_id, queue_id, event_type, event_data, user_agent, ip_address))
+                    
+                    # Update queue record for quick access
+                    if event_type == 'opened':
+                        conn.execute('UPDATE email_queue SET opened_at = CURRENT_TIMESTAMP WHERE id = ?', (queue_id,))
+                    elif event_type == 'clicked':
+                        conn.execute('UPDATE email_queue SET clicked_at = CURRENT_TIMESTAMP WHERE id = ?', (queue_id,))
+                    
+                    return True
+                return False
+        except Exception as e:
+            print(f"Error tracking email event: {e}")
+            return False
+    
+    # Email Analytics
+    def get_email_analytics(self, days=30):
+        """Get email analytics for the last N days"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                
+                # Email sending stats
+                cursor = conn.execute('''
+                    SELECT 
+                        COUNT(*) as total_sent,
+                        COUNT(CASE WHEN opened_at IS NOT NULL THEN 1 END) as total_opened,
+                        COUNT(CASE WHEN clicked_at IS NOT NULL THEN 1 END) as total_clicked,
+                        COUNT(CASE WHEN status = 'failed' THEN 1 END) as total_failed
+                    FROM email_queue 
+                    WHERE sent_at >= datetime('now', '-' || ? || ' days')
+                ''', (days,))
+                
+                stats = dict(cursor.fetchone())
+                
+                # Calculate rates
+                if stats['total_sent'] > 0:
+                    stats['open_rate'] = (stats['total_opened'] / stats['total_sent']) * 100
+                    stats['click_rate'] = (stats['total_clicked'] / stats['total_sent']) * 100
+                    stats['failure_rate'] = (stats['total_failed'] / stats['total_sent']) * 100
+                else:
+                    stats['open_rate'] = 0
+                    stats['click_rate'] = 0
+                    stats['failure_rate'] = 0
+                
+                return stats
+        except Exception as e:
+            print(f"Error getting email analytics: {e}")
+            return {}
+    
+    def get_top_performing_templates(self, limit=5, days=30):
+        """Get top performing email templates"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                
+                templates = conn.execute('''
+                    SELECT 
+                        t.id,
+                        t.name,
+                        COUNT(DISTINCT eq.id) as sent_count,
+                        COUNT(DISTINCT CASE WHEN et.event_type = 'open' THEN et.id END) as open_count,
+                        COUNT(DISTINCT CASE WHEN et.event_type = 'click' THEN et.id END) as click_count,
+                        CASE 
+                            WHEN COUNT(DISTINCT eq.id) > 0 
+                            THEN (COUNT(DISTINCT CASE WHEN et.event_type = 'open' THEN et.id END) * 100.0 / COUNT(DISTINCT eq.id))
+                            ELSE 0 
+                        END as open_rate,
+                        CASE 
+                            WHEN COUNT(DISTINCT eq.id) > 0 
+                            THEN (COUNT(DISTINCT CASE WHEN et.event_type = 'click' THEN et.id END) * 100.0 / COUNT(DISTINCT eq.id))
+                            ELSE 0 
+                        END as click_rate
+                    FROM email_templates t
+                    LEFT JOIN email_queue eq ON t.id = eq.template_id 
+                        AND eq.sent_at >= datetime('now', '-' || ? || ' days')
+                    LEFT JOIN email_tracking et ON eq.tracking_id = et.tracking_id
+                    GROUP BY t.id, t.name
+                    HAVING sent_count > 0
+                    ORDER BY open_rate DESC, sent_count DESC
+                    LIMIT ?
+                ''', (days, limit)).fetchall()
+                
+                return [dict(template) for template in templates]
+        except Exception as e:
+            print(f"Error getting top performing templates: {e}")
+            return []
+    
+    def get_recent_email_activity(self, limit=10):
+        """Get recent email activity events"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                
+                activities = []
+                
+                # Get recent email sends
+                recent_sends = conn.execute('''
+                    SELECT 
+                        'email_sent' as type,
+                        'Email sent: ' || COALESCE(t.name, 'Unknown Template') as message,
+                        eq.sent_at as timestamp,
+                        eq.recipient_email
+                    FROM email_queue eq
+                    LEFT JOIN email_templates t ON eq.template_id = t.id
+                    WHERE eq.status = 'sent' AND eq.sent_at IS NOT NULL
+                    ORDER BY eq.sent_at DESC
+                    LIMIT ?
+                ''', (limit//2,)).fetchall()
+                
+                # Get recent email opens and clicks
+                recent_events = conn.execute('''
+                    SELECT 
+                        et.event_type as type,
+                        CASE et.event_type
+                            WHEN 'open' THEN 'Email opened: ' || COALESCE(t.name, 'Unknown Template')
+                            WHEN 'click' THEN 'Email clicked: ' || COALESCE(t.name, 'Unknown Template')
+                            ELSE 'Email event: ' || et.event_type
+                        END as message,
+                        et.timestamp,
+                        eq.recipient_email
+                    FROM email_tracking et
+                    LEFT JOIN email_queue eq ON et.tracking_id = eq.tracking_id
+                    LEFT JOIN email_templates t ON eq.template_id = t.id
+                    WHERE et.timestamp >= datetime('now', '-1 day')
+                    ORDER BY et.timestamp DESC
+                    LIMIT ?
+                ''', (limit//2,)).fetchall()
+                
+                # Combine and sort all activities
+                for activity in recent_sends:
+                    activities.append(dict(activity))
+                
+                for activity in recent_events:
+                    # Map event types to consistent format
+                    event_type = activity['type']
+                    if event_type == 'open':
+                        event_type = 'email_opened'
+                    elif event_type == 'click':
+                        event_type = 'email_clicked'
+                    
+                    activities.append({
+                        'type': event_type,
+                        'message': activity['message'],
+                        'timestamp': activity['timestamp'],
+                        'recipient_email': activity['recipient_email']
+                    })
+                
+                # Sort by timestamp and limit
+                activities.sort(key=lambda x: x['timestamp'] or '', reverse=True)
+                return activities[:limit]
+                
+        except Exception as e:
+            print(f"Error getting recent email activity: {e}")
+            return []
 
 # Global database instance
 db = Database()

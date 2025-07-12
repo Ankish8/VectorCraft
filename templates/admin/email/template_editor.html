@@ -1,0 +1,1322 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{% if template_id %}Edit{% else %}Create{% endif %} Email Template - VectorCraft Admin{% endblock %}
+
+{% block extra_head %}
+<style>
+    .email-editor {
+        display: grid;
+        grid-template-columns: 300px 1fr 300px;
+        height: calc(100vh - 100px);
+        gap: 1rem;
+    }
+    
+    .component-palette {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow-y: auto;
+    }
+    
+    .canvas-area {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow-y: auto;
+        position: relative;
+    }
+    
+    .properties-panel {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow-y: auto;
+    }
+    
+    .component-item {
+        padding: 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        margin: 8px;
+        cursor: grab;
+        background: white;
+        transition: all 0.2s;
+    }
+    
+    .component-item:hover {
+        border-color: #6366f1;
+        box-shadow: 0 2px 4px rgba(99, 102, 241, 0.1);
+    }
+    
+    .component-item:active {
+        cursor: grabbing;
+    }
+    
+    .email-canvas {
+        max-width: 600px;
+        margin: 20px auto;
+        background: white;
+        border: 1px solid #e5e7eb;
+        min-height: 400px;
+    }
+    
+    .drop-zone {
+        min-height: 60px;
+        border: 2px dashed #e5e7eb;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #9ca3af;
+        margin: 8px;
+        transition: all 0.2s;
+    }
+    
+    .drop-zone.dragover {
+        border-color: #6366f1;
+        background-color: #f8fafc;
+        color: #6366f1;
+    }
+    
+    .email-component {
+        position: relative;
+        margin: 8px;
+        padding: 12px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .email-component:hover {
+        border-color: #6366f1;
+    }
+    
+    .email-component.selected {
+        border-color: #6366f1 !important;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important;
+        background-color: rgba(99, 102, 241, 0.05) !important;
+    }
+    
+    .component-controls {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        display: none;
+        gap: 4px;
+    }
+    
+    .email-component:hover .component-controls,
+    .email-component.selected .component-controls {
+        display: flex;
+    }
+    
+    .control-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #6366f1;
+        color: white;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 12px;
+    }
+    
+    .preview-modes {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    
+    .preview-mode {
+        padding: 6px 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    
+    .preview-mode.active {
+        background: hsl(222.2 47.4% 11.2%);
+        color: white;
+        border-color: hsl(222.2 47.4% 11.2%);
+    }
+    
+    .html-editor {
+        display: none;
+        width: 100%;
+        height: 400px;
+        font-family: 'Courier New', monospace;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        padding: 12px;
+        resize: vertical;
+    }
+    
+    .mobile-preview .email-canvas {
+        max-width: 375px;
+    }
+    
+    .form-group {
+        margin-bottom: 16px;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 4px;
+        font-size: 14px;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .form-textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        font-size: 14px;
+        min-height: 80px;
+        resize: vertical;
+    }
+    
+    .color-input {
+        width: 40px;
+        height: 32px;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    .editor-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 16px;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+    }
+    
+    .editor-actions {
+        display: flex;
+        gap: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="editor-header">
+    <div>
+        <h1 class="text-2xl font-bold">{% if template_id %}Edit Email Template{% else %}Create Email Template{% endif %}</h1>
+        <p class="text-muted-foreground">Design professional email templates with drag & drop</p>
+    </div>
+    <div class="flex space-x-2">
+        <button onclick="previewEmail()" class="px-4 py-2 text-sm border border-border rounded-md hover:bg-accent transition-colors">
+            <i data-lucide="eye" class="inline h-4 w-4 mr-2"></i>
+            Preview
+        </button>
+        <button onclick="saveTemplate()" class="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+            <i data-lucide="save" class="inline h-4 w-4 mr-2"></i>
+            Save Template
+        </button>
+    </div>
+</div>
+
+<div class="email-editor">
+    <!-- Component Palette -->
+    <div class="component-palette">
+        <div class="p-4 border-b border-border">
+            <h3 class="font-semibold mb-2">Components</h3>
+            <p class="text-sm text-muted-foreground">Drag components to canvas</p>
+        </div>
+        
+        <div class="p-4 space-y-2">
+            <div class="component-item" draggable="true" data-component="header">
+                <div class="flex items-center">
+                    <i data-lucide="type" class="h-4 w-4 mr-2"></i>
+                    <span class="text-sm font-medium">Header</span>
+                </div>
+                <p class="text-xs text-muted-foreground mt-1">Large heading text</p>
+            </div>
+            
+            <div class="component-item" draggable="true" data-component="text">
+                <div class="flex items-center">
+                    <i data-lucide="align-left" class="h-4 w-4 mr-2"></i>
+                    <span class="text-sm font-medium">Text Block</span>
+                </div>
+                <p class="text-xs text-muted-foreground mt-1">Paragraph text content</p>
+            </div>
+            
+            <div class="component-item" draggable="true" data-component="button">
+                <div class="flex items-center">
+                    <i data-lucide="mouse-pointer-click" class="h-4 w-4 mr-2"></i>
+                    <span class="text-sm font-medium">Button</span>
+                </div>
+                <p class="text-xs text-muted-foreground mt-1">Call-to-action button</p>
+            </div>
+            
+            <div class="component-item" draggable="true" data-component="image">
+                <div class="flex items-center">
+                    <i data-lucide="image" class="h-4 w-4 mr-2"></i>
+                    <span class="text-sm font-medium">Image</span>
+                </div>
+                <p class="text-xs text-muted-foreground mt-1">Photo or graphic</p>
+            </div>
+            
+            <div class="component-item" draggable="true" data-component="divider">
+                <div class="flex items-center">
+                    <i data-lucide="minus" class="h-4 w-4 mr-2"></i>
+                    <span class="text-sm font-medium">Divider</span>
+                </div>
+                <p class="text-xs text-muted-foreground mt-1">Horizontal line</p>
+            </div>
+            
+            <div class="component-item" draggable="true" data-component="spacer">
+                <div class="flex items-center">
+                    <i data-lucide="move-vertical" class="h-4 w-4 mr-2"></i>
+                    <span class="text-sm font-medium">Spacer</span>
+                </div>
+                <p class="text-xs text-muted-foreground mt-1">Vertical spacing</p>
+            </div>
+            
+            <div class="component-item" draggable="true" data-component="social">
+                <div class="flex items-center">
+                    <i data-lucide="share-2" class="h-4 w-4 mr-2"></i>
+                    <span class="text-sm font-medium">Social Links</span>
+                </div>
+                <p class="text-xs text-muted-foreground mt-1">Social media icons</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Canvas Area -->
+    <div class="canvas-area">
+        <div class="p-4 border-b border-border">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <input type="text" id="templateName" class="form-input" placeholder="Template Name" style="width: 200px;">
+                    </div>
+                    <button onclick="toggleHTMLMode()" id="htmlModeBtn" class="px-3 py-1 text-sm border border-border rounded-md hover:bg-accent transition-colors">
+                        <i data-lucide="code" class="inline h-4 w-4 mr-1"></i>
+                        HTML Mode
+                    </button>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="preview-modes">
+                        <button class="preview-mode active" onclick="setPreviewMode('desktop')">
+                            <i data-lucide="monitor" class="inline h-4 w-4 mr-1"></i>
+                            Desktop
+                        </button>
+                        <button class="preview-mode" onclick="setPreviewMode('mobile')">
+                            <i data-lucide="smartphone" class="inline h-4 w-4 mr-1"></i>
+                            Mobile
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="canvasContainer" class="p-4">
+            <div class="email-canvas" id="emailCanvas">
+                <div class="drop-zone" id="mainDropZone">
+                    <p>Drag components here to start building your email</p>
+                </div>
+            </div>
+            
+            <!-- HTML Editor Mode -->
+            <div id="htmlEditorContainer" class="hidden">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Edit HTML Directly</label>
+                    <textarea id="htmlEditor" class="html-editor" placeholder="Paste or edit your HTML here..."></textarea>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button onclick="applyHTMLChanges()" class="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                        Apply Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Properties Panel -->
+    <div class="properties-panel">
+        <div class="p-4 border-b border-border">
+            <h3 class="font-semibold">Properties</h3>
+            <p class="text-sm text-muted-foreground">Configure selected component</p>
+        </div>
+        
+        <div id="propertiesContent" class="p-4">
+            <div class="text-center py-8 text-muted-foreground">
+                <i data-lucide="mouse-pointer-click" class="h-8 w-8 mx-auto mb-2"></i>
+                <p>Select a component to edit its properties</p>
+            </div>
+        </div>
+        
+        <!-- Available Variables -->
+        <div class="border-t border-border p-4">
+            <h4 class="font-semibold mb-3">Available Variables</h4>
+            <div id="variableInstructions" class="mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                <div class="font-medium text-blue-800">How to use:</div>
+                <div class="text-blue-700">1. Click a text/header/button component in the canvas</div>
+                <div class="text-blue-700">2. Click any variable below to insert it</div>
+            </div>
+            <div id="selectedComponentInfo" class="mb-3 p-2 bg-green-50 border border-green-200 rounded text-xs hidden">
+                <div class="font-medium text-green-800">Selected: <span id="selectedType"></span></div>
+                <div class="text-green-700">Ready to insert variables!</div>
+            </div>
+            
+            <div class="space-y-2">
+                <div class="grid grid-cols-1 gap-2">
+                    <button onclick="insertVariable('{{username}}')" class="w-full text-left px-3 py-2 text-sm bg-secondary hover:bg-accent rounded border border-border transition-colors">
+                        <span class="font-mono text-primary">{{username}}</span>
+                        <div class="text-xs text-muted-foreground">User's name</div>
+                    </button>
+                    <button onclick="insertVariable('{{email}}')" class="w-full text-left px-3 py-2 text-sm bg-secondary hover:bg-accent rounded border border-border transition-colors">
+                        <span class="font-mono text-primary">{{email}}</span>
+                        <div class="text-xs text-muted-foreground">User's email</div>
+                    </button>
+                    <button onclick="insertVariable('{{password}}')" class="w-full text-left px-3 py-2 text-sm bg-secondary hover:bg-accent rounded border border-border transition-colors">
+                        <span class="font-mono text-primary">{{password}}</span>
+                        <div class="text-xs text-muted-foreground">Generated password</div>
+                    </button>
+                    <button onclick="insertVariable('{{amount}}')" class="w-full text-left px-3 py-2 text-sm bg-secondary hover:bg-accent rounded border border-border transition-colors">
+                        <span class="font-mono text-primary">{{amount}}</span>
+                        <div class="text-xs text-muted-foreground">Purchase amount</div>
+                    </button>
+                    <button onclick="insertVariable('{{order_id}}')" class="w-full text-left px-3 py-2 text-sm bg-secondary hover:bg-accent rounded border border-border transition-colors">
+                        <span class="font-mono text-primary">{{order_id}}</span>
+                        <div class="text-xs text-muted-foreground">Order ID</div>
+                    </button>
+                    <button onclick="insertVariable('{{company_name}}')" class="w-full text-left px-3 py-2 text-sm bg-secondary hover:bg-accent rounded border border-border transition-colors">
+                        <span class="font-mono text-primary">{{company_name}}</span>
+                        <div class="text-xs text-muted-foreground">VectorCraft</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Template Settings -->
+        <div class="border-t border-border p-4">
+            <h4 class="font-semibold mb-3">Template Settings</h4>
+            
+            <div class="form-group">
+                <label class="form-label">Subject Line</label>
+                <input type="text" id="templateSubject" class="form-input" placeholder="Enter email subject">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select id="templateCategory" class="form-input">
+                    <option value="general">General</option>
+                    <option value="welcome">Welcome</option>
+                    <option value="purchase">Purchase</option>
+                    <option value="followup">Follow-up</option>
+                    <option value="promotional">Promotional</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea id="templateDescription" class="form-textarea" placeholder="Template description"></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center p-4 border-b border-border">
+                <h3 class="text-lg font-semibold">Email Preview</h3>
+                <button onclick="closePreviewModal()" class="p-2 hover:bg-accent rounded">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+                <div id="previewContent" class="max-w-600px mx-auto bg-white border border-border">
+                    <!-- Preview content will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let currentTemplate = null;
+    let selectedComponent = null;
+    let componentCounter = 0;
+    let previewMode = 'desktop';
+    let isHTMLMode = false;
+    
+    // Component templates
+    const componentTemplates = {
+        header: {
+            html: '<h1 style="font-size: 28px; font-weight: bold; margin: 16px 0; color: #1f2937;">Your Header Text</h1>',
+            properties: {
+                text: 'Your Header Text',
+                fontSize: '28',
+                color: '#1f2937',
+                textAlign: 'left'
+            }
+        },
+        text: {
+            html: '<p style="font-size: 16px; line-height: 1.5; margin: 12px 0; color: #374151;">Your text content goes here. You can write multiple paragraphs and format them as needed.</p>',
+            properties: {
+                text: 'Your text content goes here. You can write multiple paragraphs and format them as needed.',
+                fontSize: '16',
+                color: '#374151',
+                textAlign: 'left'
+            }
+        },
+        button: {
+            html: '<div style="text-align: center; margin: 20px 0;"><a href="#" style="display: inline-block; background-color: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">Click Here</a></div>',
+            properties: {
+                text: 'Click Here',
+                href: '#',
+                backgroundColor: '#6366f1',
+                textColor: '#ffffff',
+                textAlign: 'center'
+            }
+        },
+        image: {
+            html: '<div style="text-align: center; margin: 16px 0;"><img src="https://via.placeholder.com/400x200" alt="Image" style="max-width: 100%; height: auto; border-radius: 4px;"></div>',
+            properties: {
+                src: 'https://via.placeholder.com/400x200',
+                alt: 'Image',
+                width: '400',
+                textAlign: 'center'
+            }
+        },
+        divider: {
+            html: '<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">',
+            properties: {
+                color: '#e5e7eb',
+                thickness: '1'
+            }
+        },
+        spacer: {
+            html: '<div style="height: 40px;"></div>',
+            properties: {
+                height: '40'
+            }
+        },
+        social: {
+            html: '<div style="text-align: center; margin: 20px 0;"><a href="#" style="display: inline-block; margin: 0 8px;"><img src="https://via.placeholder.com/32x32" alt="Facebook" style="width: 32px; height: 32px;"></a><a href="#" style="display: inline-block; margin: 0 8px;"><img src="https://via.placeholder.com/32x32" alt="Twitter" style="width: 32px; height: 32px;"></a><a href="#" style="display: inline-block; margin: 0 8px;"><img src="https://via.placeholder.com/32x32" alt="LinkedIn" style="width: 32px; height: 32px;"></a></div>',
+            properties: {
+                textAlign: 'center',
+                iconSize: '32'
+            }
+        }
+    };
+    
+    // Initialize editor
+    document.addEventListener('DOMContentLoaded', function() {
+        lucide.createIcons();
+        setupDragAndDrop();
+        setupEventListeners();
+        
+        // Load template if editing
+        const templateId = {{ template_id if template_id else 'null' }};
+        if (templateId) {
+            loadTemplate(templateId);
+        }
+    });
+    
+    function setupEventListeners() {
+        // Canvas click handler
+        document.getElementById('emailCanvas').addEventListener('click', function(e) {
+            const component = e.target.closest('.email-component');
+            if (component) {
+                selectComponent(component);
+            } else {
+                deselectAllComponents();
+            }
+        });
+    }
+    
+    function setupDragAndDrop() {
+        // Component palette drag events
+        document.querySelectorAll('.component-item').forEach(item => {
+            item.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('text/plain', this.dataset.component);
+            });
+        });
+        
+        // Canvas drop events
+        const canvas = document.getElementById('emailCanvas');
+        const dropZone = document.getElementById('mainDropZone');
+        
+        [canvas, dropZone].forEach(element => {
+            element.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('dragover');
+            });
+            
+            element.addEventListener('dragleave', function(e) {
+                if (!this.contains(e.relatedTarget)) {
+                    this.classList.remove('dragover');
+                }
+            });
+            
+            element.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('dragover');
+                
+                const componentType = e.dataTransfer.getData('text/plain');
+                if (componentType) {
+                    addComponent(componentType);
+                }
+            });
+        });
+    }
+    
+    function addComponent(type) {
+        const template = componentTemplates[type];
+        if (!template) return;
+        
+        componentCounter++;
+        const componentId = `component_${type}_${componentCounter}`;
+        
+        // Create component element
+        const componentDiv = document.createElement('div');
+        componentDiv.className = 'email-component';
+        componentDiv.dataset.type = type;
+        componentDiv.dataset.id = componentId;
+        componentDiv.innerHTML = `
+            ${template.html}
+            <div class="component-controls">
+                <button class="control-btn" onclick="moveComponentUp('${componentId}')" title="Move Up">↑</button>
+                <button class="control-btn" onclick="moveComponentDown('${componentId}')" title="Move Down">↓</button>
+                <button class="control-btn" onclick="deleteComponent('${componentId}')" title="Delete">×</button>
+            </div>
+        `;
+        
+        // Store properties
+        componentDiv.dataset.properties = JSON.stringify(template.properties);
+        
+        // Add to canvas
+        const canvas = document.getElementById('emailCanvas');
+        const dropZone = document.getElementById('mainDropZone');
+        
+        if (canvas.children.length === 1 && canvas.children[0] === dropZone) {
+            canvas.removeChild(dropZone);
+        }
+        
+        canvas.appendChild(componentDiv);
+        selectComponent(componentDiv);
+    }
+    
+    function selectComponent(component) {
+        deselectAllComponents();
+        component.classList.add('selected');
+        selectedComponent = component;
+        showProperties(component);
+        updateVariableInstructions();
+    }
+    
+    function deselectAllComponents() {
+        document.querySelectorAll('.email-component').forEach(comp => {
+            comp.classList.remove('selected');
+        });
+        selectedComponent = null;
+        hideProperties();
+        updateVariableInstructions();
+    }
+    
+    function updateVariableInstructions() {
+        const instructions = document.getElementById('variableInstructions');
+        const selectedInfo = document.getElementById('selectedComponentInfo');
+        const selectedTypeSpan = document.getElementById('selectedType');
+        
+        if (selectedComponent) {
+            const type = selectedComponent.dataset.type;
+            if (type === 'header' || type === 'text' || type === 'button') {
+                instructions.classList.add('hidden');
+                selectedInfo.classList.remove('hidden');
+                selectedTypeSpan.textContent = type.charAt(0).toUpperCase() + type.slice(1) + ' Component';
+            } else {
+                instructions.classList.remove('hidden');
+                selectedInfo.classList.add('hidden');
+            }
+        } else {
+            instructions.classList.remove('hidden');
+            selectedInfo.classList.add('hidden');
+        }
+    }
+    
+    function showProperties(component) {
+        const type = component.dataset.type;
+        const properties = JSON.parse(component.dataset.properties);
+        
+        let propertiesHTML = `<h4 class="font-semibold mb-3">${type.charAt(0).toUpperCase() + type.slice(1)} Properties</h4>`;
+        
+        // Generate property fields based on component type
+        if (type === 'header' || type === 'text') {
+            propertiesHTML += `
+                <div class="form-group">
+                    <label class="form-label">Text</label>
+                    <textarea class="form-textarea" onchange="updateProperty('text', this.value)">${properties.text}</textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Font Size</label>
+                    <input type="number" class="form-input" value="${properties.fontSize}" onchange="updateProperty('fontSize', this.value)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Color</label>
+                    <input type="color" class="color-input" value="${properties.color}" onchange="updateProperty('color', this.value)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Text Align</label>
+                    <select class="form-input" onchange="updateProperty('textAlign', this.value)">
+                        <option value="left" ${properties.textAlign === 'left' ? 'selected' : ''}>Left</option>
+                        <option value="center" ${properties.textAlign === 'center' ? 'selected' : ''}>Center</option>
+                        <option value="right" ${properties.textAlign === 'right' ? 'selected' : ''}>Right</option>
+                    </select>
+                </div>
+            `;
+        } else if (type === 'button') {
+            propertiesHTML += `
+                <div class="form-group">
+                    <label class="form-label">Button Text</label>
+                    <input type="text" class="form-input" value="${properties.text}" onchange="updateProperty('text', this.value)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Link URL</label>
+                    <input type="text" class="form-input" value="${properties.href}" onchange="updateProperty('href', this.value)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Background Color</label>
+                    <input type="color" class="color-input" value="${properties.backgroundColor}" onchange="updateProperty('backgroundColor', this.value)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Text Color</label>
+                    <input type="color" class="color-input" value="${properties.textColor}" onchange="updateProperty('textColor', this.value)">
+                </div>
+            `;
+        } else if (type === 'image') {
+            propertiesHTML += `
+                <div class="form-group">
+                    <label class="form-label">Image Source</label>
+                    <div class="space-y-2">
+                        <input type="file" id="imageFile" class="form-input" accept="image/*" onchange="handleImageUpload(this)">
+                        <div class="text-xs text-muted-foreground">Or enter URL:</div>
+                        <input type="text" id="imageUrl" class="form-input" value="${properties.src}" onchange="updateProperty('src', this.value)" placeholder="https://example.com/image.jpg">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Alt Text</label>
+                    <input type="text" class="form-input" value="${properties.alt}" onchange="updateProperty('alt', this.value)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Width</label>
+                    <input type="number" class="form-input" value="${properties.width}" onchange="updateProperty('width', this.value)">
+                </div>
+            `;
+        } else if (type === 'spacer') {
+            propertiesHTML += `
+                <div class="form-group">
+                    <label class="form-label">Height (px)</label>
+                    <input type="number" class="form-input" value="${properties.height}" onchange="updateProperty('height', this.value)">
+                </div>
+            `;
+        }
+        
+        document.getElementById('propertiesContent').innerHTML = propertiesHTML;
+    }
+    
+    function hideProperties() {
+        document.getElementById('propertiesContent').innerHTML = `
+            <div class="text-center py-8 text-muted-foreground">
+                <i data-lucide="mouse-pointer-click" class="h-8 w-8 mx-auto mb-2"></i>
+                <p>Select a component to edit its properties</p>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+    
+    function updateProperty(property, value) {
+        if (!selectedComponent) return;
+        
+        const properties = JSON.parse(selectedComponent.dataset.properties);
+        properties[property] = value;
+        selectedComponent.dataset.properties = JSON.stringify(properties);
+        
+        // Update the component HTML
+        updateComponentHTML(selectedComponent);
+    }
+    
+    function updateComponentHTML(component) {
+        const type = component.dataset.type;
+        const properties = JSON.parse(component.dataset.properties);
+        
+        // Find the actual content element (not the controls)
+        const contentElement = component.querySelector(':not(.component-controls)');
+        
+        if (type === 'header') {
+            contentElement.textContent = properties.text;
+            contentElement.style.fontSize = properties.fontSize + 'px';
+            contentElement.style.color = properties.color;
+            contentElement.style.textAlign = properties.textAlign;
+        } else if (type === 'text') {
+            contentElement.textContent = properties.text;
+            contentElement.style.fontSize = properties.fontSize + 'px';
+            contentElement.style.color = properties.color;
+            contentElement.style.textAlign = properties.textAlign;
+        } else if (type === 'button') {
+            const link = contentElement.querySelector('a');
+            link.textContent = properties.text;
+            link.href = properties.href;
+            link.style.backgroundColor = properties.backgroundColor;
+            link.style.color = properties.textColor;
+        } else if (type === 'image') {
+            const img = contentElement.querySelector('img');
+            img.src = properties.src;
+            img.alt = properties.alt;
+            img.style.width = properties.width + 'px';
+        } else if (type === 'spacer') {
+            contentElement.style.height = properties.height + 'px';
+        }
+    }
+    
+    function moveComponentUp(componentId) {
+        const component = document.querySelector(`[data-id="${componentId}"]`);
+        const previous = component.previousElementSibling;
+        if (previous) {
+            component.parentNode.insertBefore(component, previous);
+        }
+    }
+    
+    function moveComponentDown(componentId) {
+        const component = document.querySelector(`[data-id="${componentId}"]`);
+        const next = component.nextElementSibling;
+        if (next) {
+            component.parentNode.insertBefore(next, component);
+        }
+    }
+    
+    function deleteComponent(componentId) {
+        const component = document.querySelector(`[data-id="${componentId}"]`);
+        if (component === selectedComponent) {
+            deselectAllComponents();
+        }
+        component.remove();
+        
+        // Add drop zone back if canvas is empty
+        const canvas = document.getElementById('emailCanvas');
+        if (canvas.children.length === 0) {
+            canvas.innerHTML = '<div class="drop-zone" id="mainDropZone"><p>Drag components here to start building your email</p></div>';
+            setupDragAndDrop();
+        }
+    }
+    
+    function setPreviewMode(mode) {
+        previewMode = mode;
+        const container = document.getElementById('canvasContainer');
+        const modes = document.querySelectorAll('.preview-mode');
+        
+        modes.forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        if (mode === 'mobile') {
+            container.classList.add('mobile-preview');
+        } else {
+            container.classList.remove('mobile-preview');
+        }
+    }
+    
+    function previewEmail() {
+        const canvas = document.getElementById('emailCanvas');
+        const previewContent = document.getElementById('previewContent');
+        
+        // Generate clean HTML without controls
+        let html = '';
+        canvas.querySelectorAll('.email-component').forEach(component => {
+            const clone = component.cloneNode(true);
+            clone.querySelector('.component-controls').remove();
+            clone.classList.remove('email-component', 'selected');
+            clone.style.border = 'none';
+            clone.style.margin = '0';
+            clone.style.padding = '0';
+            html += clone.outerHTML;
+        });
+        
+        previewContent.innerHTML = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                ${html}
+            </div>
+        `;
+        
+        document.getElementById('previewModal').classList.remove('hidden');
+    }
+    
+    function closePreviewModal() {
+        document.getElementById('previewModal').classList.add('hidden');
+    }
+    
+    function saveTemplate() {
+        const name = document.getElementById('templateName').value;
+        const subject = document.getElementById('templateSubject').value;
+        const category = document.getElementById('templateCategory').value;
+        const description = document.getElementById('templateDescription').value;
+        
+        if (!name || !subject) {
+            alert('Please fill in template name and subject');
+            return;
+        }
+        
+        // Generate HTML content
+        const canvas = document.getElementById('emailCanvas');
+        let html = '';
+        const components = [];
+        
+        canvas.querySelectorAll('.email-component').forEach(component => {
+            const clone = component.cloneNode(true);
+            clone.querySelector('.component-controls').remove();
+            clone.classList.remove('email-component', 'selected');
+            clone.style.border = 'none';
+            clone.style.margin = '0';
+            clone.style.padding = '0';
+            html += clone.outerHTML;
+            
+            // Store component data for JSON
+            components.push({
+                type: component.dataset.type,
+                id: component.dataset.id,
+                properties: JSON.parse(component.dataset.properties)
+            });
+        });
+        
+        const finalHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${subject}</title>
+            </head>
+            <body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    ${html}
+                </div>
+                <img src="{{tracking_pixel_url}}" width="1" height="1" style="display: none;">
+            </body>
+            </html>
+        `;
+        
+        const templateData = {
+            name: name,
+            subject: subject,
+            content_html: finalHTML,
+            content_json: JSON.stringify(components),
+            category: category,
+            description: description
+        };
+        
+        // Save via API
+        const url = currentTemplate ? `/admin/api/email/templates/${currentTemplate.id}` : '/admin/api/email/templates';
+        const method = currentTemplate ? 'PUT' : 'POST';
+        
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(templateData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Template saved successfully!');
+                if (!currentTemplate) {
+                    window.location.href = '/admin/email/templates';
+                }
+            } else {
+                alert('Error saving template: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving template:', error);
+            alert('Error saving template');
+        });
+    }
+    
+    function loadTemplate(templateId) {
+        fetch(`/admin/api/email/templates/${templateId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentTemplate = data.template;
+                    
+                    // Fill form fields
+                    document.getElementById('templateName').value = currentTemplate.name;
+                    document.getElementById('templateSubject').value = currentTemplate.subject;
+                    document.getElementById('templateCategory').value = currentTemplate.category;
+                    document.getElementById('templateDescription').value = currentTemplate.description || '';
+                    
+                    // Load components if available
+                    if (currentTemplate.content_json) {
+                        try {
+                            const components = JSON.parse(currentTemplate.content_json);
+                            loadComponents(components);
+                        } catch (e) {
+                            console.error('Error parsing component JSON:', e);
+                        }
+                    }
+                } else {
+                    alert('Error loading template: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading template:', error);
+                alert('Error loading template');
+            });
+    }
+    
+    function loadComponents(components) {
+        const canvas = document.getElementById('emailCanvas');
+        const dropZone = document.getElementById('mainDropZone');
+        
+        if (dropZone) {
+            canvas.removeChild(dropZone);
+        }
+        
+        components.forEach(compData => {
+            const componentDiv = document.createElement('div');
+            componentDiv.className = 'email-component';
+            componentDiv.dataset.type = compData.type;
+            componentDiv.dataset.id = compData.id;
+            componentDiv.dataset.properties = JSON.stringify(compData.properties);
+            
+            // Create HTML based on type and properties
+            const template = componentTemplates[compData.type];
+            componentDiv.innerHTML = `
+                ${template.html}
+                <div class="component-controls">
+                    <button class="control-btn" onclick="moveComponentUp('${compData.id}')" title="Move Up">↑</button>
+                    <button class="control-btn" onclick="moveComponentDown('${compData.id}')" title="Move Down">↓</button>
+                    <button class="control-btn" onclick="deleteComponent('${compData.id}')" title="Delete">×</button>
+                </div>
+            `;
+            
+            canvas.appendChild(componentDiv);
+            updateComponentHTML(componentDiv);
+        });
+    }
+    
+    // HTML Mode Functions
+    function toggleHTMLMode() {
+        isHTMLMode = !isHTMLMode;
+        const canvasContainer = document.getElementById('emailCanvas').parentElement;
+        const htmlContainer = document.getElementById('htmlEditorContainer');
+        const htmlBtn = document.getElementById('htmlModeBtn');
+        
+        if (isHTMLMode) {
+            // Switch to HTML mode
+            canvasContainer.style.display = 'none';
+            htmlContainer.classList.remove('hidden');
+            htmlContainer.style.display = 'block';
+            htmlBtn.innerHTML = '<i data-lucide="layout" class="inline h-4 w-4 mr-1"></i>Visual Mode';
+            
+            // Get current HTML from canvas
+            const canvas = document.getElementById('emailCanvas');
+            let html = '';
+            canvas.querySelectorAll('.email-component').forEach(component => {
+                const clone = component.cloneNode(true);
+                clone.querySelector('.component-controls')?.remove();
+                clone.classList.remove('email-component', 'selected');
+                clone.style.border = 'none';
+                clone.style.margin = '0';
+                clone.style.padding = '0';
+                html += clone.outerHTML;
+            });
+            
+            document.getElementById('htmlEditor').value = html;
+            document.getElementById('htmlEditor').style.display = 'block';
+        } else {
+            // Switch to visual mode
+            canvasContainer.style.display = 'block';
+            htmlContainer.classList.add('hidden');
+            htmlBtn.innerHTML = '<i data-lucide="code" class="inline h-4 w-4 mr-1"></i>HTML Mode';
+        }
+        lucide.createIcons();
+    }
+    
+    function applyHTMLChanges() {
+        const htmlContent = document.getElementById('htmlEditor').value;
+        // For now, just show an alert. You could parse and rebuild components here
+        alert('HTML changes applied! Note: This will replace the visual components.');
+        
+        // Clear canvas and add HTML content
+        const canvas = document.getElementById('emailCanvas');
+        canvas.innerHTML = htmlContent;
+        
+        // Switch back to visual mode
+        toggleHTMLMode();
+    }
+    
+    // Variable insertion function
+    function insertVariable(variable) {
+        console.log('Inserting variable:', variable, 'Selected component:', selectedComponent);
+        
+        if (selectedComponent) {
+            const type = selectedComponent.dataset.type;
+            console.log('Component type:', type);
+            
+            if (type === 'header' || type === 'text') {
+                // Find the actual text element
+                const textElement = selectedComponent.querySelector('h1, p');
+                console.log('Text element found:', textElement);
+                
+                if (textElement) {
+                    // Get current text and append variable
+                    const currentText = textElement.textContent || textElement.innerText || '';
+                    const newText = currentText + (currentText ? ' ' : '') + variable;
+                    
+                    // Update the text content
+                    textElement.textContent = newText;
+                    textElement.innerText = newText;
+                    
+                    console.log('Updated text:', newText);
+                    
+                    // Update the stored properties
+                    const properties = JSON.parse(selectedComponent.dataset.properties || '{}');
+                    properties.text = newText;
+                    selectedComponent.dataset.properties = JSON.stringify(properties);
+                    
+                    // Also update any textarea in the properties panel
+                    const textArea = document.querySelector('#propertiesContent textarea');
+                    if (textArea) {
+                        textArea.value = newText;
+                    }
+                    
+                    // Show success feedback
+                    showVariableInsertedFeedback();
+                    
+                    console.log('Variable inserted successfully');
+                } else {
+                    console.error('No text element found in component');
+                    alert('Could not find text element in selected component');
+                }
+            } else if (type === 'button') {
+                const linkElement = selectedComponent.querySelector('a');
+                console.log('Button element found:', linkElement);
+                
+                if (linkElement) {
+                    const currentText = linkElement.textContent || linkElement.innerText || '';
+                    const newText = currentText + (currentText ? ' ' : '') + variable;
+                    
+                    linkElement.textContent = newText;
+                    linkElement.innerText = newText;
+                    
+                    // Update properties
+                    const properties = JSON.parse(selectedComponent.dataset.properties || '{}');
+                    properties.text = newText;
+                    selectedComponent.dataset.properties = JSON.stringify(properties);
+                    
+                    // Update properties panel if visible
+                    const buttonTextInput = document.querySelector('#propertiesContent input[onchange*="text"]');
+                    if (buttonTextInput) {
+                        buttonTextInput.value = newText;
+                    }
+                    
+                    showVariableInsertedFeedback();
+                } else {
+                    console.error('No link element found in button component');
+                    alert('Could not find button element in selected component');
+                }
+            } else {
+                alert('Variables can only be inserted into text, header, or button components. Selected: ' + type);
+            }
+        } else {
+            // If no component selected, offer alternatives
+            const subjectInput = document.getElementById('templateSubject');
+            if (confirm('No component selected. Would you like to insert the variable into the subject line instead?')) {
+                if (subjectInput) {
+                    const currentSubject = subjectInput.value || '';
+                    subjectInput.value = currentSubject + (currentSubject ? ' ' : '') + variable;
+                    showVariableInsertedFeedback();
+                } else {
+                    alert('Subject field not found');
+                }
+            } else {
+                alert('Please select a text component (header, text, or button) first, then click the variable to insert it.');
+            }
+        }
+    }
+    
+    // Show feedback when variable is inserted
+    function showVariableInsertedFeedback() {
+        // Create a temporary success message
+        const feedback = document.createElement('div');
+        feedback.textContent = 'Variable inserted!';
+        feedback.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #22c55e;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        `;
+        document.body.appendChild(feedback);
+        
+        // Remove after 2 seconds
+        setTimeout(() => {
+            if (feedback.parentNode) {
+                feedback.parentNode.removeChild(feedback);
+            }
+        }, 2000);
+    }
+    
+    // Image upload handler
+    function handleImageUpload(input) {
+        const file = input.files[0];
+        if (file) {
+            // Create a preview URL
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageUrl = e.target.result;
+                // Update the image URL field
+                document.getElementById('imageUrl').value = imageUrl;
+                // Update the component property
+                updateProperty('src', imageUrl);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+    
+    // Fix saveTemplate function to handle errors better
+    function saveTemplate() {
+        const name = document.getElementById('templateName').value;
+        const subject = document.getElementById('templateSubject').value;
+        const category = document.getElementById('templateCategory').value;
+        const description = document.getElementById('templateDescription').value;
+        
+        if (!name || !subject) {
+            alert('Please fill in template name and subject');
+            return;
+        }
+        
+        let html = '';
+        const components = [];
+        
+        if (isHTMLMode) {
+            // Get HTML from editor
+            html = document.getElementById('htmlEditor').value;
+        } else {
+            // Generate HTML content from canvas
+            const canvas = document.getElementById('emailCanvas');
+            
+            canvas.querySelectorAll('.email-component').forEach(component => {
+                const clone = component.cloneNode(true);
+                clone.querySelector('.component-controls')?.remove();
+                clone.classList.remove('email-component', 'selected');
+                clone.style.border = 'none';
+                clone.style.margin = '0';
+                clone.style.padding = '0';
+                html += clone.outerHTML;
+                
+                // Store component data for JSON
+                components.push({
+                    type: component.dataset.type,
+                    id: component.dataset.id,
+                    properties: JSON.parse(component.dataset.properties)
+                });
+            });
+        }
+        
+        const finalHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${subject}</title>
+            </head>
+            <body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    ${html}
+                </div>
+                <img src="{{tracking_pixel_url}}" width="1" height="1" style="display: none;">
+            </body>
+            </html>
+        `;
+        
+        const templateData = {
+            name: name,
+            subject: subject,
+            content_html: finalHTML,
+            content_json: JSON.stringify(components),
+            category: category,
+            description: description
+        };
+        
+        // Save via API
+        const url = currentTemplate ? `/admin/api/email/templates/${currentTemplate.id}` : '/admin/api/email/templates';
+        const method = currentTemplate ? 'PUT' : 'POST';
+        
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(templateData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                alert('Template saved successfully!');
+                if (!currentTemplate) {
+                    window.location.href = '/admin/email/templates';
+                }
+            } else {
+                alert('Error saving template: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving template:', error);
+            alert('Error saving template: ' + error.message);
+        });
+    }
+    
+    // Global functions
+    window.setPreviewMode = setPreviewMode;
+    window.previewEmail = previewEmail;
+    window.closePreviewModal = closePreviewModal;
+    window.saveTemplate = saveTemplate;
+    window.updateProperty = updateProperty;
+    window.moveComponentUp = moveComponentUp;
+    window.moveComponentDown = moveComponentDown;
+    window.deleteComponent = deleteComponent;
+    window.toggleHTMLMode = toggleHTMLMode;
+    window.applyHTMLChanges = applyHTMLChanges;
+    window.insertVariable = insertVariable;
+    window.handleImageUpload = handleImageUpload;
+    window.updateVariableInstructions = updateVariableInstructions;
+    window.showVariableInsertedFeedback = showVariableInsertedFeedback;
+</script>
+{% endblock %}

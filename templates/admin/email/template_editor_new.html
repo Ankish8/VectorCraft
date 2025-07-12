@@ -1,0 +1,1700 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{% if template_id %}Edit{% else %}Create{% endif %} Email Template - VectorCraft Admin{% endblock %}
+
+{% block extra_head %}
+<!-- CodeMirror for HTML syntax highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/default.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closetag.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/xml-fold.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.0/beautify-html.min.js"></script>
+
+<style>
+    .email-editor {
+        display: grid;
+        grid-template-columns: 280px 1fr 320px;
+        height: calc(100vh - 80px);
+        min-height: 800px;
+        gap: 1rem;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+    
+    .component-palette {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow-y: auto;
+    }
+    
+    .canvas-area {
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow-y: auto;
+        position: relative;
+    }
+    
+    .properties-panel {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow-y: auto;
+    }
+    
+    .email-canvas {
+        max-width: 600px;
+        margin: 20px auto;
+        background: white;
+        border: 1px solid #e5e7eb;
+        min-height: 400px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .component-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        cursor: grab;
+        background: white;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .component-item:hover {
+        background-color: #f8fafc;
+    }
+    
+    .component-item:active {
+        cursor: grabbing;
+    }
+    
+    .drop-zone {
+        min-height: 80px;
+        border: 2px dashed #cbd5e1;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        margin: 16px;
+        transition: all 0.2s;
+        background: #f8fafc;
+    }
+    
+    .drop-zone.dragover {
+        border-color: #3b82f6;
+        background-color: #eff6ff;
+        color: #3b82f6;
+    }
+    
+    .email-component {
+        position: relative;
+        margin: 8px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    
+    .email-component:hover {
+        border-color: #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .email-component.selected {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+    }
+    
+    .component-controls {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        display: none;
+        gap: 4px;
+        z-index: 10;
+    }
+    
+    .email-component:hover .component-controls,
+    .email-component.selected .component-controls {
+        display: flex;
+    }
+    
+    .control-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .control-btn:hover {
+        background: #2563eb;
+    }
+    
+    .editable-text {
+        outline: none;
+        cursor: text;
+        padding: 4px;
+        border-radius: 2px;
+        transition: all 0.2s;
+    }
+    
+    .editable-text:focus {
+        background-color: #eff6ff;
+        border: 1px solid #3b82f6;
+    }
+    
+    .column-layout {
+        display: flex;
+        gap: 16px;
+        padding: 16px;
+    }
+    
+    .column {
+        flex: 1;
+        min-height: 100px;
+        border: 1px dashed #e2e8f0;
+        border-radius: 4px;
+        position: relative;
+    }
+    
+    .column.dragover {
+        border-color: #3b82f6;
+        background-color: #eff6ff;
+    }
+    
+    .variable-tag {
+        display: inline-block;
+        background: #fef3c7;
+        color: #92400e;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: monospace;
+        font-size: 12px;
+        border: 1px solid #f59e0b;
+        margin: 0 2px;
+    }
+    
+    .toolbar {
+        display: flex;
+        gap: 8px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f8fafc;
+    }
+    
+    .toolbar-btn {
+        padding: 6px 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+    
+    .toolbar-btn:hover {
+        background: #f1f5f9;
+    }
+    
+    .toolbar-btn.active {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h1 class="text-2xl font-bold">{% if template_id %}Edit Email Template{% else %}Create Email Template{% endif %}</h1>
+        <p class="text-muted-foreground">Professional drag & drop email builder</p>
+    </div>
+    <div class="flex space-x-2">
+        <button onclick="previewEmail()" class="px-4 py-2 text-sm border border-border rounded-md hover:bg-accent transition-colors">
+            <i data-lucide="eye" class="inline h-4 w-4 mr-2"></i>
+            Preview
+        </button>
+        <button onclick="saveTemplate()" class="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+            <i data-lucide="save" class="inline h-4 w-4 mr-2"></i>
+            Save Template
+        </button>
+    </div>
+</div>
+
+<div class="email-editor">
+    <!-- Component Palette -->
+    <div class="component-palette">
+        <div class="p-4 border-b border-border">
+            <h3 class="font-semibold mb-2">Components</h3>
+            <p class="text-sm text-muted-foreground">Drag to add components</p>
+        </div>
+        
+        <!-- Layout Components -->
+        <div class="p-3">
+            <h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Layout</h4>
+            <div class="space-y-1">
+                <div class="component-item" draggable="true" data-component="column-1">
+                    <i data-lucide="square" class="h-4 w-4 text-blue-600"></i>
+                    <span class="text-sm">1 Column</span>
+                </div>
+                <div class="component-item" draggable="true" data-component="column-2">
+                    <i data-lucide="columns" class="h-4 w-4 text-blue-600"></i>
+                    <span class="text-sm">2 Columns</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Content Components -->
+        <div class="p-3">
+            <h4 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Content</h4>
+            <div class="space-y-1">
+                <div class="component-item" draggable="true" data-component="heading">
+                    <i data-lucide="heading" class="h-4 w-4 text-green-600"></i>
+                    <span class="text-sm">Heading</span>
+                </div>
+                <div class="component-item" draggable="true" data-component="text">
+                    <i data-lucide="type" class="h-4 w-4 text-green-600"></i>
+                    <span class="text-sm">Text</span>
+                </div>
+                <div class="component-item" draggable="true" data-component="button">
+                    <i data-lucide="mouse-pointer-click" class="h-4 w-4 text-green-600"></i>
+                    <span class="text-sm">Button</span>
+                </div>
+                <div class="component-item" draggable="true" data-component="image">
+                    <i data-lucide="image" class="h-4 w-4 text-green-600"></i>
+                    <span class="text-sm">Image</span>
+                </div>
+                <div class="component-item" draggable="true" data-component="divider">
+                    <i data-lucide="minus" class="h-4 w-4 text-green-600"></i>
+                    <span class="text-sm">Divider</span>
+                </div>
+                <div class="component-item" draggable="true" data-component="spacer">
+                    <i data-lucide="move-vertical" class="h-4 w-4 text-green-600"></i>
+                    <span class="text-sm">Spacer</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Canvas Area -->
+    <div class="canvas-area">
+        <div class="toolbar">
+            <input type="text" id="templateName" placeholder="Template Name" class="flex-1 px-3 py-1 border border-border rounded text-sm">
+            <button onclick="toggleHTMLMode()" id="htmlModeBtn" class="toolbar-btn">
+                <i data-lucide="code" class="inline h-4 w-4 mr-1"></i>
+                HTML
+            </button>
+            <div class="flex border border-border rounded overflow-hidden">
+                <button onclick="setPreviewMode('desktop')" class="toolbar-btn active border-0" data-mode="desktop">
+                    <i data-lucide="monitor" class="h-4 w-4"></i>
+                </button>
+                <button onclick="setPreviewMode('mobile')" class="toolbar-btn border-0 border-l border-border" data-mode="mobile">
+                    <i data-lucide="smartphone" class="h-4 w-4"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div id="canvasContainer" class="p-4">
+            <div class="email-canvas" id="emailCanvas">
+                <div class="drop-zone" id="mainDropZone">
+                    <div class="text-center">
+                        <i data-lucide="plus" class="h-8 w-8 mx-auto mb-2 opacity-50"></i>
+                        <p class="text-sm">Drag components here to start building</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- HTML Editor (hidden by default) -->
+        <div id="htmlEditor" class="hidden p-4" style="height: calc(100vh - 200px);">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">HTML Source Editor</h3>
+                <div class="flex gap-2">
+                    <button onclick="formatHTMLInEditor()" class="px-3 py-1 text-sm border border-border rounded hover:bg-accent">Format HTML</button>
+                    <button onclick="cancelHTMLEdit()" class="px-3 py-1 text-sm border border-border rounded hover:bg-accent">Cancel</button>
+                    <button onclick="applyHTMLEdit()" class="px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90">Apply Changes</button>
+                </div>
+            </div>
+            <textarea id="htmlContent" class="w-full p-4 border border-border rounded font-mono text-sm" style="height: calc(100% - 80px); resize: none;" placeholder="Edit HTML directly..."></textarea>
+        </div>
+    </div>
+    
+    <!-- Properties Panel -->
+    <div class="properties-panel">
+        <div class="p-4 border-b border-border">
+            <h3 class="font-semibold">Properties</h3>
+            <p class="text-sm text-muted-foreground">Edit component settings</p>
+        </div>
+        
+        <div id="propertiesContent" class="p-4">
+            <div class="text-center py-8 text-muted-foreground">
+                <i data-lucide="mouse-pointer-click" class="h-8 w-8 mx-auto mb-2 opacity-50"></i>
+                <p class="text-sm">Select a component to edit</p>
+            </div>
+        </div>
+        
+        <!-- Variables Section -->
+        <div class="border-t border-border p-4">
+            <h4 class="font-semibold mb-3">Variables</h4>
+            <p class="text-xs text-muted-foreground mb-3">Click to insert variables</p>
+            
+            <div class="space-y-2">
+                <button class="variable-btn w-full text-left p-2 text-sm border border-border rounded hover:bg-accent transition-colors" data-variable="{{'{{'}}username{{'}}'}}">
+                    <div class="font-mono text-primary">{{'{{'}}username{{'}}'}}</div>
+                    <div class="text-xs text-muted-foreground">Customer name</div>
+                </button>
+                <button class="variable-btn w-full text-left p-2 text-sm border border-border rounded hover:bg-accent transition-colors" data-variable="{{'{{'}}email{{'}}'}}">
+                    <div class="font-mono text-primary">{{'{{'}}email{{'}}'}}</div>
+                    <div class="text-xs text-muted-foreground">Customer email</div>
+                </button>
+                <button class="variable-btn w-full text-left p-2 text-sm border border-border rounded hover:bg-accent transition-colors" data-variable="{{'{{'}}password{{'}}'}}">
+                    <div class="font-mono text-primary">{{'{{'}}password{{'}}'}}</div>
+                    <div class="text-xs text-muted-foreground">Generated password</div>
+                </button>
+                <button class="variable-btn w-full text-left p-2 text-sm border border-border rounded hover:bg-accent transition-colors" data-variable="{{'{{'}}amount{{'}}'}}">
+                    <div class="font-mono text-primary">{{'{{'}}amount{{'}}'}}</div>
+                    <div class="text-xs text-muted-foreground">Purchase amount</div>
+                </button>
+                <button class="variable-btn w-full text-left p-2 text-sm border border-border rounded hover:bg-accent transition-colors" data-variable="{{'{{'}}order_id{{'}}'}}">
+                    <div class="font-mono text-primary">{{'{{'}}order_id{{'}}'}}</div>
+                    <div class="text-xs text-muted-foreground">Order number</div>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Template Settings -->
+        <div class="border-t border-border p-4">
+            <h4 class="font-semibold mb-3">Template Settings</h4>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Subject Line</label>
+                    <input type="text" id="templateSubject" class="w-full px-3 py-2 border border-border rounded text-sm" placeholder="Email subject">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Category</label>
+                    <select id="templateCategory" class="w-full px-3 py-2 border border-border rounded text-sm">
+                        <option value="welcome">Welcome</option>
+                        <option value="purchase">Purchase</option>
+                        <option value="followup">Follow-up</option>
+                        <option value="promotional">Promotional</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Description</label>
+                    <textarea id="templateDescription" class="w-full px-3 py-2 border border-border rounded text-sm" rows="3" placeholder="Template description"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center p-4 border-b border-border">
+                <h3 class="text-lg font-semibold">Email Preview</h3>
+                <button onclick="closePreview()" class="p-2 hover:bg-accent rounded">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+                <div id="previewContent" class="max-w-600px mx-auto bg-white border border-border">
+                    <!-- Preview content -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let currentTemplate = null;
+    let selectedComponent = null;
+    let componentCounter = 0;
+    let previewMode = 'desktop';
+    let isHTMLMode = false;
+    let focusedTextElement = null;
+    
+    // Component templates with better functionality
+    const componentTemplates = {
+        'column-1': {
+            html: '<div class="column-layout"><div class="column"><div class="drop-zone"><p class="text-sm text-gray-500">Drop components here</p></div></div></div>',
+            type: 'layout'
+        },
+        'column-2': {
+            html: '<div class="column-layout"><div class="column"><div class="drop-zone"><p class="text-sm text-gray-500">Drop here</p></div></div><div class="column"><div class="drop-zone"><p class="text-sm text-gray-500">Drop here</p></div></div></div>',
+            type: 'layout'
+        },
+        'heading': {
+            html: '<h1 class="editable-text" style="font-size: 28px; font-weight: bold; margin: 16px; color: #1f2937; line-height: 1.2;" contenteditable="true">Your Heading Text</h1>',
+            type: 'content',
+            properties: {
+                text: 'Your Heading Text',
+                fontSize: '28',
+                color: '#1f2937',
+                textAlign: 'left',
+                fontWeight: 'bold'
+            }
+        },
+        'text': {
+            html: '<p class="editable-text" style="font-size: 16px; margin: 16px; color: #374151; line-height: 1.5;" contenteditable="true">Your text content goes here. Click to edit this text directly.</p>',
+            type: 'content',
+            properties: {
+                text: 'Your text content goes here. Click to edit this text directly.',
+                fontSize: '16',
+                color: '#374151',
+                textAlign: 'left'
+            }
+        },
+        'button': {
+            html: '<div style="text-align: center; margin: 20px 16px;"><a href="#" class="editable-text" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;" contenteditable="true">Click Here</a></div>',
+            type: 'content',
+            properties: {
+                text: 'Click Here',
+                href: '#',
+                backgroundColor: '#3b82f6',
+                textColor: '#ffffff',
+                textAlign: 'center'
+            }
+        },
+        'image': {
+            html: '<div style="text-align: center; margin: 16px;"><img src="https://via.placeholder.com/400x200/e2e8f0/64748b?text=Click+to+upload+image" alt="Image" style="max-width: 100%; height: auto; border-radius: 4px; cursor: pointer;" onclick="openImageUpload(this)"></div>',
+            type: 'content',
+            properties: {
+                src: 'https://via.placeholder.com/400x200/e2e8f0/64748b?text=Click+to+upload+image',
+                alt: 'Image',
+                width: '400',
+                textAlign: 'center'
+            }
+        },
+        'divider': {
+            html: '<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 16px;">',
+            type: 'content',
+            properties: {
+                color: '#e5e7eb',
+                thickness: '1'
+            }
+        },
+        'spacer': {
+            html: '<div style="height: 40px; margin: 0 16px;"></div>',
+            type: 'content',
+            properties: {
+                height: '40'
+            }
+        }
+    };
+    
+    // Initialize editor
+    document.addEventListener('DOMContentLoaded', function() {
+        lucide.createIcons();
+        setupDragAndDrop();
+        setupEventListeners();
+        
+        // Load template if editing
+        const templateId = {{ template_id if template_id else 'null' }};
+        if (templateId) {
+            loadTemplate(templateId);
+        }
+    });
+    
+    function setupDragAndDrop() {
+        // Component palette drag events
+        document.querySelectorAll('.component-item').forEach(item => {
+            item.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('text/plain', this.dataset.component);
+            });
+        });
+        
+        // Canvas drop events
+        setupDropZone(document.getElementById('emailCanvas'));
+        setupDropZone(document.getElementById('mainDropZone'));
+    }
+    
+    function setupDropZone(element) {
+        if (!element) {
+            console.warn('setupDropZone: element is null');
+            return;
+        }
+        
+        console.log('Setting up drop zone for:', element);
+        
+        element.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.add('dragover');
+            console.log('Dragover on:', this);
+        });
+        
+        element.addEventListener('dragleave', function(e) {
+            e.stopPropagation();
+            // Only remove dragover if we're truly leaving this element
+            if (!this.contains(e.relatedTarget)) {
+                this.classList.remove('dragover');
+            }
+        });
+        
+        element.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('dragover');
+            
+            const componentType = e.dataTransfer.getData('text/plain');
+            console.log('Dropped component:', componentType, 'on:', this);
+            
+            if (componentType) {
+                // Determine the correct drop target
+                let dropTarget = this;
+                
+                // If this is a column, we need to handle it specially
+                if (this.classList.contains('column')) {
+                    console.log('Dropping into column');
+                    dropTarget = this;
+                } else if (this.classList.contains('drop-zone')) {
+                    console.log('Dropping into drop zone');
+                    dropTarget = this;
+                } else {
+                    console.log('Dropping into general area');
+                    dropTarget = this;
+                }
+                
+                addComponent(componentType, dropTarget);
+            }
+        });
+    }
+    
+    function addComponent(type, dropTarget = null) {
+        const template = componentTemplates[type];
+        if (!template) return;
+        
+        componentCounter++;
+        const componentId = `component_${type}_${componentCounter}`;
+        
+        console.log('Adding component:', type, 'to:', dropTarget);
+        
+        // Create component wrapper
+        const componentDiv = document.createElement('div');
+        componentDiv.className = 'email-component';
+        componentDiv.dataset.type = type;
+        componentDiv.dataset.id = componentId;
+        componentDiv.innerHTML = `
+            ${template.html}
+            <div class="component-controls">
+                <button class="control-btn" onclick="moveComponentUp('${componentId}')" title="Move Up">↑</button>
+                <button class="control-btn" onclick="moveComponentDown('${componentId}')" title="Move Down">↓</button>
+                <button class="control-btn" onclick="deleteComponent('${componentId}')" title="Delete">×</button>
+            </div>
+        `;
+        
+        // Store properties
+        if (template.properties) {
+            componentDiv.dataset.properties = JSON.stringify(template.properties);
+        }
+        
+        // Determine where to add the component
+        const canvas = document.getElementById('emailCanvas');
+        const mainDropZone = document.getElementById('mainDropZone');
+        
+        if (dropTarget) {
+            if (dropTarget.classList.contains('drop-zone')) {
+                console.log('Replacing drop zone with component');
+                // Replace the drop zone with the component
+                const parent = dropTarget.parentNode;
+                parent.replaceChild(componentDiv, dropTarget);
+                
+                // If this was inside a column, we don't need a new drop zone
+                // But if it was the main drop zone, we might need to handle differently
+                if (parent === canvas && dropTarget.id === 'mainDropZone') {
+                    // This was the main drop zone, just replace it
+                    console.log('Replaced main drop zone');
+                }
+            } else if (dropTarget.classList.contains('column')) {
+                console.log('Adding to column');
+                // Check if column has a drop zone to replace
+                const columnDropZone = dropTarget.querySelector('.drop-zone');
+                if (columnDropZone) {
+                    console.log('Replacing column drop zone');
+                    dropTarget.replaceChild(componentDiv, columnDropZone);
+                } else {
+                    console.log('Appending to column');
+                    dropTarget.appendChild(componentDiv);
+                }
+            } else if (dropTarget.id === 'emailCanvas') {
+                console.log('Adding to main canvas');
+                // If we're dropping on the main canvas, remove main drop zone if it exists
+                if (mainDropZone && canvas.contains(mainDropZone)) {
+                    canvas.removeChild(mainDropZone);
+                }
+                canvas.appendChild(componentDiv);
+            } else {
+                console.log('Adding to canvas (fallback)');
+                canvas.appendChild(componentDiv);
+            }
+        } else if (mainDropZone && canvas.contains(mainDropZone)) {
+            console.log('Replacing main drop zone');
+            canvas.removeChild(mainDropZone);
+            canvas.appendChild(componentDiv);
+        } else {
+            console.log('Adding to canvas');
+            canvas.appendChild(componentDiv);
+        }
+        
+        // Setup any nested drop zones for column layouts
+        if (type.startsWith('column-')) {
+            console.log('Setting up column drop zones');
+            componentDiv.querySelectorAll('.column').forEach((column, index) => {
+                console.log('Setting up column', index);
+                setupDropZone(column);
+                // Also setup drop zones inside columns
+                const dropZones = column.querySelectorAll('.drop-zone');
+                dropZones.forEach(zone => setupDropZone(zone));
+            });
+        }
+        
+        // Setup editable text elements
+        setupEditableText(componentDiv);
+        
+        selectComponent(componentDiv);
+        
+        // Re-initialize icons
+        lucide.createIcons();
+    }
+    
+    function setupEditableText(container) {
+        container.querySelectorAll('.editable-text').forEach(element => {
+            element.addEventListener('focus', function() {
+                console.log('Text element focused:', this);
+                focusedTextElement = this;
+            });
+            
+            element.addEventListener('blur', function() {
+                console.log('Text element blurred');
+                // Keep focus for a short time to allow variable insertion
+                setTimeout(() => {
+                    focusedTextElement = null;
+                }, 100);
+                // Update properties when text changes
+                updateComponentProperties();
+            });
+            
+            element.addEventListener('input', function() {
+                // Real-time updates
+                updateComponentProperties();
+            });
+            
+            element.addEventListener('click', function() {
+                console.log('Text element clicked:', this);
+                focusedTextElement = this;
+                this.focus();
+            });
+        });
+    }
+    
+    function setupEventListeners() {
+        // Canvas click handler
+        document.getElementById('emailCanvas').addEventListener('click', function(e) {
+            const component = e.target.closest('.email-component');
+            if (component && !e.target.classList.contains('editable-text')) {
+                selectComponent(component);
+            } else if (!e.target.classList.contains('editable-text')) {
+                deselectAllComponents();
+            }
+        });
+        
+        // Variable button click handlers
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.variable-btn')) {
+                e.preventDefault();
+                const btn = e.target.closest('.variable-btn');
+                const variable = btn.dataset.variable;
+                console.log('Variable button clicked, variable:', variable);
+                insertVariable(variable);
+            }
+        });
+    }
+    
+    function selectComponent(component) {
+        deselectAllComponents();
+        component.classList.add('selected');
+        selectedComponent = component;
+        showProperties(component);
+    }
+    
+    function deselectAllComponents() {
+        document.querySelectorAll('.email-component').forEach(comp => {
+            comp.classList.remove('selected');
+        });
+        selectedComponent = null;
+        hideProperties();
+    }
+    
+    function showProperties(component) {
+        const type = component.dataset.type;
+        const properties = JSON.parse(component.dataset.properties || '{}');
+        
+        let propertiesHTML = `<h4 class="font-semibold mb-3">${type.charAt(0).toUpperCase() + type.slice(1)} Properties</h4>`;
+        
+        // Generate property fields based on component type
+        if (type === 'heading' || type === 'text') {
+            propertiesHTML += `
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Font Size</label>
+                        <input type="number" value="${properties.fontSize || 16}" onchange="updateProperty('fontSize', this.value)" class="w-full px-3 py-2 border border-border rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Color</label>
+                        <input type="color" value="${properties.color || '#000000'}" onchange="updateProperty('color', this.value)" class="w-full h-10 border border-border rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Text Align</label>
+                        <select onchange="updateProperty('textAlign', this.value)" class="w-full px-3 py-2 border border-border rounded text-sm">
+                            <option value="left" ${properties.textAlign === 'left' ? 'selected' : ''}>Left</option>
+                            <option value="center" ${properties.textAlign === 'center' ? 'selected' : ''}>Center</option>
+                            <option value="right" ${properties.textAlign === 'right' ? 'selected' : ''}>Right</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        } else if (type === 'button') {
+            propertiesHTML += `
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Link URL</label>
+                        <input type="text" value="${properties.href || '#'}" onchange="updateProperty('href', this.value)" class="w-full px-3 py-2 border border-border rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Background Color</label>
+                        <input type="color" value="${properties.backgroundColor || '#3b82f6'}" onchange="updateProperty('backgroundColor', this.value)" class="w-full h-10 border border-border rounded">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Text Color</label>
+                        <input type="color" value="${properties.textColor || '#ffffff'}" onchange="updateProperty('textColor', this.value)" class="w-full h-10 border border-border rounded">
+                    </div>
+                </div>
+            `;
+        } else if (type === 'image') {
+            propertiesHTML += `
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Upload Image</label>
+                        <input type="file" accept="image/*" onchange="handleImageUpload(this)" class="w-full px-3 py-2 border border-border rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Image URL</label>
+                        <input type="text" value="${properties.src || ''}" onchange="updateProperty('src', this.value)" class="w-full px-3 py-2 border border-border rounded text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Alt Text</label>
+                        <input type="text" value="${properties.alt || ''}" onchange="updateProperty('alt', this.value)" class="w-full px-3 py-2 border border-border rounded text-sm">
+                    </div>
+                </div>
+            `;
+        }
+        
+        document.getElementById('propertiesContent').innerHTML = propertiesHTML;
+    }
+    
+    function hideProperties() {
+        document.getElementById('propertiesContent').innerHTML = `
+            <div class="text-center py-8 text-muted-foreground">
+                <i data-lucide="mouse-pointer-click" class="h-8 w-8 mx-auto mb-2 opacity-50"></i>
+                <p class="text-sm">Select a component to edit</p>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+    
+    function updateProperty(property, value) {
+        if (!selectedComponent) return;
+        
+        const properties = JSON.parse(selectedComponent.dataset.properties || '{}');
+        properties[property] = value;
+        selectedComponent.dataset.properties = JSON.stringify(properties);
+        
+        updateComponentHTML(selectedComponent, property, value);
+    }
+    
+    function updateComponentHTML(component, property, value) {
+        const type = component.dataset.type;
+        
+        if (type === 'heading') {
+            const element = component.querySelector('h1');
+            if (element) {
+                if (property === 'fontSize') element.style.fontSize = value + 'px';
+                if (property === 'color') element.style.color = value;
+                if (property === 'textAlign') element.style.textAlign = value;
+            }
+        } else if (type === 'text') {
+            const element = component.querySelector('p');
+            if (element) {
+                if (property === 'fontSize') element.style.fontSize = value + 'px';
+                if (property === 'color') element.style.color = value;
+                if (property === 'textAlign') element.style.textAlign = value;
+            }
+        } else if (type === 'button') {
+            const element = component.querySelector('a');
+            if (element) {
+                if (property === 'href') element.href = value;
+                if (property === 'backgroundColor') element.style.backgroundColor = value;
+                if (property === 'textColor') element.style.color = value;
+            }
+        } else if (type === 'image') {
+            const element = component.querySelector('img');
+            if (element) {
+                if (property === 'src') element.src = value;
+                if (property === 'alt') element.alt = value;
+            }
+        }
+    }
+    
+    function updateComponentProperties() {
+        if (!selectedComponent) return;
+        
+        const type = selectedComponent.dataset.type;
+        const properties = JSON.parse(selectedComponent.dataset.properties || '{}');
+        
+        if (type === 'heading') {
+            const element = selectedComponent.querySelector('h1');
+            if (element) properties.text = element.textContent;
+        } else if (type === 'text') {
+            const element = selectedComponent.querySelector('p');
+            if (element) properties.text = element.textContent;
+        } else if (type === 'button') {
+            const element = selectedComponent.querySelector('a');
+            if (element) properties.text = element.textContent;
+        }
+        
+        selectedComponent.dataset.properties = JSON.stringify(properties);
+    }
+    
+    // Simple and reliable variable insertion
+    function insertVariable(variable) {
+        console.log('=== VARIABLE INSERTION START ===');
+        console.log('Variable:', variable);
+        console.log('Focused element:', focusedTextElement);
+        console.log('Selected component:', selectedComponent);
+        console.log('Active element:', document.activeElement);
+        
+        // Strategy 1: Try to find any currently focused editable text
+        let activeEditableElement = null;
+        
+        // Check if current active element is editable
+        if (document.activeElement && document.activeElement.contentEditable === 'true') {
+            activeEditableElement = document.activeElement;
+            console.log('Found active editable element:', activeEditableElement);
+        }
+        
+        // Strategy 2: Use the global focusedTextElement
+        if (!activeEditableElement && focusedTextElement && focusedTextElement.contentEditable === 'true') {
+            activeEditableElement = focusedTextElement;
+            console.log('Using global focused element:', activeEditableElement);
+        }
+        
+        // Strategy 3: Find editable text in selected component
+        if (!activeEditableElement && selectedComponent) {
+            const editableInSelected = selectedComponent.querySelector('.editable-text');
+            if (editableInSelected) {
+                activeEditableElement = editableInSelected;
+                console.log('Found editable in selected component:', activeEditableElement);
+            }
+        }
+        
+        // Strategy 4: Check if we're in the subject input
+        const subjectInput = document.getElementById('templateSubject');
+        if (!activeEditableElement && document.activeElement === subjectInput) {
+            // Insert into subject
+            const cursorPos = subjectInput.selectionStart || subjectInput.value.length;
+            const textBefore = subjectInput.value.substring(0, cursorPos);
+            const textAfter = subjectInput.value.substring(cursorPos);
+            subjectInput.value = textBefore + variable + textAfter;
+            subjectInput.setSelectionRange(cursorPos + variable.length, cursorPos + variable.length);
+            showSuccess(`Variable ${variable} inserted into subject!`);
+            console.log('=== VARIABLE INSERTED INTO SUBJECT ===');
+            return;
+        }
+        
+        // Now try to insert into the editable element we found
+        if (activeEditableElement) {
+            console.log('INSERTING INTO:', activeEditableElement);
+            
+            try {
+                // Method 1: Try selection/range insertion
+                const selection = window.getSelection();
+                
+                // Create the variable element
+                const variableSpan = document.createElement('span');
+                variableSpan.className = 'variable-tag';
+                variableSpan.textContent = variable;
+                variableSpan.contentEditable = false;
+                variableSpan.style.backgroundColor = '#fef3c7';
+                variableSpan.style.color = '#92400e';
+                variableSpan.style.padding = '2px 6px';
+                variableSpan.style.borderRadius = '3px';
+                variableSpan.style.fontFamily = 'monospace';
+                variableSpan.style.fontSize = '12px';
+                variableSpan.style.border = '1px solid #f59e0b';
+                variableSpan.style.margin = '0 2px';
+                variableSpan.style.display = 'inline-block';
+                
+                // Always append to the end for reliability
+                activeEditableElement.appendChild(document.createTextNode(' '));
+                activeEditableElement.appendChild(variableSpan);
+                activeEditableElement.appendChild(document.createTextNode(' '));
+                
+                // Trigger any update events
+                const event = new Event('input', { bubbles: true });
+                activeEditableElement.dispatchEvent(event);
+                
+                // Update component properties if needed
+                if (selectedComponent) {
+                    updateComponentProperties();
+                }
+                
+                // Focus back on the element
+                activeEditableElement.focus();
+                
+                // Move cursor to end
+                const range = document.createRange();
+                range.selectNodeContents(activeEditableElement);
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                showSuccess(`Variable ${variable} inserted successfully!`);
+                console.log('=== VARIABLE INSERTED SUCCESSFULLY ===');
+                
+            } catch (error) {
+                console.error('Error inserting variable:', error);
+                
+                // Fallback: Direct HTML manipulation
+                try {
+                    const currentHTML = activeEditableElement.innerHTML;
+                    activeEditableElement.innerHTML = currentHTML + ' <span class="variable-tag" style="background-color: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 12px; border: 1px solid #f59e0b; margin: 0 2px; display: inline-block;">' + variable + '</span> ';
+                    
+                    const event = new Event('input', { bubbles: true });
+                    activeEditableElement.dispatchEvent(event);
+                    
+                    showSuccess(`Variable ${variable} inserted (fallback)!`);
+                    console.log('=== VARIABLE INSERTED VIA FALLBACK ===');
+                } catch (fallbackError) {
+                    console.error('Fallback also failed:', fallbackError);
+                    showError('Failed to insert variable. Please try again.');
+                }
+            }
+        } else {
+            // No target found
+            showError('Please click on a text component first, then click the variable button.');
+            console.log('=== NO TARGET FOUND FOR VARIABLE ===');
+        }
+    }
+    
+    function openImageUpload(imgElement) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imgElement.src = e.target.result;
+                    if (selectedComponent) {
+                        updateProperty('src', e.target.result);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        input.click();
+    }
+    
+    function handleImageUpload(input) {
+        const file = input.files[0];
+        if (file && selectedComponent) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                updateProperty('src', e.target.result);
+                const img = selectedComponent.querySelector('img');
+                if (img) img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+    
+    function moveComponentUp(componentId) {
+        const component = document.querySelector(`[data-id="${componentId}"]`);
+        const previous = component.previousElementSibling;
+        if (previous) {
+            component.parentNode.insertBefore(component, previous);
+        }
+    }
+    
+    function moveComponentDown(componentId) {
+        const component = document.querySelector(`[data-id="${componentId}"]`);
+        const next = component.nextElementSibling;
+        if (next) {
+            component.parentNode.insertBefore(next, component);
+        }
+    }
+    
+    function deleteComponent(componentId) {
+        const component = document.querySelector(`[data-id="${componentId}"]`);
+        if (component === selectedComponent) {
+            deselectAllComponents();
+        }
+        component.remove();
+        
+        // Add drop zone back if canvas is empty
+        const canvas = document.getElementById('emailCanvas');
+        if (canvas.children.length === 0) {
+            canvas.innerHTML = '<div class="drop-zone" id="mainDropZone"><div class="text-center"><i data-lucide="plus" class="h-8 w-8 mx-auto mb-2 opacity-50"></i><p class="text-sm">Drag components here to start building</p></div></div>';
+            setupDropZone(document.getElementById('mainDropZone'));
+            lucide.createIcons();
+        }
+    }
+    
+    function setPreviewMode(mode) {
+        previewMode = mode;
+        const container = document.getElementById('canvasContainer');
+        const buttons = document.querySelectorAll('[data-mode]');
+        
+        buttons.forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+        
+        if (mode === 'mobile') {
+            container.style.maxWidth = '375px';
+        } else {
+            container.style.maxWidth = 'none';
+        }
+    }
+    
+    function toggleHTMLMode() {
+        isHTMLMode = !isHTMLMode;
+        const canvas = document.getElementById('canvasContainer');
+        const htmlEditor = document.getElementById('htmlEditor');
+        const btn = document.getElementById('htmlModeBtn');
+        
+        if (isHTMLMode) {
+            // Generate and format HTML from canvas
+            const emailContent = generateEmailHTML();
+            const formattedHTML = formatHTML(emailContent);
+            
+            // Initialize CodeMirror if not already done
+            if (!htmlCodeEditor) {
+                // Set initial content
+                document.getElementById('htmlContent').value = formattedHTML;
+                initializeHTMLEditor();
+            }
+            
+            // Set content in editor
+            if (htmlCodeEditor) {
+                htmlCodeEditor.setValue(formattedHTML);
+                // Refresh CodeMirror after showing
+                setTimeout(() => {
+                    htmlCodeEditor.refresh();
+                }, 100);
+            } else {
+                document.getElementById('htmlContent').value = formattedHTML;
+            }
+            
+            canvas.style.display = 'none';
+            htmlEditor.classList.remove('hidden');
+            btn.innerHTML = '<i data-lucide="eye" class="inline h-4 w-4 mr-1"></i>Visual';
+            lucide.createIcons();
+        } else {
+            canvas.style.display = 'block';
+            htmlEditor.classList.add('hidden');
+            btn.innerHTML = '<i data-lucide="code" class="inline h-4 w-4 mr-1"></i>HTML';
+            lucide.createIcons();
+        }
+    }
+    
+    function applyHTMLEdit() {
+        try {
+            // Get HTML content from CodeMirror or textarea
+            let htmlContent;
+            if (htmlCodeEditor) {
+                htmlContent = htmlCodeEditor.getValue();
+            } else {
+                htmlContent = document.getElementById('htmlContent').value;
+            }
+            
+            const canvas = document.getElementById('emailCanvas');
+            
+            // Create a temporary container to parse the HTML safely
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+            
+            // Extract only the body content (not the full HTML document)
+            const bodyContent = tempDiv.querySelector('.email-container') || tempDiv;
+            
+            // Clear the canvas and add the new content
+            canvas.innerHTML = '';
+            
+            // Copy the HTML structure but convert it back to editable components
+            Array.from(bodyContent.children).forEach(child => {
+                if (child.tagName) {
+                    // Create a component wrapper
+                    const componentDiv = document.createElement('div');
+                    componentDiv.className = 'email-component';
+                    componentDiv.dataset.type = 'custom';
+                    componentDiv.dataset.id = `component_custom_${Date.now()}`;
+                    
+                    // Copy the child content
+                    componentDiv.appendChild(child.cloneNode(true));
+                    
+                    // Add component controls
+                    const controls = document.createElement('div');
+                    controls.className = 'component-controls';
+                    controls.innerHTML = `
+                        <button class="control-btn" onclick="moveComponentUp('${componentDiv.dataset.id}')" title="Move Up">↑</button>
+                        <button class="control-btn" onclick="moveComponentDown('${componentDiv.dataset.id}')" title="Move Down">↓</button>
+                        <button class="control-btn" onclick="deleteComponent('${componentDiv.dataset.id}')" title="Delete">×</button>
+                    `;
+                    componentDiv.appendChild(controls);
+                    
+                    canvas.appendChild(componentDiv);
+                    
+                    // Setup editable text elements
+                    setupEditableText(componentDiv);
+                }
+            });
+            
+            // Switch back to visual mode
+            toggleHTMLMode();
+            
+            showSuccess('HTML applied successfully!');
+            
+            // Re-initialize icons
+            lucide.createIcons();
+            
+        } catch (error) {
+            console.error('Error applying HTML:', error);
+            showError('Error applying HTML: ' + error.message);
+        }
+    }
+    
+    function cancelHTMLEdit() {
+        toggleHTMLMode();
+    }
+    
+    function generateEmailHTML() {
+        const canvas = document.getElementById('emailCanvas');
+        let html = '';
+        
+        canvas.querySelectorAll('.email-component').forEach(component => {
+            const clone = component.cloneNode(true);
+            clone.querySelector('.component-controls')?.remove();
+            clone.classList.remove('email-component', 'selected');
+            clone.style.border = 'none';
+            
+            // Convert variable tags back to plain variables for email processing
+            clone.querySelectorAll('.variable-tag').forEach(varTag => {
+                const textNode = document.createTextNode(varTag.textContent);
+                varTag.parentNode.replaceChild(textNode, varTag);
+            });
+            
+            html += clone.outerHTML;
+        });
+        
+        // Format the HTML properly
+        const formattedHTML = formatHTML(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Template</title>
+    <style>
+        /* Email-safe CSS */
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            font-family: Arial, sans-serif;
+        }
+        .responsive-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .mobile-hide {
+            display: block;
+        }
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            .mobile-hide {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f8fafc;">
+    <div class="email-container">
+        ${html}
+    </div>
+    <img src="{{tracking_pixel_url}}" width="1" height="1" style="display: none;">
+</body>
+</html>`);
+        
+        return formattedHTML;
+    }
+    
+    // Global CodeMirror editor instance
+    let htmlCodeEditor = null;
+    
+    // HTML Formatter function using js-beautify
+    function formatHTML(html) {
+        try {
+            // Use js-beautify for proper HTML formatting
+            if (typeof html_beautify !== 'undefined') {
+                return html_beautify(html, {
+                    indent_size: 4,
+                    indent_char: ' ',
+                    max_preserve_newlines: 2,
+                    preserve_newlines: true,
+                    keep_array_indentation: false,
+                    break_chained_methods: false,
+                    indent_scripts: 'normal',
+                    brace_style: 'collapse',
+                    space_before_conditional: true,
+                    unescape_strings: false,
+                    jslint_happy: false,
+                    end_with_newline: true,
+                    wrap_line_length: 0,
+                    indent_inner_html: true,
+                    comma_first: false,
+                    e4x: false,
+                    indent_empty_lines: false
+                });
+            }
+        } catch (e) {
+            console.error('HTML formatting error:', e);
+        }
+        
+        // Fallback to basic formatting
+        return html.replace(/></g, '>\n<').replace(/^\s+|\s+$/g, '');
+    }
+    
+    // Initialize CodeMirror editor
+    function initializeHTMLEditor() {
+        const textArea = document.getElementById('htmlContent');
+        if (textArea && typeof CodeMirror !== 'undefined') {
+            htmlCodeEditor = CodeMirror.fromTextArea(textArea, {
+                mode: 'htmlmixed',
+                theme: 'default',
+                lineNumbers: true,
+                lineWrapping: true,
+                autoCloseTags: true,
+                foldGutter: true,
+                gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+                extraKeys: {
+                    "Ctrl-Space": "autocomplete",
+                    "Ctrl-/": "toggleComment",
+                    "Ctrl-Alt-F": function(cm) { 
+                        formatHTMLInEditor();
+                    }
+                },
+                viewportMargin: Infinity
+            });
+            
+            // Set editor height
+            htmlCodeEditor.setSize(null, "100%");
+            
+            console.log('✅ CodeMirror HTML editor initialized');
+        } else {
+            console.warn('⚠️ CodeMirror not available, using basic textarea');
+        }
+    }
+    
+    // Format HTML in the editor
+    function formatHTMLInEditor() {
+        if (htmlCodeEditor) {
+            const currentHTML = htmlCodeEditor.getValue();
+            const formattedHTML = formatHTML(currentHTML);
+            htmlCodeEditor.setValue(formattedHTML);
+            showSuccess('HTML formatted successfully!');
+        } else {
+            const textArea = document.getElementById('htmlContent');
+            if (textArea) {
+                textArea.value = formatHTML(textArea.value);
+                showSuccess('HTML formatted successfully!');
+            }
+        }
+    }
+    
+    function previewEmail() {
+        const previewContent = document.getElementById('previewContent');
+        previewContent.innerHTML = generateEmailHTML();
+        document.getElementById('previewModal').classList.remove('hidden');
+    }
+    
+    function closePreview() {
+        document.getElementById('previewModal').classList.add('hidden');
+    }
+    
+    function saveTemplate() {
+        const name = document.getElementById('templateName').value;
+        const subject = document.getElementById('templateSubject').value;
+        const category = document.getElementById('templateCategory').value;
+        const description = document.getElementById('templateDescription').value;
+        
+        if (!name || !subject) {
+            showError('Please fill in template name and subject');
+            return;
+        }
+        
+        const finalHTML = generateEmailHTML();
+        
+        const templateData = {
+            name: name,
+            subject: subject,
+            content_html: finalHTML,
+            category: category,
+            description: description
+        };
+        
+        // Save via API
+        const url = currentTemplate ? `/admin/api/email/templates/${currentTemplate.id}` : '/admin/api/email/templates';
+        const method = currentTemplate ? 'PUT' : 'POST';
+        
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(templateData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showSuccess('Template saved successfully!');
+                if (!currentTemplate) {
+                    setTimeout(() => {
+                        window.location.href = '/admin/email/templates';
+                    }, 1500);
+                }
+            } else {
+                showError('Error saving template: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving template:', error);
+            showError('Error saving template: ' + error.message);
+        });
+    }
+    
+    function loadTemplate(templateId) {
+        console.log('Loading template:', templateId);
+        
+        fetch(`/admin/api/email/templates/${templateId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentTemplate = data.template;
+                    console.log('Template loaded:', currentTemplate);
+                    
+                    // Load basic template metadata
+                    document.getElementById('templateName').value = currentTemplate.name || '';
+                    document.getElementById('templateSubject').value = currentTemplate.subject || '';
+                    document.getElementById('templateCategory').value = currentTemplate.category || 'general';
+                    document.getElementById('templateDescription').value = currentTemplate.description || '';
+                    
+                    // Load template content into the canvas
+                    if (currentTemplate.content_html) {
+                        console.log('Loading template HTML content...');
+                        loadTemplateContent(currentTemplate.content_html);
+                    } else {
+                        console.log('No HTML content found in template');
+                        showError('Template content not found. Template may be empty or corrupted.');
+                    }
+                } else {
+                    console.error('Failed to load template:', data.error);
+                    showError('Failed to load template: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading template:', error);
+                showError('Error loading template: ' + error.message);
+            });
+    }
+    
+    function loadTemplateContent(htmlContent) {
+        console.log('Loading template content into canvas...');
+        const canvas = document.getElementById('emailCanvas');
+        const mainDropZone = document.getElementById('mainDropZone');
+        
+        try {
+            // Remove the main drop zone if it exists
+            if (mainDropZone && canvas.contains(mainDropZone)) {
+                canvas.removeChild(mainDropZone);
+            }
+            
+            // Parse the HTML content to extract the email body
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            
+            // Find the email container or body content
+            let emailContent = doc.querySelector('.email-container');
+            if (!emailContent) {
+                emailContent = doc.body;
+            }
+            
+            // Clear the canvas
+            canvas.innerHTML = '';
+            
+            // Convert HTML content to editable components
+            if (emailContent && emailContent.children.length > 0) {
+                Array.from(emailContent.children).forEach((element, index) => {
+                    if (element.tagName && element.tagName !== 'IMG') { // Skip tracking pixels
+                        createComponentFromHTML(element, index);
+                    }
+                });
+                
+                console.log('Template content loaded successfully');
+                showSuccess('Template loaded successfully!');
+            } else {
+                console.log('No content elements found, creating basic structure');
+                // If no content found, add a basic text component with the raw HTML
+                createBasicTextComponent(htmlContent);
+            }
+            
+            // Re-initialize drag and drop and other functionality
+            setupCanvasEventListeners();
+            lucide.createIcons();
+            
+        } catch (error) {
+            console.error('Error parsing template content:', error);
+            showError('Error loading template content. Loading as HTML...');
+            
+            // Fallback: Load as raw HTML in HTML mode
+            document.getElementById('htmlContent').value = htmlContent;
+            toggleHTMLMode();
+        }
+    }
+    
+    function createComponentFromHTML(element, index) {
+        console.log('Creating component from HTML element:', element.tagName, element);
+        
+        componentCounter++;
+        const componentId = `component_loaded_${componentCounter}`;
+        
+        // Determine component type based on HTML structure
+        let componentType = 'text';
+        if (element.tagName === 'H1' || element.tagName === 'H2' || element.tagName === 'H3') {
+            componentType = 'heading';
+        } else if (element.querySelector('a') && element.textContent.trim().length < 50) {
+            componentType = 'button';
+        } else if (element.querySelector('img')) {
+            componentType = 'image';
+        } else if (element.tagName === 'HR') {
+            componentType = 'divider';
+        } else if (element.style.height && !element.textContent.trim()) {
+            componentType = 'spacer';
+        }
+        
+        // Create component wrapper
+        const componentDiv = document.createElement('div');
+        componentDiv.className = 'email-component';
+        componentDiv.dataset.type = componentType;
+        componentDiv.dataset.id = componentId;
+        
+        // Clone the original element and make it editable
+        const clonedElement = element.cloneNode(true);
+        
+        // Make text content editable if it contains text
+        if (componentType === 'heading' || componentType === 'text' || componentType === 'button') {
+            makeElementEditable(clonedElement);
+        }
+        
+        // Add the content and controls
+        componentDiv.innerHTML = `
+            ${clonedElement.outerHTML}
+            <div class="component-controls">
+                <button class="control-btn" onclick="moveComponentUp('${componentId}')" title="Move Up">↑</button>
+                <button class="control-btn" onclick="moveComponentDown('${componentId}')" title="Move Down">↓</button>
+                <button class="control-btn" onclick="deleteComponent('${componentId}')" title="Delete">×</button>
+            </div>
+        `;
+        
+        // Extract and store properties
+        const properties = extractElementProperties(clonedElement, componentType);
+        componentDiv.dataset.properties = JSON.stringify(properties);
+        
+        // Add to canvas
+        document.getElementById('emailCanvas').appendChild(componentDiv);
+        
+        // Setup editable text functionality
+        setupEditableText(componentDiv);
+    }
+    
+    function makeElementEditable(element) {
+        // Make text elements editable
+        if (element.tagName === 'H1' || element.tagName === 'H2' || element.tagName === 'H3' || 
+            element.tagName === 'P' || element.tagName === 'DIV') {
+            element.classList.add('editable-text');
+            element.contentEditable = true;
+        }
+        
+        // Handle buttons (links)
+        const links = element.querySelectorAll('a');
+        links.forEach(link => {
+            link.classList.add('editable-text');
+            link.contentEditable = true;
+        });
+        
+        // Recursively handle child elements
+        Array.from(element.children).forEach(child => {
+            if (child.tagName !== 'A') { // Don't double-process links
+                makeElementEditable(child);
+            }
+        });
+    }
+    
+    function extractElementProperties(element, componentType) {
+        const properties = {};
+        
+        if (componentType === 'heading' || componentType === 'text') {
+            properties.text = element.textContent || element.innerText || '';
+            properties.fontSize = getComputedStyle(element).fontSize.replace('px', '') || '16';
+            properties.color = getComputedStyle(element).color || '#000000';
+            properties.textAlign = getComputedStyle(element).textAlign || 'left';
+            if (componentType === 'heading') {
+                properties.fontWeight = getComputedStyle(element).fontWeight || 'bold';
+            }
+        } else if (componentType === 'button') {
+            const link = element.querySelector('a');
+            if (link) {
+                properties.text = link.textContent || link.innerText || '';
+                properties.href = link.href || '#';
+                properties.backgroundColor = getComputedStyle(link).backgroundColor || '#3b82f6';
+                properties.textColor = getComputedStyle(link).color || '#ffffff';
+                properties.textAlign = getComputedStyle(element).textAlign || 'center';
+            }
+        } else if (componentType === 'image') {
+            const img = element.querySelector('img');
+            if (img) {
+                properties.src = img.src || '';
+                properties.alt = img.alt || '';
+                properties.width = img.style.width || img.width || '400';
+                properties.textAlign = getComputedStyle(element).textAlign || 'center';
+            }
+        } else if (componentType === 'spacer') {
+            properties.height = getComputedStyle(element).height.replace('px', '') || '40';
+        }
+        
+        return properties;
+    }
+    
+    function createBasicTextComponent(htmlContent) {
+        console.log('Creating basic text component from HTML');
+        
+        componentCounter++;
+        const componentId = `component_basic_${componentCounter}`;
+        
+        const componentDiv = document.createElement('div');
+        componentDiv.className = 'email-component';
+        componentDiv.dataset.type = 'text';
+        componentDiv.dataset.id = componentId;
+        
+        // Strip HTML tags for basic text content
+        const textContent = htmlContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        
+        componentDiv.innerHTML = `
+            <p class="editable-text" style="font-size: 16px; margin: 16px; color: #374151; line-height: 1.5;" contenteditable="true">${textContent}</p>
+            <div class="component-controls">
+                <button class="control-btn" onclick="moveComponentUp('${componentId}')" title="Move Up">↑</button>
+                <button class="control-btn" onclick="moveComponentDown('${componentId}')" title="Move Down">↓</button>
+                <button class="control-btn" onclick="deleteComponent('${componentId}')" title="Delete">×</button>
+            </div>
+        `;
+        
+        const properties = {
+            text: textContent,
+            fontSize: '16',
+            color: '#374151',
+            textAlign: 'left'
+        };
+        componentDiv.dataset.properties = JSON.stringify(properties);
+        
+        document.getElementById('emailCanvas').appendChild(componentDiv);
+        setupEditableText(componentDiv);
+    }
+    
+    function setupCanvasEventListeners() {
+        // Re-setup drag and drop for any new elements
+        const canvas = document.getElementById('emailCanvas');
+        canvas.querySelectorAll('.email-component').forEach(component => {
+            setupEditableText(component);
+        });
+    }
+    
+    function showSuccess(message) {
+        showNotification(message, 'success');
+    }
+    
+    function showError(message) {
+        showNotification(message, 'error');
+    }
+    
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-4 py-2 rounded-md text-white z-50 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 3000);
+    }
+    
+    // Global functions
+    window.insertVariable = insertVariable;
+    window.openImageUpload = openImageUpload;
+    window.handleImageUpload = handleImageUpload;
+    window.updateProperty = updateProperty;
+    window.moveComponentUp = moveComponentUp;
+    window.moveComponentDown = moveComponentDown;
+    window.deleteComponent = deleteComponent;
+    window.setPreviewMode = setPreviewMode;
+    window.toggleHTMLMode = toggleHTMLMode;
+    window.applyHTMLEdit = applyHTMLEdit;
+    window.cancelHTMLEdit = cancelHTMLEdit;
+    window.previewEmail = previewEmail;
+    window.closePreview = closePreview;
+    window.saveTemplate = saveTemplate;
+    window.formatHTMLInEditor = formatHTMLInEditor;
+</script>
+{% endblock %}
