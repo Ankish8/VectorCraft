@@ -5,209 +5,289 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}VectorCraft Admin{% endblock %}</title>
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <style>
-        .sidebar {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            border-radius: 0.5rem;
-            margin: 0.2rem 0;
-        }
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            color: white;
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        .content-wrapper {
-            margin-left: 0;
-        }
-        @media (min-width: 768px) {
-            .content-wrapper {
-                margin-left: 250px;
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(214.3 31.8% 91.4%)",
+                        input: "hsl(214.3 31.8% 91.4%)",
+                        ring: "hsl(222.2 84% 4.9%)",
+                        background: "hsl(0 0% 100%)",
+                        foreground: "hsl(222.2 84% 4.9%)",
+                        primary: {
+                            DEFAULT: "hsl(222.2 47.4% 11.2%)",
+                            foreground: "hsl(210 40% 98%)",
+                        },
+                        secondary: {
+                            DEFAULT: "hsl(210 40% 96%)",
+                            foreground: "hsl(222.2 84% 4.9%)",
+                        },
+                        destructive: {
+                            DEFAULT: "hsl(0 84.2% 60.2%)",
+                            foreground: "hsl(210 40% 98%)",
+                        },
+                        muted: {
+                            DEFAULT: "hsl(210 40% 96%)",
+                            foreground: "hsl(215.4 16.3% 46.9%)",
+                        },
+                        accent: {
+                            DEFAULT: "hsl(210 40% 96%)",
+                            foreground: "hsl(222.2 84% 4.9%)",
+                        },
+                        popover: {
+                            DEFAULT: "hsl(0 0% 100%)",
+                            foreground: "hsl(222.2 84% 4.9%)",
+                        },
+                        card: {
+                            DEFAULT: "hsl(0 0% 100%)",
+                            foreground: "hsl(222.2 84% 4.9%)",
+                        },
+                    },
+                    borderRadius: {
+                        lg: "var(--radius)",
+                        md: "calc(var(--radius) - 2px)",
+                        sm: "calc(var(--radius) - 4px)",
+                    },
+                }
             }
         }
+    </script>
+    
+    <style>
+        :root {
+            --radius: 0.5rem;
+        }
+        
         .health-indicator {
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             display: inline-block;
             margin-right: 8px;
         }
-        .health-healthy { background-color: #28a745; }
-        .health-warning { background-color: #ffc107; }
-        .health-critical { background-color: #dc3545; }
-        .health-unknown { background-color: #6c757d; }
+        .health-healthy { background-color: #22c55e; }
+        .health-warning { background-color: #f59e0b; }
+        .health-critical { background-color: #ef4444; }
+        .health-unknown { background-color: #6b7280; }
+        
+        .sidebar-nav-item {
+            transition: all 0.2s ease;
+        }
+        .sidebar-nav-item:hover {
+            background-color: hsl(210 40% 96%);
+        }
+        .sidebar-nav-item.active {
+            background-color: hsl(222.2 47.4% 11.2%);
+            color: white;
+        }
         
         .metric-card {
-            transition: transform 0.2s;
+            transition: all 0.2s ease;
+            border: 1px solid hsl(214.3 31.8% 91.4%);
         }
         .metric-card:hover {
-            transform: translateY(-2px);
-        }
-        
-        .alert-badge {
-            position: relative;
-            top: -2px;
-        }
-        
-        .table-responsive {
-            max-height: 400px;
-            overflow-y: auto;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         
         .log-level {
-            font-size: 0.75em;
+            font-size: 0.75rem;
             padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-weight: bold;
+            border-radius: 0.375rem;
+            font-weight: 500;
         }
-        .log-critical { background-color: #dc3545; color: white; }
-        .log-error { background-color: #dc3545; color: white; }
-        .log-warning { background-color: #ffc107; color: black; }
-        .log-info { background-color: #17a2b8; color: white; }
-        .log-debug { background-color: #6c757d; color: white; }
+        .log-critical { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .log-error { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .log-warning { background-color: #fffbeb; color: #d97706; border: 1px solid #fed7aa; }
+        .log-info { background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+        .log-debug { background-color: #f9fafb; color: #6b7280; border: 1px solid #d1d5db; }
+        
+        .btn-primary {
+            background-color: hsl(222.2 47.4% 11.2%);
+            border-color: hsl(222.2 47.4% 11.2%);
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: hsl(222.2 47.4% 15%);
+            border-color: hsl(222.2 47.4% 15%);
+        }
+        
+        .mobile-menu {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        .mobile-menu.open {
+            transform: translateX(0);
+        }
     </style>
     
     {% block extra_head %}{% endblock %}
 </head>
-<body>
-    <!-- Sidebar -->
-    <div class="sidebar position-fixed top-0 start-0 d-none d-md-flex flex-column p-3" style="width: 250px; z-index: 1000;">
-        <h4 class="text-white mb-4">
-            <i class="bi bi-shield-check"></i> VectorCraft Admin
-        </h4>
+<body class="bg-background text-foreground">
+    <!-- Desktop Sidebar -->
+    <div class="fixed inset-y-0 left-0 w-64 bg-white border-r border-border hidden lg:flex lg:flex-col">
+        <div class="flex h-16 items-center px-6 border-b border-border">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="shield-check" class="h-6 w-6 text-primary"></i>
+                <span class="text-lg font-semibold text-primary">VectorCraft</span>
+            </div>
+        </div>
         
-        <ul class="nav nav-pills flex-column mb-auto">
-            <li class="nav-item">
-                <a href="{{ url_for('admin_dashboard') }}" class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
-                    <i class="bi bi-speedometer2"></i> Dashboard
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ url_for('admin_transactions') }}" class="nav-link {% if request.endpoint == 'admin_transactions' %}active{% endif %}">
-                    <i class="bi bi-credit-card"></i> Transactions
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ url_for('admin_system') }}" class="nav-link {% if request.endpoint == 'admin_system' %}active{% endif %}">
-                    <i class="bi bi-cpu"></i> System Health
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ url_for('admin_logs') }}" class="nav-link {% if request.endpoint == 'admin_logs' %}active{% endif %}">
-                    <i class="bi bi-journal-text"></i> System Logs
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ url_for('admin_alerts') }}" class="nav-link {% if request.endpoint == 'admin_alerts' %}active{% endif %}">
-                    <i class="bi bi-bell"></i> Alerts
-                    <span id="alertBadge" class="badge bg-danger ms-2 alert-badge" style="display: none;"></span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ url_for('admin_analytics') }}" class="nav-link {% if request.endpoint == 'admin_analytics' %}active{% endif %}">
-                    <i class="bi bi-graph-up"></i> Analytics
-                </a>
-            </li>
-        </ul>
-        
-        <hr class="text-white">
-        
-        <div class="dropdown">
-            <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
-                <i class="bi bi-person-circle me-2"></i>
-                <strong>{{ current_user.username }}</strong>
+        <nav class="flex-1 px-4 py-6 space-y-1">
+            <a href="{{ url_for('admin_dashboard') }}" 
+               class="sidebar-nav-item {% if request.endpoint == 'admin_dashboard' %}active{% endif %} flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                <i data-lucide="layout-dashboard" class="mr-3 h-4 w-4"></i>
+                Dashboard
             </a>
-            <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
-                <li><a class="dropdown-item" href="{{ url_for('dashboard') }}"><i class="bi bi-house"></i> Main App</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sign out</a></li>
-            </ul>
+            <a href="{{ url_for('admin_transactions') }}" 
+               class="sidebar-nav-item {% if request.endpoint == 'admin_transactions' %}active{% endif %} flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                <i data-lucide="credit-card" class="mr-3 h-4 w-4"></i>
+                Transactions
+            </a>
+            <a href="{{ url_for('admin_system') }}" 
+               class="sidebar-nav-item {% if request.endpoint == 'admin_system' %}active{% endif %} flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                <i data-lucide="activity" class="mr-3 h-4 w-4"></i>
+                System Health
+            </a>
+            <a href="{{ url_for('admin_logs') }}" 
+               class="sidebar-nav-item {% if request.endpoint == 'admin_logs' %}active{% endif %} flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                <i data-lucide="file-text" class="mr-3 h-4 w-4"></i>
+                System Logs
+            </a>
+            <a href="{{ url_for('admin_alerts') }}" 
+               class="sidebar-nav-item {% if request.endpoint == 'admin_alerts' %}active{% endif %} flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                <i data-lucide="bell" class="mr-3 h-4 w-4"></i>
+                Alerts
+                <span id="alertBadge" class="ml-auto bg-destructive text-destructive-foreground px-2 py-1 rounded-full text-xs font-medium hidden"></span>
+            </a>
+            <a href="{{ url_for('admin_analytics') }}" 
+               class="sidebar-nav-item {% if request.endpoint == 'admin_analytics' %}active{% endif %} flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                <i data-lucide="trending-up" class="mr-3 h-4 w-4"></i>
+                Analytics
+            </a>
+            
+            <!-- Divider -->
+            <div class="border-t border-border my-4"></div>
+            
+            <a href="{{ url_for('admin_settings') }}" 
+               class="sidebar-nav-item {% if request.endpoint == 'admin_settings' %}active{% endif %} flex items-center px-3 py-2 text-sm font-medium rounded-md">
+                <i data-lucide="settings" class="mr-3 h-4 w-4"></i>
+                Settings
+            </a>
+        </nav>
+        
+        <div class="p-4 border-t border-border">
+            <div class="relative">
+                <button id="userMenuToggle" class="flex items-center w-full p-2 text-sm font-medium rounded-md hover:bg-muted">
+                    <i data-lucide="user" class="mr-3 h-4 w-4"></i>
+                    <span>{{ current_user.username }}</span>
+                    <i data-lucide="chevron-up" class="ml-auto h-4 w-4"></i>
+                </button>
+                <div id="userMenu" class="absolute bottom-full left-0 w-full mb-2 bg-popover border border-border rounded-md shadow-lg hidden">
+                    <a href="{{ url_for('dashboard') }}" class="flex items-center px-3 py-2 text-sm hover:bg-muted rounded-t-md">
+                        <i data-lucide="home" class="mr-2 h-4 w-4"></i>
+                        Main App
+                    </a>
+                    <div class="border-t border-border"></div>
+                    <a href="{{ url_for('logout') }}" class="flex items-center px-3 py-2 text-sm hover:bg-muted rounded-b-md text-destructive">
+                        <i data-lucide="log-out" class="mr-2 h-4 w-4"></i>
+                        Sign out
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
     
     <!-- Mobile Navigation -->
-    <nav class="navbar navbar-dark bg-primary d-md-none">
-        <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1">
-                <i class="bi bi-shield-check"></i> Admin
-            </span>
-            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar">
-                <span class="navbar-toggler-icon"></span>
+    <div class="lg:hidden">
+        <div class="flex h-16 items-center px-4 bg-white border-b border-border">
+            <button id="mobileMenuToggle" class="text-muted-foreground">
+                <i data-lucide="menu" class="h-6 w-6"></i>
             </button>
-            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
-                <div class="offcanvas-header">
-                    <h5 class="offcanvas-title">VectorCraft Admin</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-                </div>
-                <div class="offcanvas-body">
-                    <ul class="navbar-nav justify-content-end flex-grow-1 pe-3">
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
-                                <i class="bi bi-speedometer2"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin_transactions') }}">
-                                <i class="bi bi-credit-card"></i> Transactions
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin_system') }}">
-                                <i class="bi bi-cpu"></i> System Health
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin_logs') }}">
-                                <i class="bi bi-journal-text"></i> System Logs
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin_alerts') }}">
-                                <i class="bi bi-bell"></i> Alerts
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin_analytics') }}">
-                                <i class="bi bi-graph-up"></i> Analytics
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('dashboard') }}">
-                                <i class="bi bi-house"></i> Main App
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('logout') }}">
-                                <i class="bi bi-box-arrow-right"></i> Sign out
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+            <div class="ml-4 flex items-center space-x-2">
+                <i data-lucide="shield-check" class="h-5 w-5 text-primary"></i>
+                <span class="font-semibold text-primary">Admin</span>
             </div>
         </div>
-    </nav>
+        
+        <!-- Mobile Menu Overlay -->
+        <div id="mobileMenu" class="fixed inset-0 z-50 hidden">
+            <div class="fixed inset-0 bg-black bg-opacity-50" id="mobileMenuOverlay"></div>
+            <div class="mobile-menu fixed inset-y-0 left-0 w-64 bg-white border-r border-border">
+                <div class="flex h-16 items-center justify-between px-4 border-b border-border">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="shield-check" class="h-5 w-5 text-primary"></i>
+                        <span class="font-semibold text-primary">VectorCraft</span>
+                    </div>
+                    <button id="mobileMenuClose">
+                        <i data-lucide="x" class="h-5 w-5"></i>
+                    </button>
+                </div>
+                <nav class="px-4 py-6 space-y-1">
+                    <a href="{{ url_for('admin_dashboard') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
+                        <i data-lucide="layout-dashboard" class="mr-3 h-4 w-4"></i>
+                        Dashboard
+                    </a>
+                    <a href="{{ url_for('admin_transactions') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
+                        <i data-lucide="credit-card" class="mr-3 h-4 w-4"></i>
+                        Transactions
+                    </a>
+                    <a href="{{ url_for('admin_system') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
+                        <i data-lucide="activity" class="mr-3 h-4 w-4"></i>
+                        System Health
+                    </a>
+                    <a href="{{ url_for('admin_logs') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
+                        <i data-lucide="file-text" class="mr-3 h-4 w-4"></i>
+                        System Logs
+                    </a>
+                    <a href="{{ url_for('admin_alerts') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
+                        <i data-lucide="bell" class="mr-3 h-4 w-4"></i>
+                        Alerts
+                    </a>
+                    <a href="{{ url_for('admin_analytics') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
+                        <i data-lucide="trending-up" class="mr-3 h-4 w-4"></i>
+                        Analytics
+                    </a>
+                    <a href="{{ url_for('admin_settings') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
+                        <i data-lucide="settings" class="mr-3 h-4 w-4"></i>
+                        Settings
+                    </a>
+                    <div class="border-t border-border my-4"></div>
+                    <a href="{{ url_for('dashboard') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted">
+                        <i data-lucide="home" class="mr-3 h-4 w-4"></i>
+                        Main App
+                    </a>
+                    <a href="{{ url_for('logout') }}" class="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-muted text-destructive">
+                        <i data-lucide="log-out" class="mr-3 h-4 w-4"></i>
+                        Sign out
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </div>
     
     <!-- Main Content -->
-    <div class="content-wrapper">
-        <div class="container-fluid p-4">
+    <div class="lg:ml-64">
+        <div class="p-6">
             <!-- Flash Messages -->
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <div class="mb-4 p-4 rounded-md border {% if category == 'error' %}bg-destructive/10 border-destructive text-destructive{% elif category == 'success' %}bg-green-50 border-green-200 text-green-800{% elif category == 'warning' %}bg-yellow-50 border-yellow-200 text-yellow-800{% else %}bg-blue-50 border-blue-200 text-blue-800{% endif %}">
+                            <div class="flex items-center justify-between">
+                                <span>{{ message }}</span>
+                                <button onclick="this.parentElement.parentElement.remove()" class="text-current hover:opacity-70">
+                                    <i data-lucide="x" class="h-4 w-4"></i>
+                                </button>
+                            </div>
                         </div>
                     {% endfor %}
                 {% endif %}
@@ -217,11 +297,63 @@
         </div>
     </div>
     
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
     <!-- Common Admin JavaScript -->
     <script>
+        // Initialize Lucide icons
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            
+            // Mobile menu functionality
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuClose = document.getElementById('mobileMenuClose');
+            const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+            
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', () => {
+                    mobileMenu.classList.remove('hidden');
+                    setTimeout(() => {
+                        mobileMenu.querySelector('.mobile-menu').classList.add('open');
+                    }, 10);
+                });
+            }
+            
+            if (mobileMenuClose) {
+                mobileMenuClose.addEventListener('click', closeMobileMenu);
+            }
+            
+            if (mobileMenuOverlay) {
+                mobileMenuOverlay.addEventListener('click', closeMobileMenu);
+            }
+            
+            function closeMobileMenu() {
+                const mobileMenuContent = mobileMenu.querySelector('.mobile-menu');
+                mobileMenuContent.classList.remove('open');
+                setTimeout(() => {
+                    mobileMenu.classList.add('hidden');
+                }, 300);
+            }
+            
+            // User menu functionality
+            const userMenuToggle = document.getElementById('userMenuToggle');
+            const userMenu = document.getElementById('userMenu');
+            
+            if (userMenuToggle) {
+                userMenuToggle.addEventListener('click', () => {
+                    userMenu.classList.toggle('hidden');
+                });
+                
+                // Close user menu when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!userMenuToggle.contains(e.target) && !userMenu.contains(e.target)) {
+                        userMenu.classList.add('hidden');
+                    }
+                });
+            }
+            
+            startAutoRefresh(30); // Start auto-refresh
+        });
+        
         // Auto-refresh functionality
         let autoRefreshInterval;
         
@@ -262,9 +394,9 @@
             const badge = document.getElementById('alertBadge');
             if (count > 0) {
                 badge.textContent = count;
-                badge.style.display = 'inline';
+                badge.classList.remove('hidden');
             } else {
-                badge.style.display = 'none';
+                badge.classList.add('hidden');
             }
         }
         
@@ -277,11 +409,6 @@
                 }
             })
             .catch(error => console.error('Error loading alert summary:', error));
-            
-        // Start auto-refresh for most pages
-        document.addEventListener('DOMContentLoaded', function() {
-            startAutoRefresh(30); // Refresh every 30 seconds
-        });
         
         // Stop auto-refresh when page is hidden
         document.addEventListener('visibilitychange', function() {

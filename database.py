@@ -8,8 +8,10 @@ import sqlite3
 import hashlib
 import secrets
 import os
+import base64
 from datetime import datetime
 from pathlib import Path
+from cryptography.fernet import Fernet
 
 class Database:
     def __init__(self, db_path=None):
@@ -109,6 +111,34 @@ class Database:
                     email_sent INTEGER DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     resolved_at TIMESTAMP
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS smtp_settings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    smtp_server TEXT NOT NULL,
+                    smtp_port INTEGER NOT NULL,
+                    username TEXT NOT NULL,
+                    password TEXT NOT NULL,
+                    from_email TEXT NOT NULL,
+                    use_tls INTEGER DEFAULT 1,
+                    use_ssl INTEGER DEFAULT 0,
+                    is_active INTEGER DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS paypal_settings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    client_id TEXT NOT NULL,
+                    client_secret TEXT NOT NULL,
+                    environment TEXT NOT NULL CHECK(environment IN ('sandbox', 'live')),
+                    is_active INTEGER DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
             
@@ -445,6 +475,192 @@ class Database:
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
+    
+    # SMTP Configuration methods
+    def _get_encryption_key(self):
+        """Get or create encryption key for SMTP passwords"""
+        key_file = os.path.join(os.path.dirname(self.db_path), '.smtp_key')
+        
+        if os.path.exists(key_file):
+            with open(key_file, 'rb') as f:
+                return f.read()
+        else:
+            # Generate new key
+            key = Fernet.generate_key()
+            with open(key_file, 'wb') as f:
+                f.write(key)
+            # Set restrictive permissions
+            os.chmod(key_file, 0o600)
+            return key
+    
+    def encrypt_password(self, password):
+        """Encrypt SMTP password"""
+        key = self._get_encryption_key()
+        f = Fernet(key)
+        encrypted = f.encrypt(password.encode())
+        return base64.b64encode(encrypted).decode()
+    
+    def decrypt_password(self, encrypted_password):
+        """Decrypt SMTP password"""
+        try:
+            key = self._get_encryption_key()
+            f = Fernet(key)
+            decoded = base64.b64decode(encrypted_password.encode())
+            decrypted = f.decrypt(decoded)
+            return decrypted.decode()
+        except Exception as e:
+            print(f"❌ Error decrypting password: {e}")
+            return None
+    
+    def save_smtp_settings(self, smtp_server, smtp_port, username, password, from_email, 
+                          use_tls=True, use_ssl=False):
+        """Save SMTP configuration"""
+        encrypted_password = self.encrypt_password(password)
+        
+        # Check if settings already exist
+        existing = self.get_smtp_settings()
+        
+        with sqlite3.connect(self.db_path) as conn:
+            if existing:
+                # Update existing settings
+                conn.execute('''
+                    UPDATE smtp_settings 
+                    SET smtp_server = ?, smtp_port = ?, username = ?, password = ?, 
+                        from_email = ?, use_tls = ?, use_ssl = ?, 
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (smtp_server, smtp_port, username, encrypted_password, from_email,
+                      int(use_tls), int(use_ssl), existing['id']))
+            else:
+                # Insert new settings
+                conn.execute('''
+                    INSERT INTO smtp_settings 
+                    (smtp_server, smtp_port, username, password, from_email, use_tls, use_ssl)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (smtp_server, smtp_port, username, encrypted_password, from_email,
+                      int(use_tls), int(use_ssl)))
+            conn.commit()
+    
+    def get_smtp_settings(self, decrypt_password=False):
+        """Get SMTP configuration"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute('''
+                SELECT * FROM smtp_settings WHERE is_active = 1 
+                ORDER BY created_at DESC LIMIT 1
+            ''')
+            row = cursor.fetchone()
+            
+            if row:
+                settings = dict(row)
+                if decrypt_password and settings['password']:
+                    settings['password'] = self.decrypt_password(settings['password'])
+                elif not decrypt_password:
+                    # Mask password for security
+                    settings['password'] = '***ENCRYPTED***'
+                return settings
+            return None
+    
+    def test_smtp_connection(self, smtp_server, smtp_port, username, password, use_tls=True, use_ssl=False):
+        """Test SMTP connection without saving"""
+        import smtplib
+        try:
+            if use_ssl:
+                server = smtplib.SMTP_SSL(smtp_server, smtp_port)
+            else:
+                server = smtplib.SMTP(smtp_server, smtp_port)
+                if use_tls:
+                    server.starttls()
+            
+            with server:
+                server.login(username, password)
+                return True, "Connection successful"
+        except smtplib.SMTPAuthenticationError:
+            return False, "Authentication failed - check username and password"
+        except smtplib.SMTPConnectError:
+            return False, f"Cannot connect to server {smtp_server}:{smtp_port}"
+        except Exception as e:
+            return False, f"Connection error: {str(e)}"
+    
+    # PayPal Configuration methods
+    def save_paypal_settings(self, client_id, client_secret, environment='sandbox'):
+        """Save PayPal configuration with encrypted client secret"""
+        encrypted_secret = self.encrypt_password(client_secret)
+        
+        # Check if settings already exist
+        existing = self.get_paypal_settings()
+        
+        with sqlite3.connect(self.db_path) as conn:
+            if existing:
+                # Update existing settings
+                conn.execute('''
+                    UPDATE paypal_settings 
+                    SET client_id = ?, client_secret = ?, environment = ?, 
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ''', (client_id, encrypted_secret, environment, existing['id']))
+            else:
+                # Insert new settings
+                conn.execute('''
+                    INSERT INTO paypal_settings 
+                    (client_id, client_secret, environment)
+                    VALUES (?, ?, ?)
+                ''', (client_id, encrypted_secret, environment))
+            conn.commit()
+    
+    def get_paypal_settings(self, decrypt_secret=False):
+        """Get PayPal configuration"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.execute('''
+                SELECT * FROM paypal_settings WHERE is_active = 1 
+                ORDER BY created_at DESC LIMIT 1
+            ''')
+            row = cursor.fetchone()
+            
+            if row:
+                settings = dict(row)
+                if decrypt_secret and settings['client_secret']:
+                    settings['client_secret'] = self.decrypt_password(settings['client_secret'])
+                elif not decrypt_secret:
+                    # Mask secret for security
+                    settings['client_secret'] = '***ENCRYPTED***'
+                return settings
+            return None
+    
+    def test_paypal_connection(self, client_id, client_secret, environment='sandbox'):
+        """Test PayPal connection without saving"""
+        try:
+            import requests
+            
+            # Determine the base URL based on environment
+            if environment == 'sandbox':
+                base_url = 'https://api-m.sandbox.paypal.com'
+            else:
+                base_url = 'https://api-m.paypal.com'
+            
+            # Test authentication by getting an access token
+            auth_url = f'{base_url}/v1/oauth2/token'
+            
+            response = requests.post(
+                auth_url,
+                headers={'Accept': 'application/json'},
+                auth=(client_id, client_secret),
+                data={'grant_type': 'client_credentials'},
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                return True, f"PayPal {environment} connection successful"
+            elif response.status_code == 401:
+                return False, "Invalid PayPal credentials"
+            else:
+                return False, f"PayPal API error: HTTP {response.status_code}"
+                
+        except requests.RequestException as e:
+            return False, f"Connection error: {str(e)}"
+        except Exception as e:
+            return False, f"Error: {str(e)}"
 
 # Global database instance
 db = Database()

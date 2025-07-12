@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Email Service for VectorCraft
-Handles email delivery using GoDaddy SMTP
+Handles email delivery using database SMTP configuration with environment fallback
 """
 
 import smtplib
@@ -17,25 +17,69 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class EmailService:
-    """Email service using GoDaddy SMTP configuration"""
+    """Email service using database SMTP configuration with environment fallback"""
     
     def __init__(self):
-        # GoDaddy SMTP settings - try both ports
-        self.smtp_server = "smtpout.secureserver.net"
+        self.domain_url = os.getenv('DOMAIN_URL', 'http://localhost:8080')
+        self._load_smtp_settings()
+    
+    def _load_smtp_settings(self):
+        """Load SMTP settings from database first, then environment variables as fallback"""
+        try:
+            # Import database here to avoid circular imports
+            from database import db
+            
+            # Try to get settings from database first
+            db_settings = db.get_smtp_settings(decrypt_password=True)
+            
+            if db_settings:
+                # Use database settings
+                self.smtp_server = db_settings['smtp_server']
+                self.smtp_port_ssl = 465 if db_settings['use_ssl'] else None
+                self.smtp_port_tls = db_settings['smtp_port'] if db_settings['use_tls'] else None
+                self.smtp_username = db_settings['username']
+                self.smtp_password = db_settings['password']
+                self.from_email = db_settings['from_email']
+                self.use_tls = bool(db_settings['use_tls'])
+                self.use_ssl = bool(db_settings['use_ssl'])
+                
+                print(f"📧 Email service configured from database: {self.from_email}")
+                print(f"📧 Server: {self.smtp_server}:{db_settings['smtp_port']}")
+                self.enabled = True
+                self.config_source = 'database'
+            else:
+                # Fallback to environment variables
+                self._load_env_settings()
+                
+        except Exception as e:
+            print(f"⚠️  Error loading database SMTP settings: {e}")
+            # Fallback to environment variables
+            self._load_env_settings()
+    
+    def _load_env_settings(self):
+        """Load SMTP settings from environment variables"""
+        self.smtp_server = os.getenv('SMTP_SERVER', 'smtpout.secureserver.net')
         self.smtp_port_ssl = 465  # SSL
         self.smtp_port_tls = 587  # STARTTLS
         self.smtp_username = os.getenv('SMTP_USERNAME', '')
         self.smtp_password = os.getenv('SMTP_PASSWORD', '')
         self.from_email = os.getenv('FROM_EMAIL', self.smtp_username)
-        self.domain_url = os.getenv('DOMAIN_URL', 'http://localhost:8080')
+        self.use_tls = True  # Default to TLS
+        self.use_ssl = False  # Default to not SSL
         
         if not self.smtp_username or not self.smtp_password:
             print("⚠️  SMTP credentials not configured. Email sending will be simulated.")
             self.enabled = False
+            self.config_source = 'none'
         else:
-            print(f"📧 Email service configured: {self.from_email}")
+            print(f"📧 Email service configured from environment: {self.from_email}")
             print("📧 If SMTP fails, emails will be simulated with console output")
             self.enabled = True
+            self.config_source = 'environment'
+    
+    def refresh_settings(self):
+        """Refresh SMTP settings from database/environment"""
+        self._load_smtp_settings()
     
     def _create_message(self, to_email, subject, body_text, body_html=None):
         """Create email message"""
@@ -66,21 +110,70 @@ class EmailService:
             print("-" * 50)
             return True
         
+        # Determine port and connection method based on configuration
+        if hasattr(self, 'use_ssl') and self.use_ssl:
+            port = getattr(self, 'smtp_port_ssl', 465)
+            connection_type = 'SSL'
+        elif hasattr(self, 'use_tls') and self.use_tls:
+            port = getattr(self, 'smtp_port_tls', 587)
+            connection_type = 'STARTTLS'
+        else:
+            # Fallback to trying both for environment config
+            return self._send_email_fallback(message)
+        
+        try:
+            print(f"🔄 Connecting to {self.smtp_server}:{port} ({connection_type})")
+            
+            if self.use_ssl:
+                # Connect with SSL
+                server = smtplib.SMTP_SSL(self.smtp_server, port)
+            else:
+                # Connect and upgrade to TLS
+                server = smtplib.SMTP(self.smtp_server, port)
+                if self.use_tls:
+                    server.starttls()
+            
+            with server:
+                server.set_debuglevel(0)  # Disable debug for cleaner output
+                print(f"🔐 Logging in as {self.smtp_username}")
+                server.login(self.smtp_username, self.smtp_password)
+                
+                text = message.as_string()
+                server.sendmail(self.from_email, message['To'], text)
+                print(f"✅ Email sent successfully to {message['To']} via {self.smtp_server}:{port}")
+                return True
+                
+        except smtplib.SMTPAuthenticationError as e:
+            print(f"❌ Authentication failed: {str(e)}")
+        except smtplib.SMTPConnectError as e:
+            print(f"❌ Connection failed: {str(e)}")
+        except Exception as e:
+            print(f"❌ SMTP error: {str(e)}")
+        
+        print(f"❌ SMTP connection failed for {message['To']}")
+        print("📧 Falling back to email simulation:")
+        print(f"TO: {message['To']}")
+        print(f"SUBJECT: {message['Subject']}")
+        print("BODY:")
+        print(message.get_payload()[0].get_payload())
+        print("-" * 50)
+        return True  # Return True so the order process continues
+    
+    def _send_email_fallback(self, message):
+        """Fallback method for environment configuration - try both ports"""
         # Try STARTTLS first (port 587), then SSL (port 465)
         for port, use_ssl in [(self.smtp_port_tls, False), (self.smtp_port_ssl, True)]:
             try:
                 print(f"🔄 Trying {self.smtp_server}:{port} {'(SSL)' if use_ssl else '(STARTTLS)'}")
                 
                 if use_ssl:
-                    # Connect with SSL
                     server = smtplib.SMTP_SSL(self.smtp_server, port)
                 else:
-                    # Connect and upgrade to TLS
                     server = smtplib.SMTP(self.smtp_server, port)
                     server.starttls()
                 
                 with server:
-                    server.set_debuglevel(0)  # Disable debug for cleaner output
+                    server.set_debuglevel(0)
                     print(f"🔐 Logging in as {self.smtp_username}")
                     server.login(self.smtp_username, self.smtp_password)
                     
@@ -89,24 +182,11 @@ class EmailService:
                     print(f"✅ Email sent successfully to {message['To']} via port {port}")
                     return True
                     
-            except smtplib.SMTPAuthenticationError as e:
-                print(f"❌ Authentication failed on port {port}: {str(e)}")
-                continue
-            except smtplib.SMTPConnectError as e:
-                print(f"❌ Connection failed on port {port}: {str(e)}")
-                continue
             except Exception as e:
                 print(f"❌ Failed on port {port}: {str(e)}")
                 continue
         
-        print(f"❌ All SMTP connection attempts failed for {message['To']}")
-        print("📧 Falling back to email simulation:")
-        print(f"TO: {message['To']}")
-        print(f"SUBJECT: {message['Subject']}")
-        print("BODY:")
-        print(message.get_payload()[0].get_payload())
-        print("-" * 50)
-        return True  # Return True so the order process continues
+        return False
     
     def send_credentials_email(self, email, username, password, order_details=None):
         """Send login credentials to new customer"""

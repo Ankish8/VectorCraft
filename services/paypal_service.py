@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 PayPal Service for VectorCraft
-Handles PayPal REST API integration for one-time payments
+Handles PayPal REST API integration using database configuration with environment fallback
 """
 
 import os
@@ -18,15 +18,7 @@ class PayPalService:
     """PayPal REST API service for processing payments"""
     
     def __init__(self):
-        self.client_id = os.getenv('PAYPAL_CLIENT_ID', '')
-        self.client_secret = os.getenv('PAYPAL_CLIENT_SECRET', '')
-        self.environment = os.getenv('PAYPAL_ENVIRONMENT', 'sandbox')
-        
-        # Set API base URL based on environment
-        if self.environment == 'sandbox':
-            self.base_url = 'https://api.sandbox.paypal.com'
-        else:
-            self.base_url = 'https://api.paypal.com'
+        self._load_paypal_settings()
         
         self.access_token = None
         self.token_expires_at = None
@@ -36,7 +28,53 @@ class PayPalService:
             self.enabled = False
         else:
             self.enabled = True
-            print(f"💳 PayPal service configured: {self.environment} environment")
+            print(f"💳 PayPal service configured: {self.environment} environment (source: {self.config_source})")
+    
+    def _load_paypal_settings(self):
+        """Load PayPal settings from database first, then environment variables as fallback"""
+        try:
+            # Import database here to avoid circular imports
+            from database import db
+            
+            # Try to get settings from database first
+            db_settings = db.get_paypal_settings(decrypt_secret=True)
+            
+            if db_settings:
+                # Use database settings
+                self.client_id = db_settings['client_id']
+                self.client_secret = db_settings['client_secret']
+                self.environment = db_settings['environment']
+                self.config_source = 'database'
+                
+                print(f"💳 PayPal service configured from database: {self.environment} environment")
+            else:
+                # Fallback to environment variables
+                self._load_env_settings()
+                
+        except Exception as e:
+            print(f"⚠️  Error loading database PayPal settings: {e}")
+            # Fallback to environment variables
+            self._load_env_settings()
+        
+        # Set API base URL based on environment
+        if self.environment == 'sandbox':
+            self.base_url = 'https://api-m.sandbox.paypal.com'
+        else:
+            self.base_url = 'https://api-m.paypal.com'
+    
+    def _load_env_settings(self):
+        """Load PayPal settings from environment variables"""
+        self.client_id = os.getenv('PAYPAL_CLIENT_ID', '')
+        self.client_secret = os.getenv('PAYPAL_CLIENT_SECRET', '')
+        self.environment = os.getenv('PAYPAL_ENVIRONMENT', 'sandbox')
+        self.config_source = 'environment'
+        
+        if self.client_id and self.client_secret:
+            print(f"💳 PayPal service configured from environment: {self.environment} environment")
+    
+    def refresh_settings(self):
+        """Refresh PayPal settings from database/environment"""
+        self._load_paypal_settings()
     
     def _get_access_token(self):
         """Get OAuth access token from PayPal"""

@@ -1241,6 +1241,238 @@ def admin_api_analytics():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/admin/api/smtp')
+@admin_required
+def admin_api_smtp_get():
+    """API endpoint to get current SMTP settings"""
+    try:
+        settings = db.get_smtp_settings(decrypt_password=False)  # Don't decrypt for security
+        
+        return jsonify({
+            'success': True,
+            'settings': settings
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/smtp/save', methods=['POST'])
+@admin_required
+def admin_api_smtp_save():
+    """API endpoint to save SMTP settings"""
+    try:
+        # Get form data
+        smtp_server = request.form.get('smtp_server', '').strip()
+        smtp_port = request.form.get('smtp_port', 587, type=int)
+        username = request.form.get('smtp_username', '').strip()
+        password = request.form.get('smtp_password', '').strip()
+        from_email = request.form.get('from_email', '').strip()
+        use_tls = request.form.get('use_tls') == 'on'
+        use_ssl = request.form.get('use_ssl') == 'on'
+        
+        # Validate required fields
+        if not all([smtp_server, username, password, from_email]):
+            return jsonify({'success': False, 'error': 'All fields are required'}), 400
+        
+        # Validate email format
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, username) or not re.match(email_pattern, from_email):
+            return jsonify({'success': False, 'error': 'Invalid email format'}), 400
+        
+        # Save settings
+        db.save_smtp_settings(
+            smtp_server=smtp_server,
+            smtp_port=smtp_port,
+            username=username,
+            password=password,
+            from_email=from_email,
+            use_tls=use_tls,
+            use_ssl=use_ssl
+        )
+        
+        # Log the configuration change
+        system_logger.log_event(
+            level='INFO',
+            component='admin',
+            message='SMTP configuration updated',
+            user_email=current_user.email,
+            details={'smtp_server': smtp_server, 'smtp_port': smtp_port, 'from_email': from_email}
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': 'SMTP configuration saved successfully'
+        })
+        
+    except Exception as e:
+        system_logger.log_event(
+            level='ERROR',
+            component='admin',
+            message=f'Failed to save SMTP configuration: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/smtp/test', methods=['POST'])
+@admin_required
+def admin_api_smtp_test():
+    """API endpoint to test SMTP connection"""
+    try:
+        # Get form data
+        smtp_server = request.form.get('smtp_server', '').strip()
+        smtp_port = request.form.get('smtp_port', 587, type=int)
+        username = request.form.get('smtp_username', '').strip()
+        password = request.form.get('smtp_password', '').strip()
+        use_tls = request.form.get('use_tls') == 'on'
+        use_ssl = request.form.get('use_ssl') == 'on'
+        
+        # Validate required fields
+        if not all([smtp_server, username, password]):
+            return jsonify({'success': False, 'error': 'Server, username, and password are required for testing'}), 400
+        
+        # Test connection
+        success, message = db.test_smtp_connection(
+            smtp_server=smtp_server,
+            smtp_port=smtp_port,
+            username=username,
+            password=password,
+            use_tls=use_tls,
+            use_ssl=use_ssl
+        )
+        
+        # Log the test
+        system_logger.log_event(
+            level='INFO' if success else 'WARNING',
+            component='admin',
+            message=f'SMTP connection test: {message}',
+            user_email=current_user.email,
+            details={'smtp_server': smtp_server, 'smtp_port': smtp_port}
+        )
+        
+        return jsonify({
+            'success': success,
+            'message': message
+        })
+        
+    except Exception as e:
+        system_logger.log_event(
+            level='ERROR',
+            component='admin',
+            message=f'SMTP test failed with exception: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/paypal')
+@admin_required
+def admin_api_paypal_get():
+    """API endpoint to get current PayPal settings"""
+    try:
+        settings = db.get_paypal_settings(decrypt_secret=False)  # Don't decrypt for security
+        
+        return jsonify({
+            'success': True,
+            'settings': settings
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/paypal/save', methods=['POST'])
+@admin_required
+def admin_api_paypal_save():
+    """API endpoint to save PayPal settings"""
+    try:
+        # Get form data
+        client_id = request.form.get('paypal_client_id', '').strip()
+        client_secret = request.form.get('paypal_client_secret', '').strip()
+        environment = request.form.get('paypal_environment', 'sandbox').strip()
+        
+        # Validate required fields
+        if not all([client_id, client_secret]):
+            return jsonify({'success': False, 'error': 'Client ID and Client Secret are required'}), 400
+        
+        # Validate environment
+        if environment not in ['sandbox', 'live']:
+            return jsonify({'success': False, 'error': 'Environment must be either sandbox or live'}), 400
+        
+        # Save settings
+        db.save_paypal_settings(
+            client_id=client_id,
+            client_secret=client_secret,
+            environment=environment
+        )
+        
+        # Log the configuration change
+        system_logger.log_event(
+            level='INFO',
+            component='admin',
+            message='PayPal configuration updated',
+            user_email=current_user.email,
+            details={'environment': environment, 'client_id': client_id[:20] + '...'}
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': 'PayPal configuration saved successfully'
+        })
+        
+    except Exception as e:
+        system_logger.log_event(
+            level='ERROR',
+            component='admin',
+            message=f'Failed to save PayPal configuration: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/api/paypal/test', methods=['POST'])
+@admin_required
+def admin_api_paypal_test():
+    """API endpoint to test PayPal connection"""
+    try:
+        # Get form data
+        client_id = request.form.get('paypal_client_id', '').strip()
+        client_secret = request.form.get('paypal_client_secret', '').strip()
+        environment = request.form.get('paypal_environment', 'sandbox').strip()
+        
+        # Validate required fields
+        if not all([client_id, client_secret]):
+            return jsonify({'success': False, 'error': 'Client ID and Client Secret are required for testing'}), 400
+        
+        # Validate environment
+        if environment not in ['sandbox', 'live']:
+            return jsonify({'success': False, 'error': 'Environment must be either sandbox or live'}), 400
+        
+        # Test connection
+        success, message = db.test_paypal_connection(
+            client_id=client_id,
+            client_secret=client_secret,
+            environment=environment
+        )
+        
+        # Log the test
+        system_logger.log_event(
+            level='INFO' if success else 'WARNING',
+            component='admin',
+            message=f'PayPal connection test ({environment}): {message}',
+            user_email=current_user.email,
+            details={'environment': environment, 'client_id': client_id[:20] + '...'}
+        )
+        
+        return jsonify({
+            'success': success,
+            'message': message
+        })
+        
+    except Exception as e:
+        system_logger.log_event(
+            level='ERROR',
+            component='admin',
+            message=f'PayPal test failed with exception: {str(e)}',
+            user_email=current_user.email
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/admin/transactions')
 @admin_required
 def admin_transactions():
@@ -1270,6 +1502,12 @@ def admin_alerts():
 def admin_analytics():
     """Admin analytics page"""
     return render_template('admin/analytics.html')
+
+@app.route('/admin/settings')
+@admin_required
+def admin_settings():
+    """Admin settings page"""
+    return render_template('admin/settings.html')
 
 @app.route('/admin-test')
 def admin_test():

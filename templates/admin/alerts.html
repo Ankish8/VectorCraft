@@ -3,39 +3,47 @@
 {% block title %}Alerts - VectorCraft Admin{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="bi bi-bell"></i> Alert Management</h1>
-    <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
-        <i class="bi bi-arrow-clockwise"></i> Refresh
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <h1 class="text-3xl font-bold tracking-tight">Alert Management</h1>
+        <p class="text-muted-foreground">Monitor and manage system alerts and notifications</p>
+    </div>
+    <button onclick="refreshData()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+        <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+        Refresh
     </button>
 </div>
 
 <!-- Alert Summary -->
-<div class="row mb-4" id="alertSummary">
-    <div class="col-12 text-center py-4">
-        <div class="spinner-border"></div>
-        <p class="mt-2">Loading alert summary...</p>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="alertSummary">
+    <div class="col-span-full flex flex-col items-center justify-center py-12">
+        <div class="animate-spin mb-4">
+            <i data-lucide="loader" class="h-8 w-8 text-muted-foreground"></i>
+        </div>
+        <p class="text-muted-foreground">Loading alert summary...</p>
     </div>
 </div>
 
 <!-- Alert Filters -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="mb-0"><i class="bi bi-funnel"></i> Alert Filters</h5>
+<div class="bg-card rounded-lg border border-border mb-6">
+    <div class="flex items-center px-6 py-4 border-b border-border">
+        <i data-lucide="filter" class="mr-2 h-5 w-5 text-muted-foreground"></i>
+        <h3 class="text-lg font-semibold">Alert Filters</h3>
     </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-4">
-                <label class="form-label">Status</label>
-                <select class="form-select" id="resolvedFilter">
+    <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-2">Status</label>
+                <select id="resolvedFilter" class="w-full px-3 py-2 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
                     <option value="">All Alerts</option>
                     <option value="false" selected>Active Only</option>
                     <option value="true">Resolved Only</option>
                 </select>
             </div>
-            <div class="col-md-4 d-flex align-items-end">
-                <button class="btn btn-primary" onclick="applyFilters()">
-                    <i class="bi bi-search"></i> Apply Filters
+            <div class="flex items-end">
+                <button onclick="applyFilters()" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                    <i data-lucide="search" class="mr-2 h-4 w-4"></i>
+                    Apply Filters
                 </button>
             </div>
         </div>
@@ -43,18 +51,21 @@
 </div>
 
 <!-- Alerts -->
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Alerts</h5>
-        <span id="alertCount" class="badge bg-primary">Loading...</span>
+<div class="bg-card rounded-lg border border-border">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div class="flex items-center space-x-2">
+            <i data-lucide="alert-triangle" class="h-5 w-5 text-muted-foreground"></i>
+            <h3 class="text-lg font-semibold">Alerts</h3>
+        </div>
+        <span id="alertCount" class="px-2 py-1 bg-primary text-primary-foreground rounded-full text-xs font-medium">Loading...</span>
     </div>
-    <div class="card-body">
+    <div class="p-6">
         <div id="alertsContainer">
-            <div class="text-center py-4">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
+            <div class="flex flex-col items-center justify-center py-12">
+                <div class="animate-spin mb-4">
+                    <i data-lucide="loader" class="h-8 w-8 text-muted-foreground"></i>
                 </div>
-                <p class="mt-2">Loading alerts...</p>
+                <p class="text-muted-foreground">Loading alerts...</p>
             </div>
         </div>
     </div>
@@ -85,40 +96,45 @@
     
     function displayAlertSummary(summary) {
         const html = `
-            <div class="col-md-3 mb-3">
-                <div class="card text-center border-danger">
-                    <div class="card-body">
-                        <h3 class="text-danger">${summary.critical}</h3>
-                        <p class="text-muted mb-0">Critical</p>
+            <div class="bg-card rounded-lg border border-border p-6 text-center">
+                <div class="flex justify-center mb-4">
+                    <div class="p-3 bg-red-100 rounded-full">
+                        <i data-lucide="alert-circle" class="h-8 w-8 text-red-600"></i>
                     </div>
                 </div>
+                <h3 class="text-2xl font-bold text-red-600 mb-1">${summary.critical}</h3>
+                <p class="text-sm text-muted-foreground">Critical</p>
             </div>
-            <div class="col-md-3 mb-3">
-                <div class="card text-center border-warning">
-                    <div class="card-body">
-                        <h3 class="text-warning">${summary.warning}</h3>
-                        <p class="text-muted mb-0">Warning</p>
+            <div class="bg-card rounded-lg border border-border p-6 text-center">
+                <div class="flex justify-center mb-4">
+                    <div class="p-3 bg-yellow-100 rounded-full">
+                        <i data-lucide="alert-triangle" class="h-8 w-8 text-yellow-600"></i>
                     </div>
                 </div>
+                <h3 class="text-2xl font-bold text-yellow-600 mb-1">${summary.warning}</h3>
+                <p class="text-sm text-muted-foreground">Warning</p>
             </div>
-            <div class="col-md-3 mb-3">
-                <div class="card text-center border-info">
-                    <div class="card-body">
-                        <h3 class="text-info">${summary.info || 0}</h3>
-                        <p class="text-muted mb-0">Info</p>
+            <div class="bg-card rounded-lg border border-border p-6 text-center">
+                <div class="flex justify-center mb-4">
+                    <div class="p-3 bg-blue-100 rounded-full">
+                        <i data-lucide="info" class="h-8 w-8 text-blue-600"></i>
                     </div>
                 </div>
+                <h3 class="text-2xl font-bold text-blue-600 mb-1">${summary.info || 0}</h3>
+                <p class="text-sm text-muted-foreground">Info</p>
             </div>
-            <div class="col-md-3 mb-3">
-                <div class="card text-center border-primary">
-                    <div class="card-body">
-                        <h3 class="text-primary">${summary.total_active}</h3>
-                        <p class="text-muted mb-0">Total Active</p>
+            <div class="bg-card rounded-lg border border-border p-6 text-center">
+                <div class="flex justify-center mb-4">
+                    <div class="p-3 bg-gray-100 rounded-full">
+                        <i data-lucide="bell" class="h-8 w-8 text-gray-600"></i>
                     </div>
                 </div>
+                <h3 class="text-2xl font-bold text-gray-600 mb-1">${summary.total_active}</h3>
+                <p class="text-sm text-muted-foreground">Total Active</p>
             </div>
         `;
         document.getElementById('alertSummary').innerHTML = html;
+        lucide.createIcons();
     }
     
     function loadAlerts() {
@@ -139,52 +155,79 @@
                     document.getElementById('alertCount').textContent = data.alerts.length;
                 } else {
                     document.getElementById('alertsContainer').innerHTML = 
-                        '<div class="alert alert-danger">Error loading alerts: ' + data.error + '</div>';
+                        '<div class="p-4 border border-red-200 bg-red-50 text-red-800 rounded-lg">Error loading alerts: ' + data.error + '</div>';
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 document.getElementById('alertsContainer').innerHTML = 
-                    '<div class="alert alert-danger">Error loading alerts</div>';
+                    '<div class="p-4 border border-red-200 bg-red-50 text-red-800 rounded-lg">Error loading alerts</div>';
             });
     }
     
     function displayAlerts(alerts) {
         if (alerts.length === 0) {
             document.getElementById('alertsContainer').innerHTML = 
-                '<div class="text-center py-4"><i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i><p class="mt-3 text-success">No alerts found</p></div>';
+                '<div class="flex flex-col items-center justify-center py-12"><i data-lucide="check-circle" class="h-16 w-16 text-green-600 mb-4"></i><p class="text-green-600 font-medium">No alerts found</p></div>';
+            lucide.createIcons();
             return;
         }
         
-        let html = '<div class="list-group list-group-flush">';
+        let html = '<div class="space-y-4">';
         
         alerts.forEach(alert => {
-            const typeClass = alert.type === 'critical' ? 'danger' :
-                             alert.type === 'warning' ? 'warning' : 'info';
-            const icon = alert.type === 'critical' ? 'bi-exclamation-triangle-fill' :
-                        alert.type === 'warning' ? 'bi-exclamation-triangle' : 'bi-info-circle';
+            let typeClass, typeBg, iconName;
+            
+            switch(alert.type) {
+                case 'critical':
+                    typeClass = 'text-red-800';
+                    typeBg = 'bg-red-100';
+                    iconName = 'alert-circle';
+                    break;
+                case 'warning':
+                    typeClass = 'text-yellow-800';
+                    typeBg = 'bg-yellow-100';
+                    iconName = 'alert-triangle';
+                    break;
+                case 'info':
+                    typeClass = 'text-blue-800';
+                    typeBg = 'bg-blue-100';
+                    iconName = 'info';
+                    break;
+                default:
+                    typeClass = 'text-gray-800';
+                    typeBg = 'bg-gray-100';
+                    iconName = 'bell';
+            }
             
             html += `
-                <div class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="flex-grow-1">
-                            <div class="mb-2">
-                                <i class="${icon} text-${typeClass} me-2"></i>
-                                <strong>${alert.title}</strong>
-                                <span class="badge bg-${typeClass} ms-2">${alert.type.toUpperCase()}</span>
-                                ${alert.resolved ? '<span class="badge bg-success ms-2">RESOLVED</span>' : ''}
+                <div class="p-4 border border-border rounded-lg bg-card hover:bg-muted/50 transition-colors">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-start space-x-3 flex-1">
+                            <div class="p-2 ${typeBg} rounded-full">
+                                <i data-lucide="${iconName}" class="h-4 w-4 ${typeClass}"></i>
                             </div>
-                            <p class="mb-1">${alert.message}</p>
-                            <small class="text-muted">
-                                Component: ${alert.component || 'Unknown'} • 
-                                Created: ${alert.created_at} 
-                                ${alert.resolved_at ? `• Resolved: ${alert.resolved_at}` : ''}
-                            </small>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <h4 class="font-medium text-card-foreground">${alert.title}</h4>
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${typeBg} ${typeClass}">
+                                        ${alert.type.toUpperCase()}
+                                    </span>
+                                    ${alert.resolved ? '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">RESOLVED</span>' : ''}
+                                </div>
+                                <p class="text-sm text-muted-foreground mb-2">${alert.message}</p>
+                                <div class="text-xs text-muted-foreground space-x-4">
+                                    <span>Component: ${alert.component || 'Unknown'}</span>
+                                    <span>Created: ${alert.created_at}</span>
+                                    ${alert.resolved_at ? `<span>Resolved: ${alert.resolved_at}</span>` : ''}
+                                </div>
+                            </div>
                         </div>
-                        <div class="ms-3">
+                        <div class="ml-4">
                             ${!alert.resolved ? `
-                                <button class="btn btn-sm btn-success" onclick="resolveAlert(${alert.id})">
-                                    <i class="bi bi-check"></i> Resolve
+                                <button onclick="resolveAlert(${alert.id})" class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-md bg-green-100 text-green-800 hover:bg-green-200 transition-colors">
+                                    <i data-lucide="check" class="mr-1 h-3 w-3"></i>
+                                    Resolve
                                 </button>
                             ` : ''}
                         </div>
@@ -195,6 +238,7 @@
         
         html += '</div>';
         document.getElementById('alertsContainer').innerHTML = html;
+        lucide.createIcons();
     }
     
     function resolveAlert(alertId) {
@@ -234,6 +278,7 @@
     
     // Load data on page load
     document.addEventListener('DOMContentLoaded', function() {
+        lucide.createIcons();
         loadAlerts();
         loadAlertSummary();
     });

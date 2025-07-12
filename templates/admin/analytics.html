@@ -3,69 +3,73 @@
 {% block title %}Analytics - VectorCraft Admin{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="bi bi-graph-up"></i> Analytics Dashboard</h1>
-    <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
-        <i class="bi bi-arrow-clockwise"></i> Refresh
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <h1 class="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+        <p class="text-muted-foreground">Track revenue, transactions, and business performance</p>
+    </div>
+    <button onclick="refreshData()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+        <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+        Refresh
     </button>
 </div>
 
 <!-- Key Metrics -->
-<div class="row mb-4" id="keyMetrics">
-    <div class="col-12 text-center py-4">
-        <div class="spinner-border"></div>
-        <p class="mt-2">Loading analytics...</p>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="keyMetrics">
+    <div class="col-span-full flex flex-col items-center justify-center py-12">
+        <div class="animate-spin mb-4">
+            <i data-lucide="loader" class="h-8 w-8 text-muted-foreground"></i>
+        </div>
+        <p class="text-muted-foreground">Loading analytics...</p>
     </div>
 </div>
 
 <!-- Charts -->
-<div class="row">
-    <div class="col-lg-8 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Revenue Trend (Last 7 Days)</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="revenueChart" width="400" height="200"></canvas>
-            </div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div class="lg:col-span-2 bg-card rounded-lg border border-border">
+        <div class="flex items-center px-6 py-4 border-b border-border">
+            <i data-lucide="trending-up" class="mr-2 h-5 w-5 text-muted-foreground"></i>
+            <h3 class="text-lg font-semibold">Revenue Trend (Last 7 Days)</h3>
+        </div>
+        <div class="p-6">
+            <canvas id="revenueChart" width="400" height="200"></canvas>
         </div>
     </div>
     
-    <div class="col-lg-4 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Transaction Status</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="statusChart" width="300" height="300"></canvas>
-            </div>
+    <div class="bg-card rounded-lg border border-border">
+        <div class="flex items-center px-6 py-4 border-b border-border">
+            <i data-lucide="pie-chart" class="mr-2 h-5 w-5 text-muted-foreground"></i>
+            <h3 class="text-lg font-semibold">Transaction Status</h3>
+        </div>
+        <div class="p-6">
+            <canvas id="statusChart" width="300" height="300"></canvas>
         </div>
     </div>
 </div>
 
 <!-- Additional Metrics -->
-<div class="row">
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Daily Transactions</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="transactionChart" width="400" height="200"></canvas>
-            </div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-card rounded-lg border border-border">
+        <div class="flex items-center px-6 py-4 border-b border-border">
+            <i data-lucide="bar-chart-3" class="mr-2 h-5 w-5 text-muted-foreground"></i>
+            <h3 class="text-lg font-semibold">Daily Transactions</h3>
+        </div>
+        <div class="p-6">
+            <canvas id="transactionChart" width="400" height="200"></canvas>
         </div>
     </div>
     
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Summary Stats</h5>
-            </div>
-            <div class="card-body" id="summaryStats">
-                <div class="text-center py-4">
-                    <div class="spinner-border spinner-border-sm"></div>
-                    <p class="mt-2 mb-0">Loading...</p>
+    <div class="bg-card rounded-lg border border-border">
+        <div class="flex items-center px-6 py-4 border-b border-border">
+            <i data-lucide="info" class="mr-2 h-5 w-5 text-muted-foreground"></i>
+            <h3 class="text-lg font-semibold">Summary Stats</h3>
+        </div>
+        <div class="p-6" id="summaryStats">
+            <div class="flex flex-col items-center justify-center py-8">
+                <div class="animate-spin mb-4">
+                    <i data-lucide="loader" class="h-6 w-6 text-muted-foreground"></i>
                 </div>
+                <p class="text-sm text-muted-foreground">Loading...</p>
             </div>
         </div>
     </div>
@@ -92,52 +96,57 @@
                     displaySummaryStats(data.analytics);
                 } else {
                     document.getElementById('keyMetrics').innerHTML = 
-                        '<div class="col-12"><div class="alert alert-danger">Error loading analytics: ' + data.error + '</div></div>';
+                        '<div class="col-span-full p-4 border border-red-200 bg-red-50 text-red-800 rounded-lg">Error loading analytics: ' + data.error + '</div>';
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 document.getElementById('keyMetrics').innerHTML = 
-                    '<div class="col-12"><div class="alert alert-danger">Error loading analytics</div></div>';
+                    '<div class="col-span-full p-4 border border-red-200 bg-red-50 text-red-800 rounded-lg">Error loading analytics</div>';
             });
     }
     
     function displayKeyMetrics(analytics) {
         const html = `
-            <div class="col-md-3 mb-3">
-                <div class="card text-center border-success">
-                    <div class="card-body">
-                        <h3 class="text-success">$${analytics.total_revenue.toFixed(2)}</h3>
-                        <p class="text-muted mb-0">Total Revenue</p>
+            <div class="bg-card rounded-lg border border-border p-6 text-center">
+                <div class="flex justify-center mb-4">
+                    <div class="p-3 bg-green-100 rounded-full">
+                        <i data-lucide="dollar-sign" class="h-8 w-8 text-green-600"></i>
                     </div>
                 </div>
+                <h3 class="text-2xl font-bold text-green-600 mb-2">$${analytics.total_revenue.toFixed(2)}</h3>
+                <p class="text-sm font-medium text-muted-foreground">Total Revenue</p>
             </div>
-            <div class="col-md-3 mb-3">
-                <div class="card text-center border-primary">
-                    <div class="card-body">
-                        <h3 class="text-primary">${analytics.total_transactions}</h3>
-                        <p class="text-muted mb-0">Total Transactions</p>
+            <div class="bg-card rounded-lg border border-border p-6 text-center">
+                <div class="flex justify-center mb-4">
+                    <div class="p-3 bg-blue-100 rounded-full">
+                        <i data-lucide="receipt" class="h-8 w-8 text-blue-600"></i>
                     </div>
                 </div>
+                <h3 class="text-2xl font-bold text-blue-600 mb-2">${analytics.total_transactions}</h3>
+                <p class="text-sm font-medium text-muted-foreground">Total Transactions</p>
             </div>
-            <div class="col-md-3 mb-3">
-                <div class="card text-center border-info">
-                    <div class="card-body">
-                        <h3 class="text-info">$${analytics.avg_order_value.toFixed(2)}</h3>
-                        <p class="text-muted mb-0">Avg Order Value</p>
+            <div class="bg-card rounded-lg border border-border p-6 text-center">
+                <div class="flex justify-center mb-4">
+                    <div class="p-3 bg-purple-100 rounded-full">
+                        <i data-lucide="trending-up" class="h-8 w-8 text-purple-600"></i>
                     </div>
                 </div>
+                <h3 class="text-2xl font-bold text-purple-600 mb-2">$${analytics.avg_order_value.toFixed(2)}</h3>
+                <p class="text-sm font-medium text-muted-foreground">Avg Order Value</p>
             </div>
-            <div class="col-md-3 mb-3">
-                <div class="card text-center border-warning">
-                    <div class="card-body">
-                        <h3 class="text-warning">${analytics.daily_data.length}</h3>
-                        <p class="text-muted mb-0">Active Days</p>
+            <div class="bg-card rounded-lg border border-border p-6 text-center">
+                <div class="flex justify-center mb-4">
+                    <div class="p-3 bg-orange-100 rounded-full">
+                        <i data-lucide="calendar" class="h-8 w-8 text-orange-600"></i>
                     </div>
                 </div>
+                <h3 class="text-2xl font-bold text-orange-600 mb-2">${analytics.daily_data.length}</h3>
+                <p class="text-sm font-medium text-muted-foreground">Active Days</p>
             </div>
         `;
         document.getElementById('keyMetrics').innerHTML = html;
+        lucide.createIcons();
     }
     
     function createRevenueChart(dailyData) {
@@ -257,30 +266,37 @@
         const successRate = analytics.total_transactions > 0 ? 
             ((analytics.total_transactions / analytics.total_transactions) * 100).toFixed(1) : 0;
         
+        const peakDay = analytics.daily_data.length > 0 ? 
+            analytics.daily_data.reduce((a, b) => a.revenue > b.revenue ? a : b).date : 'N/A';
+        
         const html = `
-            <div class="row text-center">
-                <div class="col-6 mb-3">
-                    <h4>${successRate}%</h4>
-                    <small class="text-muted">Success Rate</small>
+            <div class="space-y-6">
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div class="p-4 bg-muted/50 rounded-lg">
+                        <h4 class="text-2xl font-bold text-card-foreground mb-1">${successRate}%</h4>
+                        <p class="text-sm font-medium text-muted-foreground">Success Rate</p>
+                    </div>
+                    <div class="p-4 bg-muted/50 rounded-lg">
+                        <h4 class="text-2xl font-bold text-card-foreground mb-1">${analytics.daily_data.length}</h4>
+                        <p class="text-sm font-medium text-muted-foreground">Active Days</p>
+                    </div>
                 </div>
-                <div class="col-6 mb-3">
-                    <h4>${analytics.daily_data.length}</h4>
-                    <small class="text-muted">Active Days</small>
-                </div>
-                <div class="col-12">
-                    <small class="text-muted">
-                        <strong>Peak Day:</strong> 
-                        ${analytics.daily_data.length > 0 ? 
-                          analytics.daily_data.reduce((a, b) => a.revenue > b.revenue ? a : b).date : 'N/A'}
-                    </small>
+                <div class="p-4 border border-border rounded-lg bg-muted/30">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="calendar-check" class="h-4 w-4 text-muted-foreground"></i>
+                        <span class="text-sm font-medium text-muted-foreground">Peak Day:</span>
+                        <span class="text-sm font-bold text-card-foreground">${peakDay}</span>
+                    </div>
                 </div>
             </div>
         `;
         document.getElementById('summaryStats').innerHTML = html;
+        lucide.createIcons();
     }
     
     // Load data on page load
     document.addEventListener('DOMContentLoaded', function() {
+        lucide.createIcons();
         loadAnalytics();
     });
     

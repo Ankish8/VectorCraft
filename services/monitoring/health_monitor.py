@@ -108,13 +108,12 @@ class HealthMonitor:
             }
     
     def _check_paypal_api(self, start_time):
-        """Check PayPal API connectivity"""
+        """Check PayPal API connectivity using database settings with env fallback"""
         try:
-            # Import PayPal service
-            from services.paypal_service import paypal_service
+            # Get PayPal settings from database first, then environment
+            paypal_settings = self._get_paypal_settings()
             
-            # Check if PayPal service is configured
-            if not hasattr(paypal_service, 'client_id') or not paypal_service.client_id:
+            if not paypal_settings:
                 return {
                     'status': 'warning',
                     'error_message': 'PayPal not configured',
@@ -122,14 +121,24 @@ class HealthMonitor:
                     'checked_at': datetime.now().isoformat()
                 }
             
+            client_id = paypal_settings['client_id']
+            client_secret = paypal_settings['client_secret']
+            environment = paypal_settings['environment']
+            config_source = paypal_settings['source']
+            
+            # Set base URL based on environment
+            if environment == 'sandbox':
+                base_url = 'https://api-m.sandbox.paypal.com'
+            else:
+                base_url = 'https://api-m.paypal.com'
+            
             # Test PayPal API connectivity with a simple auth check
-            # This is a lightweight check that doesn't create orders
-            auth_url = f"{paypal_service.base_url}/v1/oauth2/token"
+            auth_url = f"{base_url}/v1/oauth2/token"
             
             response = requests.post(
                 auth_url,
                 headers={'Accept': 'application/json'},
-                auth=(paypal_service.client_id, paypal_service.client_secret),
+                auth=(client_id, client_secret),
                 data={'grant_type': 'client_credentials'},
                 timeout=10
             )
@@ -139,13 +148,13 @@ class HealthMonitor:
             if response.status_code == 200:
                 if response_time > 5000:  # > 5 seconds
                     status = 'warning'
-                    error_message = f'Slow PayPal API response: {response_time}ms'
+                    error_message = f'Slow PayPal API response: {response_time}ms ({environment}, source: {config_source})'
                 else:
                     status = 'healthy'
-                    error_message = None
+                    error_message = f'PayPal API connection successful ({environment}, source: {config_source})'
             else:
                 status = 'critical'
-                error_message = f'PayPal API error: HTTP {response.status_code}'
+                error_message = f'PayPal API error: HTTP {response.status_code} ({environment})'
             
             return {
                 'status': status,
@@ -163,18 +172,12 @@ class HealthMonitor:
             }
     
     def _check_email_service(self, start_time):
-        """Check email service (SMTP) connectivity"""
+        """Check email service (SMTP) connectivity using database settings with env fallback"""
         try:
-            # Import email service
-            from services.email_service import email_service
+            # Get SMTP settings from database first, then environment
+            smtp_settings = self._get_smtp_settings()
             
-            # Check SMTP configuration
-            smtp_server = os.getenv('SMTP_SERVER')
-            smtp_port = int(os.getenv('SMTP_PORT', 587))
-            smtp_username = os.getenv('SMTP_USERNAME')
-            smtp_password = os.getenv('SMTP_PASSWORD')
-            
-            if not all([smtp_server, smtp_username, smtp_password]):
+            if not smtp_settings:
                 return {
                     'status': 'warning',
                     'error_message': 'Email service not configured',
@@ -182,9 +185,22 @@ class HealthMonitor:
                     'checked_at': datetime.now().isoformat()
                 }
             
-            # Test SMTP connectivity
-            server = smtplib.SMTP(smtp_server, smtp_port)
-            server.starttls()
+            smtp_server = smtp_settings['server']
+            smtp_port = smtp_settings['port']
+            smtp_username = smtp_settings['username']
+            smtp_password = smtp_settings['password']
+            use_tls = smtp_settings['use_tls']
+            use_ssl = smtp_settings['use_ssl']
+            config_source = smtp_settings['source']
+            
+            # Test SMTP connectivity based on configuration
+            if use_ssl:
+                server = smtplib.SMTP_SSL(smtp_server, smtp_port)
+            else:
+                server = smtplib.SMTP(smtp_server, smtp_port)
+                if use_tls:
+                    server.starttls()
+            
             server.login(smtp_username, smtp_password)
             server.quit()
             
@@ -192,10 +208,10 @@ class HealthMonitor:
             
             if response_time > 8000:  # > 8 seconds
                 status = 'warning'
-                error_message = f'Slow email service response: {response_time}ms'
+                error_message = f'Slow email service response: {response_time}ms (source: {config_source})'
             else:
                 status = 'healthy'
-                error_message = None
+                error_message = f'SMTP connection successful (source: {config_source})'
             
             return {
                 'status': status,
@@ -211,6 +227,79 @@ class HealthMonitor:
                 'response_time': None,
                 'checked_at': datetime.now().isoformat()
             }
+    
+    def _get_smtp_settings(self):
+        """Get SMTP settings from database first, then environment variables"""
+        try:
+            # Try database settings first
+            db_settings = db.get_smtp_settings(decrypt_password=True)
+            
+            if db_settings:
+                return {
+                    'server': db_settings['smtp_server'],
+                    'port': db_settings['smtp_port'],
+                    'username': db_settings['username'],
+                    'password': db_settings['password'],
+                    'use_tls': bool(db_settings['use_tls']),
+                    'use_ssl': bool(db_settings['use_ssl']),
+                    'source': 'database'
+                }
+            
+            # Fallback to environment variables
+            smtp_server = os.getenv('SMTP_SERVER', 'smtpout.secureserver.net')
+            smtp_port = int(os.getenv('SMTP_PORT', 587))
+            smtp_username = os.getenv('SMTP_USERNAME')
+            smtp_password = os.getenv('SMTP_PASSWORD')
+            
+            if all([smtp_username, smtp_password]):
+                return {
+                    'server': smtp_server,
+                    'port': smtp_port,
+                    'username': smtp_username,
+                    'password': smtp_password,
+                    'use_tls': True,  # Default for environment config
+                    'use_ssl': False,
+                    'source': 'environment'
+                }
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error getting SMTP settings: {e}")
+            return None
+    
+    def _get_paypal_settings(self):
+        """Get PayPal settings from database first, then environment variables"""
+        try:
+            # Try database settings first
+            db_settings = db.get_paypal_settings(decrypt_secret=True)
+            
+            if db_settings:
+                return {
+                    'client_id': db_settings['client_id'],
+                    'client_secret': db_settings['client_secret'],
+                    'environment': db_settings['environment'],
+                    'source': 'database'
+                }
+            
+            # Fallback to environment variables
+            client_id = os.getenv('PAYPAL_CLIENT_ID')
+            client_secret = os.getenv('PAYPAL_CLIENT_SECRET')
+            environment = os.getenv('PAYPAL_ENVIRONMENT', 'sandbox')
+            
+            if all([client_id, client_secret]):
+                return {
+                    'client_id': client_id,
+                    'client_secret': client_secret,
+                    'environment': environment,
+                    'source': 'environment'
+                }
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error getting PayPal settings: {e}")
+            return None
     
     def _check_application(self, start_time):
         """Check application server health"""

@@ -1,0 +1,685 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Settings - VectorCraft Admin{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <h1 class="text-3xl font-bold tracking-tight">System Settings</h1>
+        <p class="text-muted-foreground">Configure email service, payment settings, and system preferences</p>
+    </div>
+    <div class="flex items-center space-x-3">
+        <button id="testCurrentTab" onclick="testCurrentTabConnection()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+            <i data-lucide="zap" class="mr-2 h-4 w-4"></i>
+            Test Connection
+        </button>
+        <button onclick="refreshSettings()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+            <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+            Refresh
+        </button>
+    </div>
+</div>
+
+<!-- Settings Tabs -->
+<div class="bg-card rounded-lg border border-border mb-6">
+    <div class="border-b border-border">
+        <nav class="flex space-x-8 px-6" aria-label="Settings Tabs">
+            <button onclick="switchTab('email')" 
+                    class="settings-tab flex items-center py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap active"
+                    data-tab="email">
+                <i data-lucide="mail" class="mr-2 h-4 w-4"></i>
+                Email Configuration
+            </button>
+            <button onclick="switchTab('payment')" 
+                    class="settings-tab flex items-center py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap"
+                    data-tab="payment">
+                <i data-lucide="credit-card" class="mr-2 h-4 w-4"></i>
+                Payment Configuration
+            </button>
+        </nav>
+    </div>
+</div>
+
+<!-- Email Configuration Tab -->
+<div id="emailTab" class="settings-tab-content">
+    <div class="bg-card rounded-lg border border-border mb-6">
+        <div class="flex items-center px-6 py-4 border-b border-border">
+            <i data-lucide="mail" class="mr-2 h-5 w-5 text-muted-foreground"></i>
+            <h3 class="text-lg font-semibold">Email (SMTP) Configuration</h3>
+        </div>
+    <div class="p-6">
+        <form id="smtpForm" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- SMTP Server -->
+                <div>
+                    <label for="smtp_server" class="block text-sm font-medium mb-2">SMTP Server</label>
+                    <input type="text" id="smtp_server" name="smtp_server" 
+                           class="w-full px-3 py-2 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent"
+                           placeholder="smtp.gmail.com" required>
+                    <p class="text-xs text-muted-foreground mt-1">Your email provider's SMTP server address</p>
+                </div>
+
+                <!-- SMTP Port -->
+                <div>
+                    <label for="smtp_port" class="block text-sm font-medium mb-2">SMTP Port</label>
+                    <select id="smtp_port" name="smtp_port" 
+                            class="w-full px-3 py-2 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="587">587 (STARTTLS)</option>
+                        <option value="465">465 (SSL)</option>
+                        <option value="25">25 (Unencrypted)</option>
+                    </select>
+                    <p class="text-xs text-muted-foreground mt-1">Usually 587 for TLS or 465 for SSL</p>
+                </div>
+
+                <!-- Username -->
+                <div>
+                    <label for="smtp_username" class="block text-sm font-medium mb-2">Username</label>
+                    <input type="email" id="smtp_username" name="smtp_username" 
+                           class="w-full px-3 py-2 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent"
+                           placeholder="your-email@domain.com" required>
+                    <p class="text-xs text-muted-foreground mt-1">Your email address for SMTP authentication</p>
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label for="smtp_password" class="block text-sm font-medium mb-2">Password</label>
+                    <div class="relative">
+                        <input type="password" id="smtp_password" name="smtp_password" 
+                               class="w-full px-3 py-2 pr-10 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent"
+                               placeholder="Enter your email password" required>
+                        <button type="button" onclick="togglePassword()" 
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground">
+                            <i data-lucide="eye" id="password-eye" class="h-4 w-4"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-muted-foreground mt-1">Your email password or app-specific password</p>
+                </div>
+
+                <!-- From Email -->
+                <div>
+                    <label for="from_email" class="block text-sm font-medium mb-2">From Email</label>
+                    <input type="email" id="from_email" name="from_email" 
+                           class="w-full px-3 py-2 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent"
+                           placeholder="noreply@yourdomain.com" required>
+                    <p class="text-xs text-muted-foreground mt-1">Email address shown as sender</p>
+                </div>
+
+                <!-- Security Options -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Security</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" id="use_tls" name="use_tls" checked 
+                                   class="rounded border-border text-primary focus:ring-primary">
+                            <span class="text-sm">Use TLS (Recommended)</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" id="use_ssl" name="use_ssl" 
+                                   class="rounded border-border text-primary focus:ring-primary">
+                            <span class="text-sm">Use SSL (for port 465)</span>
+                        </label>
+                    </div>
+                    <p class="text-xs text-muted-foreground mt-1">TLS is recommended for most providers</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-border">
+                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                    <i data-lucide="save" class="mr-2 h-4 w-4"></i>
+                    Save Configuration
+                </button>
+                <button type="button" onclick="testSmtpConnection()" 
+                        class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <i data-lucide="send" class="mr-2 h-4 w-4"></i>
+                    Test Connection
+                </button>
+                <button type="button" onclick="loadCurrentSettings()" 
+                        class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+                    Reset Form
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+    <!-- Email Status -->
+    <div class="bg-card rounded-lg border border-border">
+        <div class="flex items-center px-6 py-4 border-b border-border">
+            <i data-lucide="info" class="mr-2 h-5 w-5 text-muted-foreground"></i>
+            <h3 class="text-lg font-semibold">Email Service Status</h3>
+        </div>
+        <div class="p-6" id="emailStatusContainer">
+            <div class="flex flex-col items-center justify-center py-8">
+                <div class="animate-spin mb-4">
+                    <i data-lucide="loader" class="h-6 w-6 text-muted-foreground"></i>
+                </div>
+                <p class="text-sm text-muted-foreground">Loading status...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Configuration Tab -->
+<div id="paymentTab" class="settings-tab-content hidden">
+    <div class="bg-card rounded-lg border border-border mb-6">
+        <div class="flex items-center px-6 py-4 border-b border-border">
+            <i data-lucide="credit-card" class="mr-2 h-5 w-5 text-muted-foreground"></i>
+            <h3 class="text-lg font-semibold">PayPal Configuration</h3>
+        </div>
+        <div class="p-6">
+            <form id="paypalForm" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Client ID -->
+                    <div>
+                        <label for="paypal_client_id" class="block text-sm font-medium mb-2">Client ID</label>
+                        <input type="text" id="paypal_client_id" name="paypal_client_id" 
+                               class="w-full px-3 py-2 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent"
+                               placeholder="AdFVX9rnR-x6kPBU5A5jsMq..." required>
+                        <p class="text-xs text-muted-foreground mt-1">Your PayPal application Client ID</p>
+                    </div>
+
+                    <!-- Client Secret -->
+                    <div>
+                        <label for="paypal_client_secret" class="block text-sm font-medium mb-2">Client Secret</label>
+                        <div class="relative">
+                            <input type="password" id="paypal_client_secret" name="paypal_client_secret" 
+                                   class="w-full px-3 py-2 pr-10 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent"
+                                   placeholder="Enter your PayPal client secret" required>
+                            <button type="button" onclick="togglePayPalPassword()" 
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground">
+                                <i data-lucide="eye" id="paypal-password-eye" class="h-4 w-4"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-muted-foreground mt-1">Your PayPal application Client Secret</p>
+                    </div>
+                </div>
+
+                <!-- Environment Selection -->
+                <div>
+                    <label class="block text-sm font-medium mb-4">PayPal Environment</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <label class="flex items-center p-4 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                            <input type="radio" id="environment_sandbox" name="paypal_environment" value="sandbox" checked 
+                                   class="mr-3 text-primary focus:ring-primary">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2">
+                                    <i data-lucide="flask-conical" class="h-5 w-5 text-orange-600"></i>
+                                    <span class="font-medium">Sandbox</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground mt-1">Testing environment - safe for development</p>
+                            </div>
+                        </label>
+                        
+                        <label class="flex items-center p-4 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                            <input type="radio" id="environment_live" name="paypal_environment" value="live" 
+                                   class="mr-3 text-primary focus:ring-primary">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2">
+                                    <i data-lucide="globe" class="h-5 w-5 text-green-600"></i>
+                                    <span class="font-medium">Production</span>
+                                </div>
+                                <p class="text-xs text-muted-foreground mt-1">Live environment - real payments</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-border">
+                    <button type="submit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                        <i data-lucide="save" class="mr-2 h-4 w-4"></i>
+                        Save Configuration
+                    </button>
+                    <button type="button" onclick="testPayPalConnection()" 
+                            class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                        <i data-lucide="zap" class="mr-2 h-4 w-4"></i>
+                        Test Connection
+                    </button>
+                    <button type="button" onclick="loadPayPalSettings()" 
+                            class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                        <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+                        Reset Form
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- PayPal Status -->
+    <div class="bg-card rounded-lg border border-border">
+        <div class="flex items-center px-6 py-4 border-b border-border">
+            <i data-lucide="info" class="mr-2 h-5 w-5 text-muted-foreground"></i>
+            <h3 class="text-lg font-semibold">PayPal Service Status</h3>
+        </div>
+        <div class="p-6" id="paypalStatusContainer">
+            <div class="flex flex-col items-center justify-center py-8">
+                <div class="animate-spin mb-4">
+                    <i data-lucide="loader" class="h-6 w-6 text-muted-foreground"></i>
+                </div>
+                <p class="text-sm text-muted-foreground">Loading status...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success/Error Messages -->
+<div id="messageContainer" class="mt-6"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+    .settings-tab {
+        border-bottom: 2px solid transparent;
+        color: hsl(215.4 16.3% 46.9%);
+        transition: all 0.2s ease;
+    }
+    .settings-tab:hover {
+        color: hsl(222.2 84% 4.9%);
+        border-bottom-color: hsl(214.3 31.8% 91.4%);
+    }
+    .settings-tab.active {
+        color: hsl(222.2 47.4% 11.2%);
+        border-bottom-color: hsl(222.2 47.4% 11.2%);
+    }
+    .settings-tab-content {
+        display: block;
+    }
+    .settings-tab-content.hidden {
+        display: none;
+    }
+</style>
+<script>
+    let currentEmailSettings = null;
+    let currentPayPalSettings = null;
+    let activeTab = 'email';
+
+    function showMessage(message, type = 'success') {
+        const container = document.getElementById('messageContainer');
+        const alertClass = type === 'success' ? 
+            'bg-green-50 border-green-200 text-green-800' : 
+            'bg-red-50 border-red-200 text-red-800';
+        const iconName = type === 'success' ? 'check-circle' : 'alert-circle';
+        
+        container.innerHTML = `
+            <div class="p-4 border ${alertClass} rounded-lg">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="${iconName}" class="h-5 w-5"></i>
+                    <span>${message}</span>
+                </div>
+            </div>
+        `;
+        lucide.createIcons();
+        
+        // Auto-hide success messages after 5 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+    }
+
+    function togglePassword() {
+        const passwordField = document.getElementById('smtp_password');
+        const eyeIcon = document.getElementById('password-eye');
+        
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            eyeIcon.setAttribute('data-lucide', 'eye-off');
+        } else {
+            passwordField.type = 'password';
+            eyeIcon.setAttribute('data-lucide', 'eye');
+        }
+        lucide.createIcons();
+    }
+
+    // Tab management
+    function switchTab(tabName) {
+        // Update active tab
+        activeTab = tabName;
+        
+        // Update tab buttons
+        document.querySelectorAll('.settings-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        
+        // Update tab content
+        document.querySelectorAll('.settings-tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+        document.getElementById(`${tabName}Tab`).classList.remove('hidden');
+        
+        // Update test button text
+        const testButton = document.getElementById('testCurrentTab');
+        testButton.innerHTML = tabName === 'email' ? 
+            '<i data-lucide="mail" class="mr-2 h-4 w-4"></i>Test Email' : 
+            '<i data-lucide="credit-card" class="mr-2 h-4 w-4"></i>Test PayPal';
+        lucide.createIcons();
+        
+        // Load appropriate settings
+        if (tabName === 'email') {
+            loadEmailSettings();
+        } else if (tabName === 'payment') {
+            loadPayPalSettings();
+        }
+    }
+    
+    function testCurrentTabConnection() {
+        if (activeTab === 'email') {
+            testSmtpConnection();
+        } else if (activeTab === 'payment') {
+            testPayPalConnection();
+        }
+    }
+    
+    function refreshSettings() {
+        if (activeTab === 'email') {
+            loadEmailSettings();
+        } else if (activeTab === 'payment') {
+            loadPayPalSettings();
+        }
+    }
+
+    // Email settings functions
+    function loadEmailSettings() {
+        fetch('/admin/api/smtp')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.settings) {
+                    currentEmailSettings = data.settings;
+                    populateEmailForm(data.settings);
+                    displayEmailStatus(data.settings);
+                } else {
+                    displayEmailStatus(null);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading email settings:', error);
+                showMessage('Error loading current email settings', 'error');
+                displayEmailStatus(null);
+            });
+    }
+
+    function populateEmailForm(settings) {
+        document.getElementById('smtp_server').value = settings.smtp_server || '';
+        document.getElementById('smtp_port').value = settings.smtp_port || '587';
+        document.getElementById('smtp_username').value = settings.username || '';
+        document.getElementById('from_email').value = settings.from_email || '';
+        document.getElementById('use_tls').checked = settings.use_tls === 1;
+        document.getElementById('use_ssl').checked = settings.use_ssl === 1;
+        
+        // Don't populate password - show placeholder
+        document.getElementById('smtp_password').placeholder = settings.password ? 'Password is encrypted and saved' : 'Enter your email password';
+    }
+
+    function displayEmailStatus(settings) {
+        const container = document.getElementById('emailStatusContainer');
+        
+        if (settings) {
+            const statusIcon = 'check-circle';
+            const statusColor = 'text-green-600';
+            const statusText = 'Configured';
+            
+            container.innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="${statusIcon}" class="h-5 w-5 ${statusColor}"></i>
+                        <span class="font-medium">SMTP Status: ${statusText}</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-2 text-sm">
+                            <div><span class="font-medium">Server:</span> ${settings.smtp_server}:${settings.smtp_port}</div>
+                            <div><span class="font-medium">Username:</span> ${settings.username}</div>
+                            <div><span class="font-medium">From Email:</span> ${settings.from_email}</div>
+                        </div>
+                        <div class="space-y-2 text-sm">
+                            <div><span class="font-medium">Security:</span> ${settings.use_tls ? 'TLS' : ''}${settings.use_ssl ? (settings.use_tls ? ' + SSL' : 'SSL') : ''}</div>
+                            <div><span class="font-medium">Last Updated:</span> ${new Date(settings.updated_at).toLocaleString()}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="flex items-center space-x-2 text-yellow-600">
+                    <i data-lucide="alert-triangle" class="h-5 w-5"></i>
+                    <span>No SMTP configuration found - using environment variables or simulation mode</span>
+                </div>
+            `;
+        }
+        lucide.createIcons();
+    }
+
+    // PayPal settings functions
+    function loadPayPalSettings() {
+        fetch('/admin/api/paypal')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.settings) {
+                    currentPayPalSettings = data.settings;
+                    populatePayPalForm(data.settings);
+                    displayPayPalStatus(data.settings);
+                } else {
+                    displayPayPalStatus(null);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading PayPal settings:', error);
+                showMessage('Error loading current PayPal settings', 'error');
+                displayPayPalStatus(null);
+            });
+    }
+
+    function populatePayPalForm(settings) {
+        document.getElementById('paypal_client_id').value = settings.client_id || '';
+        document.getElementById('environment_' + settings.environment).checked = true;
+        
+        // Don't populate secret - show placeholder
+        document.getElementById('paypal_client_secret').placeholder = settings.client_secret ? 'Client secret is encrypted and saved' : 'Enter your PayPal client secret';
+    }
+
+    function displayPayPalStatus(settings) {
+        const container = document.getElementById('paypalStatusContainer');
+        
+        if (settings) {
+            const statusIcon = 'check-circle';
+            const statusColor = 'text-green-600';
+            const statusText = 'Configured';
+            const envColor = settings.environment === 'sandbox' ? 'text-orange-600' : 'text-green-600';
+            const envIcon = settings.environment === 'sandbox' ? 'flask-conical' : 'globe';
+            
+            container.innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="${statusIcon}" class="h-5 w-5 ${statusColor}"></i>
+                        <span class="font-medium">PayPal Status: ${statusText}</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-2 text-sm">
+                            <div><span class="font-medium">Client ID:</span> ${settings.client_id.substring(0, 20)}...</div>
+                            <div class="flex items-center space-x-2">
+                                <span class="font-medium">Environment:</span>
+                                <div class="flex items-center space-x-1 ${envColor}">
+                                    <i data-lucide="${envIcon}" class="h-4 w-4"></i>
+                                    <span class="capitalize">${settings.environment}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2 text-sm">
+                            <div><span class="font-medium">Last Updated:</span> ${new Date(settings.updated_at).toLocaleString()}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="flex items-center space-x-2 text-yellow-600">
+                    <i data-lucide="alert-triangle" class="h-5 w-5"></i>
+                    <span>No PayPal configuration found - using environment variables</span>
+                </div>
+            `;
+        }
+        lucide.createIcons();
+    }
+
+    function togglePayPalPassword() {
+        const passwordField = document.getElementById('paypal_client_secret');
+        const eyeIcon = document.getElementById('paypal-password-eye');
+        
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            eyeIcon.setAttribute('data-lucide', 'eye-off');
+        } else {
+            passwordField.type = 'password';
+            eyeIcon.setAttribute('data-lucide', 'eye');
+        }
+        lucide.createIcons();
+    }
+
+    function testSmtpConnection() {
+        const form = document.getElementById('smtpForm');
+        const formData = new FormData(form);
+        
+        // Find the test button
+        const testButton = document.querySelector('#emailTab button[onclick="testSmtpConnection()"], #testCurrentTab');
+        const originalHtml = testButton.innerHTML;
+        testButton.innerHTML = '<i data-lucide="loader" class="mr-2 h-4 w-4 animate-spin"></i>Testing...';
+        testButton.disabled = true;
+        
+        fetch('/admin/api/smtp/test', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('✅ SMTP connection test successful! Email can be sent.', 'success');
+            } else {
+                showMessage(`❌ SMTP test failed: ${data.message || data.error}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error testing SMTP:', error);
+            showMessage('❌ Error testing SMTP connection', 'error');
+        })
+        .finally(() => {
+            testButton.innerHTML = originalHtml;
+            testButton.disabled = false;
+            lucide.createIcons();
+        });
+    }
+
+    function testPayPalConnection() {
+        const form = document.getElementById('paypalForm');
+        const formData = new FormData(form);
+        
+        // Find the test button
+        const testButton = document.querySelector('#paymentTab button[onclick="testPayPalConnection()"], #testCurrentTab');
+        const originalHtml = testButton.innerHTML;
+        testButton.innerHTML = '<i data-lucide="loader" class="mr-2 h-4 w-4 animate-spin"></i>Testing...';
+        testButton.disabled = true;
+        
+        fetch('/admin/api/paypal/test', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('✅ PayPal connection test successful! API authentication works.', 'success');
+            } else {
+                showMessage(`❌ PayPal test failed: ${data.message || data.error}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error testing PayPal:', error);
+            showMessage('❌ Error testing PayPal connection', 'error');
+        })
+        .finally(() => {
+            testButton.innerHTML = originalHtml;
+            testButton.disabled = false;
+            lucide.createIcons();
+        });
+    }
+
+    // Form submissions
+    document.getElementById('smtpForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalHtml = submitButton.innerHTML;
+        
+        // Show loading state
+        submitButton.innerHTML = '<i data-lucide="loader" class="mr-2 h-4 w-4 animate-spin"></i>Saving...';
+        submitButton.disabled = true;
+        
+        fetch('/admin/api/smtp/save', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('✅ SMTP configuration saved successfully!', 'success');
+                loadEmailSettings(); // Refresh the status
+            } else {
+                showMessage(`❌ Error saving configuration: ${data.error}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error saving SMTP settings:', error);
+            showMessage('❌ Error saving SMTP configuration', 'error');
+        })
+        .finally(() => {
+            submitButton.innerHTML = originalHtml;
+            submitButton.disabled = false;
+            lucide.createIcons();
+        });
+    });
+
+    document.getElementById('paypalForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalHtml = submitButton.innerHTML;
+        
+        // Show loading state
+        submitButton.innerHTML = '<i data-lucide="loader" class="mr-2 h-4 w-4 animate-spin"></i>Saving...';
+        submitButton.disabled = true;
+        
+        fetch('/admin/api/paypal/save', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('✅ PayPal configuration saved successfully!', 'success');
+                loadPayPalSettings(); // Refresh the status
+            } else {
+                showMessage(`❌ Error saving configuration: ${data.error}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error saving PayPal settings:', error);
+            showMessage('❌ Error saving PayPal configuration', 'error');
+        })
+        .finally(() => {
+            submitButton.innerHTML = originalHtml;
+            submitButton.disabled = false;
+            lucide.createIcons();
+        });
+    });
+
+    // Load settings on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        lucide.createIcons();
+        // Load email settings by default (first tab)
+        loadEmailSettings();
+    });
+</script>
+{% endblock %}

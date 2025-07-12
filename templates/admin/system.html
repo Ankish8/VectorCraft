@@ -3,26 +3,34 @@
 {% block title %}System Health - VectorCraft Admin{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="bi bi-cpu"></i> System Health</h1>
-    <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
-        <i class="bi bi-arrow-clockwise"></i> Refresh
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <h1 class="text-3xl font-bold tracking-tight">System Health</h1>
+        <p class="text-muted-foreground">Monitor the health and performance of all system components</p>
+    </div>
+    <button onclick="refreshData()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+        <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+        Refresh
     </button>
 </div>
 
 <!-- Overall Status -->
-<div id="overallStatus" class="alert alert-info mb-4">
-    <div class="d-flex align-items-center">
-        <div class="spinner-border spinner-border-sm me-2"></div>
+<div id="overallStatus" class="mb-8 p-4 rounded-lg border border-border bg-blue-50 text-blue-800">
+    <div class="flex items-center">
+        <div class="animate-spin mr-3">
+            <i data-lucide="loader" class="h-5 w-5"></i>
+        </div>
         <div>Loading system status...</div>
     </div>
 </div>
 
 <!-- Component Health -->
-<div class="row" id="componentHealth">
-    <div class="col-12 text-center py-4">
-        <div class="spinner-border"></div>
-        <p class="mt-2">Loading component health status...</p>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="componentHealth">
+    <div class="col-span-full flex flex-col items-center justify-center py-12">
+        <div class="animate-spin mb-4">
+            <i data-lucide="loader" class="h-12 w-12 text-muted-foreground"></i>
+        </div>
+        <p class="text-muted-foreground">Loading component health status...</p>
     </div>
 </div>
 {% endblock %}
@@ -55,53 +63,94 @@
     }
     
     function updateOverallStatus(status) {
-        const alertClass = status.status === 'healthy' ? 'alert-success' : 
-                          status.status === 'warning' ? 'alert-warning' : 'alert-danger';
-        const icon = status.status === 'healthy' ? 'bi-check-circle' : 
-                    status.status === 'warning' ? 'bi-exclamation-triangle' : 'bi-x-circle';
+        let bgClass, textClass, icon;
         
-        document.getElementById('overallStatus').className = `alert ${alertClass} mb-4`;
+        switch(status.status) {
+            case 'healthy':
+                bgClass = 'bg-green-50';
+                textClass = 'text-green-800';
+                icon = 'check-circle';
+                break;
+            case 'warning':
+                bgClass = 'bg-yellow-50';
+                textClass = 'text-yellow-800';
+                icon = 'alert-triangle';
+                break;
+            case 'critical':
+                bgClass = 'bg-red-50';
+                textClass = 'text-red-800';
+                icon = 'x-circle';
+                break;
+            default:
+                bgClass = 'bg-blue-50';
+                textClass = 'text-blue-800';
+                icon = 'info';
+        }
+        
+        document.getElementById('overallStatus').className = `mb-8 p-4 rounded-lg border border-border ${bgClass} ${textClass}`;
         document.getElementById('overallStatus').innerHTML = `
-            <div class="d-flex align-items-center">
-                <i class="${icon} me-2" style="font-size: 1.5rem;"></i>
+            <div class="flex items-center">
+                <i data-lucide="${icon}" class="mr-3 h-6 w-6"></i>
                 <div>
-                    <strong>System Status: ${status.status.toUpperCase()}</strong><br>
-                    <small>${status.message}</small>
+                    <div class="font-semibold text-lg">System Status: ${status.status.toUpperCase()}</div>
+                    <div class="text-sm opacity-90">${status.message}</div>
                 </div>
             </div>
         `;
+        lucide.createIcons();
     }
     
     function updateComponentHealth(healthResults) {
         let html = '';
         
         Object.entries(healthResults).forEach(([component, result]) => {
-            const statusClass = result.status === 'healthy' ? 'success' : 
-                               result.status === 'warning' ? 'warning' : 'danger';
-            const icon = result.status === 'healthy' ? 'bi-check-circle-fill' : 
-                        result.status === 'warning' ? 'bi-exclamation-triangle-fill' : 'bi-x-circle-fill';
+            let statusColor, bgColor, iconName;
+            
+            switch(result.status) {
+                case 'healthy':
+                    statusColor = 'text-green-600';
+                    bgColor = 'bg-green-100';
+                    iconName = 'check-circle';
+                    break;
+                case 'warning':
+                    statusColor = 'text-yellow-600';
+                    bgColor = 'bg-yellow-100';
+                    iconName = 'alert-triangle';
+                    break;
+                case 'critical':
+                    statusColor = 'text-red-600';
+                    bgColor = 'bg-red-100';
+                    iconName = 'x-circle';
+                    break;
+                default:
+                    statusColor = 'text-gray-600';
+                    bgColor = 'bg-gray-100';
+                    iconName = 'help-circle';
+            }
             
             html += `
-                <div class="col-md-6 col-lg-3 mb-4">
-                    <div class="card border-${statusClass} h-100">
-                        <div class="card-body text-center">
-                            <i class="${icon} text-${statusClass}" style="font-size: 3rem;"></i>
-                            <h5 class="mt-3">${component.replace('_', ' ').toUpperCase()}</h5>
-                            <p class="text-muted mb-2">${result.status.toUpperCase()}</p>
-                            ${result.response_time ? `<small class="text-muted">Response: ${result.response_time}ms</small>` : ''}
-                            ${result.error_message ? `<small class="text-danger d-block mt-2">${result.error_message}</small>` : ''}
-                            <small class="text-muted d-block mt-2">Checked: ${new Date(result.checked_at).toLocaleTimeString('en-IN', {timeZone: 'Asia/Kolkata'})}</small>
+                <div class="bg-card rounded-lg border border-border p-6 text-center">
+                    <div class="flex justify-center mb-4">
+                        <div class="p-3 ${bgColor} rounded-full">
+                            <i data-lucide="${iconName}" class="h-8 w-8 ${statusColor}"></i>
                         </div>
                     </div>
+                    <h3 class="text-lg font-semibold mb-2">${component.replace('_', ' ').toUpperCase()}</h3>
+                    <p class="text-sm ${statusColor} font-medium mb-2">${result.status.toUpperCase()}</p>
+                    ${result.response_time ? `<p class="text-xs text-muted-foreground mb-1">Response: ${result.response_time}ms</p>` : ''}
+                    ${result.error_message ? `<p class="text-xs text-red-600 mt-2">${result.error_message}</p>` : ''}
+                    <p class="text-xs text-muted-foreground mt-2">Checked: ${new Date(result.checked_at).toLocaleTimeString('en-IN', {timeZone: 'Asia/Kolkata'})}</p>
                 </div>
             `;
         });
         
         document.getElementById('componentHealth').innerHTML = html;
+        lucide.createIcons();
     }
     
     // Load data on page load
     document.addEventListener('DOMContentLoaded', function() {
+        lucide.createIcons();
         loadHealthStatus();
         
         // Auto-refresh every 30 seconds

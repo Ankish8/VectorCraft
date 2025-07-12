@@ -3,237 +3,254 @@
 {% block title %}Admin Dashboard - VectorCraft{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="bi bi-speedometer2"></i> Admin Dashboard</h1>
+<div class="flex justify-between items-center mb-8">
     <div>
-        <span class="text-muted me-3">Last updated: <span id="lastUpdated">Loading...</span></span>
-        <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
-            <i class="bi bi-arrow-clockwise"></i> Refresh
+        <h1 class="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p class="text-muted-foreground">Welcome to your VectorCraft admin panel</p>
+    </div>
+    <div class="flex items-center space-x-4">
+        <span class="text-sm text-muted-foreground">Last updated: <span id="lastUpdated" class="font-medium">Loading...</span></span>
+        <button onclick="refreshData()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+            <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
+            Refresh
         </button>
     </div>
 </div>
 
 <!-- System Status Banner -->
-<div id="systemStatusBanner" class="alert alert-info d-flex align-items-center mb-4" role="alert">
-    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-    <div>Loading system status...</div>
+<div id="systemStatusBanner" class="mb-6 p-4 rounded-lg border border-border bg-blue-50 text-blue-800">
+    <div class="flex items-center">
+        <div class="animate-spin mr-3">
+            <i data-lucide="loader" class="h-4 w-4"></i>
+        </div>
+        <div>Loading system status...</div>
+    </div>
 </div>
 
 <!-- Metrics Cards -->
-<div class="row mb-4">
-    <div class="col-md-3 mb-3">
-        <div class="card metric-card border-0 shadow-sm">
-            <div class="card-body text-center">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <i class="bi bi-currency-dollar text-success" style="font-size: 2rem;"></i>
-                    <span class="badge bg-success">Today</span>
-                </div>
-                <h3 class="mb-1" id="todayRevenue">${{ "%.2f"|format(data.today_stats.revenue if data and data.today_stats else 0) }}</h3>
-                <p class="text-muted mb-0">Revenue</p>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="metric-card bg-card rounded-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="p-2 bg-green-100 rounded-lg">
+                <i data-lucide="dollar-sign" class="h-6 w-6 text-green-600"></i>
             </div>
+            <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Today</span>
+        </div>
+        <div>
+            <h3 class="text-2xl font-bold text-card-foreground mb-1" id="todayRevenue">${{ "%.2f"|format(data.today_stats.revenue if data and data.today_stats else 0) }}</h3>
+            <p class="text-sm text-muted-foreground">Revenue</p>
         </div>
     </div>
     
-    <div class="col-md-3 mb-3">
-        <div class="card metric-card border-0 shadow-sm">
-            <div class="card-body text-center">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <i class="bi bi-receipt text-primary" style="font-size: 2rem;"></i>
-                    <span class="badge bg-primary">Today</span>
-                </div>
-                <h3 class="mb-1" id="todayTransactions">{{ data.today_stats.transactions if data and data.today_stats else 0 }}</h3>
-                <p class="text-muted mb-0">Transactions</p>
+    <div class="metric-card bg-card rounded-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="p-2 bg-blue-100 rounded-lg">
+                <i data-lucide="receipt" class="h-6 w-6 text-blue-600"></i>
             </div>
+            <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">Today</span>
+        </div>
+        <div>
+            <h3 class="text-2xl font-bold text-card-foreground mb-1" id="todayTransactions">{{ data.today_stats.transactions if data and data.today_stats else 0 }}</h3>
+            <p class="text-sm text-muted-foreground">Transactions</p>
         </div>
     </div>
     
-    <div class="col-md-3 mb-3">
-        <div class="card metric-card border-0 shadow-sm">
-            <div class="card-body text-center">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <i class="bi bi-check-circle text-info" style="font-size: 2rem;"></i>
-                    <span class="badge bg-info">Today</span>
-                </div>
-                <h3 class="mb-1" id="successRate">{{ "%.1f"|format(data.today_stats.success_rate if data and data.today_stats else 0) }}%</h3>
-                <p class="text-muted mb-0">Success Rate</p>
+    <div class="metric-card bg-card rounded-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="p-2 bg-emerald-100 rounded-lg">
+                <i data-lucide="check-circle" class="h-6 w-6 text-emerald-600"></i>
             </div>
+            <span class="px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-800 rounded-full">Today</span>
+        </div>
+        <div>
+            <h3 class="text-2xl font-bold text-card-foreground mb-1" id="successRate">{{ "%.1f"|format(data.today_stats.success_rate if data and data.today_stats else 0) }}%</h3>
+            <p class="text-sm text-muted-foreground">Success Rate</p>
         </div>
     </div>
     
-    <div class="col-md-3 mb-3">
-        <div class="card metric-card border-0 shadow-sm">
-            <div class="card-body text-center">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2rem;"></i>
-                    <span class="badge bg-warning">Active</span>
-                </div>
-                <h3 class="mb-1" id="activeAlerts">{{ data.alert_summary.total_active if data and data.alert_summary else 0 }}</h3>
-                <p class="text-muted mb-0">Alerts</p>
+    <div class="metric-card bg-card rounded-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="p-2 bg-orange-100 rounded-lg">
+                <i data-lucide="alert-triangle" class="h-6 w-6 text-orange-600"></i>
             </div>
+            <span class="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">Active</span>
+        </div>
+        <div>
+            <h3 class="text-2xl font-bold text-card-foreground mb-1" id="activeAlerts">{{ data.alert_summary.total_active if data and data.alert_summary else 0 }}</h3>
+            <p class="text-sm text-muted-foreground">Alerts</p>
         </div>
     </div>
 </div>
 
 <!-- System Health and Recent Activity -->
-<div class="row mb-4">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
     <!-- System Health -->
-    <div class="col-lg-6 mb-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-cpu"></i> System Health</h5>
-                <button class="btn btn-sm btn-outline-secondary" onclick="refreshHealthStatus()">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </button>
+    <div class="bg-card rounded-lg border border-border">
+        <div class="flex items-center justify-between p-6 border-b border-border">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="activity" class="h-5 w-5 text-muted-foreground"></i>
+                <h3 class="text-lg font-semibold">System Health</h3>
             </div>
-            <div class="card-body">
-                <div id="healthStatus">
-                    <div class="text-center py-3">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2 text-muted">Checking system health...</p>
+            <button onclick="refreshHealthStatus()" class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="healthStatus">
+                <div class="flex flex-col items-center justify-center py-8">
+                    <div class="animate-spin mb-4">
+                        <i data-lucide="loader" class="h-8 w-8 text-muted-foreground"></i>
                     </div>
+                    <p class="text-sm text-muted-foreground">Checking system health...</p>
                 </div>
             </div>
         </div>
     </div>
     
     <!-- Recent Transactions -->
-    <div class="col-lg-6 mb-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Transactions</h5>
-                <a href="{{ url_for('admin_transactions') }}" class="btn btn-sm btn-outline-primary">
-                    View All
-                </a>
+    <div class="bg-card rounded-lg border border-border">
+        <div class="flex items-center justify-between p-6 border-b border-border">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="clock" class="h-5 w-5 text-muted-foreground"></i>
+                <h3 class="text-lg font-semibold">Recent Transactions</h3>
             </div>
-            <div class="card-body">
-                <div id="recentTransactions">
-                    {% if data and data.recent_transactions %}
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Email</th>
-                                        <th>Amount</th>
-                                        <th>Status</th>
-                                        <th>Time</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for tx in data.recent_transactions %}
-                                    <tr>
-                                        <td class="text-truncate" style="max-width: 150px;">{{ tx.email }}</td>
-                                        <td>${{ "%.2f"|format(tx.amount or 0) }}</td>
-                                        <td>
-                                            <span class="badge bg-{{ 'success' if tx.status == 'completed' else 'warning' if tx.status == 'pending' else 'danger' }}">
-                                                {{ tx.status }}
-                                            </span>
-                                        </td>
-                                        <td class="text-muted small">
-                                            {{ tx.created_at[:16] }}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+            <a href="{{ url_for('admin_transactions') }}" class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                View All
+            </a>
+        </div>
+        <div class="p-6">
+            <div id="recentTransactions">
+                {% if data and data.recent_transactions %}
+                    <div class="space-y-4">
+                        {% for tx in data.recent_transactions %}
+                        <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-card-foreground truncate">{{ tx.email }}</p>
+                                <p class="text-xs text-muted-foreground">{{ tx.created_at[:16] }}</p>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <span class="text-sm font-medium">${{ "%.2f"|format(tx.amount or 0) }}</span>
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                    {% if tx.status == 'completed' %}bg-green-100 text-green-800
+                                    {% elif tx.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ tx.status }}
+                                </span>
+                            </div>
                         </div>
-                    {% else %}
-                        <div class="text-center text-muted py-3">
-                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
-                            <p class="mt-2">No recent transactions</p>
-                        </div>
-                    {% endif %}
-                </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="flex flex-col items-center justify-center py-8">
+                        <i data-lucide="inbox" class="h-12 w-12 text-muted-foreground mb-4"></i>
+                        <p class="text-sm text-muted-foreground">No recent transactions</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
 <!-- Error Summary and Quick Actions -->
-<div class="row">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Error Summary -->
-    <div class="col-lg-8 mb-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-exclamation-circle"></i> Error Summary (24h)</h5>
-                <a href="{{ url_for('admin_logs') }}" class="btn btn-sm btn-outline-primary">
-                    View Logs
-                </a>
+    <div class="lg:col-span-2 bg-card rounded-lg border border-border">
+        <div class="flex items-center justify-between p-6 border-b border-border">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="alert-circle" class="h-5 w-5 text-muted-foreground"></i>
+                <h3 class="text-lg font-semibold">Error Summary (24h)</h3>
             </div>
-            <div class="card-body">
-                {% if data and data.error_summary %}
-                    <div class="row text-center">
-                        <div class="col">
-                            <h4 class="text-danger">{{ data.error_summary.total_errors }}</h4>
-                            <p class="text-muted mb-0">Total Errors</p>
-                        </div>
-                        {% for component, count in data.error_summary.by_component.items() %}
-                        <div class="col">
-                            <h4>{{ count }}</h4>
-                            <p class="text-muted mb-0">{{ component.title() }}</p>
-                        </div>
-                        {% endfor %}
+            <a href="{{ url_for('admin_logs') }}" class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                View Logs
+            </a>
+        </div>
+        <div class="p-6">
+            {% if data and data.error_summary %}
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="text-center">
+                        <h3 class="text-2xl font-bold text-red-600">{{ data.error_summary.total_errors }}</h3>
+                        <p class="text-sm text-muted-foreground">Total Errors</p>
                     </div>
-                    
-                    {% if data.error_summary.recent_errors %}
-                        <hr>
-                        <h6>Recent Errors:</h6>
-                        <div class="list-group list-group-flush">
+                    {% for component, count in data.error_summary.by_component.items() %}
+                    <div class="text-center">
+                        <h3 class="text-2xl font-bold">{{ count }}</h3>
+                        <p class="text-sm text-muted-foreground">{{ component.title() }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% if data.error_summary.recent_errors %}
+                    <div class="border-t border-border pt-6">
+                        <h4 class="text-sm font-medium mb-4">Recent Errors</h4>
+                        <div class="space-y-3">
                             {% for error in data.error_summary.recent_errors[:3] %}
-                            <div class="list-group-item border-0 px-0">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div>
+                            <div class="flex items-start justify-between p-3 bg-muted/50 rounded-lg">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2 mb-1">
                                         <span class="log-level log-{{ error.level.lower() }}">{{ error.level }}</span>
-                                        <strong class="ms-2">{{ error.component }}</strong>
-                                        <p class="mb-1 mt-1">{{ error.message }}</p>
+                                        <span class="text-sm font-medium">{{ error.component }}</span>
                                     </div>
-                                    <small class="text-muted">{{ error.created_at[:16] }}</small>
+                                    <p class="text-sm text-muted-foreground">{{ error.message }}</p>
                                 </div>
+                                <span class="text-xs text-muted-foreground">{{ error.created_at[:16] }}</span>
                             </div>
                             {% endfor %}
                         </div>
-                    {% endif %}
-                {% else %}
-                    <div class="text-center text-muted py-3">
-                        <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
-                        <p class="mt-2">No errors in the last 24 hours</p>
                     </div>
                 {% endif %}
-            </div>
+            {% else %}
+                <div class="flex flex-col items-center justify-center py-8">
+                    <i data-lucide="check-circle" class="h-12 w-12 text-green-600 mb-4"></i>
+                    <p class="text-sm text-muted-foreground">No errors in the last 24 hours</p>
+                </div>
+            {% endif %}
         </div>
     </div>
     
     <!-- Quick Actions -->
-    <div class="col-lg-4 mb-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent">
-                <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+    <div class="bg-card rounded-lg border border-border">
+        <div class="p-6 border-b border-border">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="zap" class="h-5 w-5 text-muted-foreground"></i>
+                <h3 class="text-lg font-semibold">Quick Actions</h3>
             </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <button class="btn btn-outline-primary" onclick="runHealthCheck()">
-                        <i class="bi bi-cpu"></i> Run Health Check
-                    </button>
-                    <button class="btn btn-outline-info" onclick="checkAlerts()">
-                        <i class="bi bi-bell"></i> Check Alerts
-                    </button>
-                    <a href="{{ url_for('admin_transactions') }}" class="btn btn-outline-success">
-                        <i class="bi bi-search"></i> Search Transactions
-                    </a>
-                    <a href="{{ url_for('admin_analytics') }}" class="btn btn-outline-warning">
-                        <i class="bi bi-graph-up"></i> View Analytics
-                    </a>
+        </div>
+        <div class="p-6">
+            <div class="space-y-3">
+                <button onclick="runHealthCheck()" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <i data-lucide="activity" class="mr-2 h-4 w-4"></i>
+                    Run Health Check
+                </button>
+                <button onclick="checkAlerts()" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <i data-lucide="bell" class="mr-2 h-4 w-4"></i>
+                    Check Alerts
+                </button>
+                <a href="{{ url_for('admin_transactions') }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <i data-lucide="search" class="mr-2 h-4 w-4"></i>
+                    Search Transactions
+                </a>
+                <a href="{{ url_for('admin_analytics') }}" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <i data-lucide="trending-up" class="mr-2 h-4 w-4"></i>
+                    View Analytics
+                </a>
+            </div>
+            
+            <div class="border-t border-border mt-6 pt-6">
+                <h4 class="text-sm font-medium mb-3">System Info</h4>
+                <div class="space-y-2 text-sm text-muted-foreground">
+                    <div class="flex justify-between">
+                        <span>Version:</span>
+                        <span>1.0.0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Environment:</span>
+                        <span>{{ 'Production' if config.get('ENV') == 'production' else 'Development' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Uptime:</span>
+                        <span id="uptime">Loading...</span>
+                    </div>
                 </div>
-                
-                <hr>
-                
-                <h6>System Info</h6>
-                <small class="text-muted">
-                    <div><strong>Version:</strong> 1.0.0</div>
-                    <div><strong>Environment:</strong> {{ 'Production' if config.get('ENV') == 'production' else 'Development' }}</div>
-                    <div><strong>Uptime:</strong> <span id="uptime">Loading...</span></div>
-                </small>
             </div>
         </div>
     </div>
@@ -271,33 +288,35 @@
             .catch(error => {
                 console.error('Error refreshing health status:', error);
                 document.getElementById('healthStatus').innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="bi bi-exclamation-triangle"></i> Error loading health status
+                    <div class="p-4 border border-red-200 bg-red-50 text-red-800 rounded-lg">
+                        <div class="flex items-center">
+                            <i data-lucide="alert-triangle" class="mr-2 h-5 w-5"></i>
+                            <span>Error loading health status</span>
+                        </div>
                     </div>
                 `;
+                lucide.createIcons();
             });
     }
     
     function updateHealthStatus(healthResults, overallStatus) {
         const healthHtml = `
-            <div class="mb-3">
-                <div class="d-flex align-items-center mb-2">
+            <div class="mb-6">
+                <div class="flex items-center mb-2">
                     <span class="health-indicator ${getHealthIndicatorClass(overallStatus.status)}"></span>
-                    <strong>Overall Status: ${overallStatus.status.toUpperCase()}</strong>
+                    <span class="font-semibold">Overall Status: ${overallStatus.status.toUpperCase()}</span>
                 </div>
-                <p class="text-muted mb-0">${overallStatus.message}</p>
+                <p class="text-sm text-muted-foreground">${overallStatus.message}</p>
             </div>
             
-            <div class="row">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 ${Object.entries(healthResults).map(([component, result]) => `
-                    <div class="col-sm-6 mb-2">
-                        <div class="d-flex align-items-center">
-                            <span class="health-indicator ${getHealthIndicatorClass(result.status)}"></span>
-                            <div>
-                                <div class="fw-bold">${component.replace('_', ' ').toUpperCase()}</div>
-                                ${result.response_time ? `<small class="text-muted">${result.response_time}ms</small>` : ''}
-                                ${result.error_message ? `<small class="text-danger d-block">${result.error_message}</small>` : ''}
-                            </div>
+                    <div class="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
+                        <span class="health-indicator ${getHealthIndicatorClass(result.status)}"></span>
+                        <div class="flex-1">
+                            <div class="font-medium text-sm">${component.replace('_', ' ').toUpperCase()}</div>
+                            ${result.response_time ? `<div class="text-xs text-muted-foreground">${result.response_time}ms</div>` : ''}
+                            ${result.error_message ? `<div class="text-xs text-red-600">${result.error_message}</div>` : ''}
                         </div>
                     </div>
                 `).join('')}
@@ -310,71 +329,69 @@
     function updateSystemStatusBanner(overallStatus) {
         const banner = document.getElementById('systemStatusBanner');
         
-        // Remove existing classes
-        banner.className = 'alert d-flex align-items-center mb-4';
-        
-        let alertClass, icon, message;
+        let bgClass, textClass, icon, message;
         
         switch(overallStatus.status) {
             case 'healthy':
-                alertClass = 'alert-success';
-                icon = 'bi-check-circle';
+                bgClass = 'bg-green-50';
+                textClass = 'text-green-800';
+                icon = 'check-circle';
                 message = `<strong>All Systems Operational</strong> - ${overallStatus.message}`;
                 break;
             case 'warning':
-                alertClass = 'alert-warning';
-                icon = 'bi-exclamation-triangle';
+                bgClass = 'bg-yellow-50';
+                textClass = 'text-yellow-800';
+                icon = 'alert-triangle';
                 message = `<strong>System Warning</strong> - ${overallStatus.message}`;
                 break;
             case 'critical':
-                alertClass = 'alert-danger';
-                icon = 'bi-x-circle';
+                bgClass = 'bg-red-50';
+                textClass = 'text-red-800';
+                icon = 'x-circle';
                 message = `<strong>System Critical</strong> - ${overallStatus.message}`;
                 break;
             default:
-                alertClass = 'alert-info';
-                icon = 'bi-info-circle';
+                bgClass = 'bg-blue-50';
+                textClass = 'text-blue-800';
+                icon = 'info';
                 message = `<strong>Status Unknown</strong> - ${overallStatus.message}`;
         }
         
-        banner.className += ` ${alertClass}`;
+        banner.className = `mb-6 p-4 rounded-lg border border-border ${bgClass} ${textClass}`;
         banner.innerHTML = `
-            <i class="${icon} me-2"></i>
-            <div>${message}</div>
+            <div class="flex items-center">
+                <i data-lucide="${icon}" class="mr-3 h-5 w-5"></i>
+                <div>${message}</div>
+            </div>
         `;
+        lucide.createIcons();
     }
     
     function runHealthCheck() {
         const btn = event.target;
-        const originalText = btn.innerHTML;
+        const originalHTML = btn.innerHTML;
         
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Running...';
+        btn.innerHTML = '<div class="flex items-center"><div class="animate-spin mr-2"><i data-lucide="loader" class="h-4 w-4"></i></div>Running...</div>';
         btn.disabled = true;
+        lucide.createIcons();
         
         fetch('/admin/api/health')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     refreshHealthStatus();
-                    // Show success message
-                    const alert = document.createElement('div');
-                    alert.className = 'alert alert-success alert-dismissible fade show mt-2';
-                    alert.innerHTML = `
-                        Health check completed successfully!
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    `;
-                    btn.parentElement.appendChild(alert);
-                    
-                    // Remove alert after 3 seconds
-                    setTimeout(() => alert.remove(), 3000);
+                    // Show success notification
+                    showNotification('Health check completed successfully!', 'success');
                 }
             })
             .catch(error => {
                 console.error('Health check failed:', error);
+                showNotification('Health check failed!', 'error');
             })
             .finally(() => {
-                btn.innerHTML = originalText;
+                btn.innerHTML = originalHTML;
                 btn.disabled = false;
+                lucide.createIcons();
             });
     }
     
@@ -386,18 +403,48 @@
                     updateAlertBadge(data.summary.total_active);
                     
                     if (data.summary.critical > 0) {
-                        alert(`⚠️ ${data.summary.critical} critical alerts require immediate attention!`);
+                        showNotification(`⚠️ ${data.summary.critical} critical alerts require immediate attention!`, 'warning');
                     } else if (data.summary.total_active > 0) {
-                        alert(`ℹ️ ${data.summary.total_active} alerts are currently active.`);
+                        showNotification(`ℹ️ ${data.summary.total_active} alerts are currently active.`, 'info');
                     } else {
-                        alert('✅ No active alerts.');
+                        showNotification('✅ No active alerts.', 'success');
                     }
                 }
             })
             .catch(error => {
                 console.error('Error checking alerts:', error);
-                alert('❌ Error checking alerts.');
+                showNotification('❌ Error checking alerts.', 'error');
             });
+    }
+    
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        const typeClasses = {
+            success: 'bg-green-50 border-green-200 text-green-800',
+            error: 'bg-red-50 border-red-200 text-red-800',
+            warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+            info: 'bg-blue-50 border-blue-200 text-blue-800'
+        };
+        
+        notification.className = `fixed top-4 right-4 p-4 rounded-lg border ${typeClasses[type]} shadow-lg z-50`;
+        notification.innerHTML = `
+            <div class="flex items-center justify-between">
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-current hover:opacity-70">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        lucide.createIcons();
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
     }
     
     function updateUptime() {
@@ -413,6 +460,11 @@
     
     // Initialize dashboard
     document.addEventListener('DOMContentLoaded', function() {
+        // Ensure icons are created after content load
+        setTimeout(() => {
+            lucide.createIcons();
+        }, 100);
+        
         refreshHealthStatus();
         updateUptime();
         
