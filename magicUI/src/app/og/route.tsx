@@ -24,7 +24,6 @@ export async function GET(req: NextRequest) {
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: "#fff",
-          // set background image if needed
           backgroundImage: `url(${siteConfig.url}/og.png)`,
           fontSize: 32,
           fontWeight: 600,
@@ -57,7 +56,7 @@ export async function GET(req: NextRequest) {
               marginTop: "24px",
               textAlign: "center",
               width: "80%",
-              letterSpacing: "-0.05em", // Added tighter tracking
+              letterSpacing: "-0.05em",
             }}
           >
             {postTitle}

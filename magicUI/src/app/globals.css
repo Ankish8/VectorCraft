@@ -5,13 +5,11 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  /* Border Radius */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   
-  /* Colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -44,11 +42,9 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   
-  /* Container */
   --container-padding: 2rem;
   --container-max-width: 1400px;
   
-  /* Animations */
   --animate-marquee: marquee var(--duration) linear infinite;
   --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
   --animate-border-beam: border-beam calc(var(--duration)*1s) infinite linear;
@@ -56,7 +52,6 @@
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-ripple: ripple var(--duration,2s) ease calc(var(--i, 0)*.2s) infinite;
 
-  /* Keyframes */
   @keyframes marquee {
     from {
       transform: translateX(0);
@@ -110,10 +105,8 @@
 }
 
 :root {
-  /* Base radius */
   --radius: 0.625rem;
   
-  /* Colors */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -134,14 +127,12 @@
   --input: oklch(0.922 0 0);
   --ring: oklch(0.145 0 0);
   
-  /* Chart colors */
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
   
-  /* Sidebar colors */
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -153,10 +144,8 @@
 }
 
 .dark {
-  /* Base radius */
   --radius: 0.625rem;
   
-  /* Colors */
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.145 0 0);
@@ -177,14 +166,12 @@
   --input: oklch(0.269 0 0);
   --ring: oklch(0.556 0 0);
   
-  /* Chart colors */
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
   
-  /* Sidebar colors */
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -216,7 +203,6 @@
 }
 
 @layer utilities {
-  /* Container utilities */
   .container {
     width: 100%;
     margin-left: auto;
@@ -231,15 +217,11 @@
     }
   }
 }
-
-/* VectorCraft Custom Magic UI Styles */
 :root {
   --vectorcraft-primary: #5046e6;
   --vectorcraft-secondary: #9E7AFF;
   --vectorcraft-accent: #FE8BBB;
 }
-
-/* Aurora Text Animation */
 .aurora-text {
   background: linear-gradient(135deg, #FF0080, #7928CA, #0070F3, #38bdf8, #FF0080);
   background-size: 200% auto;
@@ -257,8 +239,6 @@
     background-position: 100% 50%;
   }
 }
-
-/* Line Shadow Text Animation */
 .line-shadow-text {
   position: relative;
   z-index: 0;
@@ -277,8 +257,6 @@
   color: transparent;
   z-index: -10;
 }
-
-/* Rainbow Button - Your Original Design */
 :root {
   --color-1: #FF6B6B;
   --color-2: #4ECDC4;
@@ -336,8 +314,6 @@
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-
-/* Shiny Button - Your Original Design */
 .shiny-button {
   position: relative;
   display: inline-flex;
@@ -377,8 +353,6 @@
 .shiny-button:hover::before {
   left: 100%;
 }
-
-/* Hero gradient background */
 .hero-gradient {
   background: linear-gradient(135deg, 
     rgba(80, 70, 230, 0.05) 0%, 

@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 const ease = [0.16, 1, 0.3, 1];
 
 export default function UrgencyBanner() {
-  const initialTime = 5 * 24 * 3600 + 12 * 3600 + 30 * 60 + 45; // 5 days, 12 hours, 30 min, 45 sec
+  const initialTime = 5 * 24 * 3600 + 12 * 3600 + 30 * 60 + 45;
   const [timeLeft, setTimeLeft] = useState(initialTime);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function UrgencyBanner() {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, ease }}
-      style={{ height: '64px' }} // Same height as typical navbar
+      style={{ height: '64px' }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
         <div className="flex items-center justify-center h-full">

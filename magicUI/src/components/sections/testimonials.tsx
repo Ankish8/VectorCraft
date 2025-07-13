@@ -41,18 +41,16 @@ export const TestimonialCard = ({
   img,
   role,
   className,
-  ...props // Capture the rest of the props
+  ...props
 }: TestimonialCardProps) => (
   <div
     className={cn(
       "mb-4 flex w-full cursor-pointer break-inside-avoid flex-col items-center justify-between gap-6 rounded-xl p-4",
-      // light styles
       " border border-neutral-200 bg-white",
-      // dark styles
       "dark:bg-black dark:[border:1px_solid_rgba(255,255,255,.1)] dark:[box-shadow:0_-20px_80px_-20px_#ffffff1f_inset]",
       className
     )}
-    {...props} // Spread the rest of the props here
+    {...props}
   >
     <div className="select-none text-sm font-normal text-neutral-700 dark:text-neutral-400">
       {description}

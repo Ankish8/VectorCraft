@@ -1,7 +1,3 @@
-// RESIZABLE NAVBAR - SAVED FOR FUTURE IMPLEMENTATION
-// This is your friend's advanced navbar with shrinking animations
-// To use this later, uncomment this file and update the header.tsx import
-
 /*
 "use client";
 import { cn } from "@/lib/utils";
