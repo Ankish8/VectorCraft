@@ -90,12 +90,7 @@ function HeroCTA() {
         animate={{ opacity: 1 }}
         transition={{ delay: 1.0, duration: 0.8 }}
       >
-        <span className="flex items-center gap-1">
-          <span className="text-green-500">●</span>
-          Launch Week Special
-        </span>
-        <span>•</span>
-        <span>One-time payment, lifetime access</span>
+        <span>One-time payment • Lifetime access</span>
       </motion.p>
     </>
   );
