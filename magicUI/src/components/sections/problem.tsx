@@ -1,45 +1,52 @@
 import BlurFade from "@/components/magicui/blur-fade";
 import Section from "@/components/section";
 import { Card, CardContent } from "@/components/ui/card";
-import { Brain, Shield, Zap } from "lucide-react";
+import { Printer, CreditCard, Scissors, Shirt } from "lucide-react";
 
-const problems = [
+const useCases = [
   {
-    title: "Data Overload",
+    title: "Professional Printing",
     description:
-      "Businesses struggle to make sense of vast amounts of complex data, missing out on valuable insights that could drive growth and innovation.",
-    icon: Brain,
+      "Create crisp business cards, flyers, and marketing materials that look sharp at any size. Perfect for print shops and businesses that demand quality.",
+    icon: Printer,
   },
   {
-    title: "Slow Decision-Making",
+    title: "Business Branding",
     description:
-      "Traditional data processing methods are too slow, causing businesses to lag behind market changes and miss crucial opportunities.",
-    icon: Zap,
+      "Transform your company logo into scalable vectors for websites, signs, and merchandise. Maintain brand consistency across all platforms.",
+    icon: CreditCard,
   },
   {
-    title: "Data Security Concerns",
+    title: "Craft & Cutting",
     description:
-      "With increasing cyber threats, businesses worry about the safety of their sensitive information when adopting new technologies.",
-    icon: Shield,
+      "Convert images for Cricut, Silhouette, and laser cutting machines. Create professional crafts, decals, and custom designs with precision.",
+    icon: Scissors,
+  },
+  {
+    title: "Apparel Design",
+    description:
+      "Prepare graphics for t-shirt printing, embroidery, and merchandise. Ensure your designs look professional on fabric and promotional items.",
+    icon: Shirt,
   },
 ];
 
 export default function Component() {
   return (
     <Section
-      title="Problem"
-      subtitle="Manually entering your data is a hassle."
+      title="USE CASES"
+      subtitle="See What's Possible"
+      description="Real projects, real results. Here's how VectorCraft transforms your creative vision into professional reality."
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-        {problems.map((problem, index) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
+        {useCases.map((useCase, index) => (
           <BlurFade key={index} delay={0.2 + index * 0.2} inView>
             <Card className="bg-background border-none shadow-none">
               <CardContent className="p-6 space-y-4">
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                  <problem.icon className="w-6 h-6 text-primary" />
+                  <useCase.icon className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold">{problem.title}</h3>
-                <p className="text-muted-foreground">{problem.description}</p>
+                <h3 className="text-xl font-semibold">{useCase.title}</h3>
+                <p className="text-muted-foreground">{useCase.description}</p>
               </CardContent>
             </Card>
           </BlurFade>
