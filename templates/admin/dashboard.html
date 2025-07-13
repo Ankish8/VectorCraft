@@ -3,14 +3,14 @@
 {% block title %}Admin Dashboard - VectorCraft{% endblock %}
 
 {% block content %}
-<div class="flex justify-between items-center mb-8">
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
     <div>
-        <h1 class="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p class="text-muted-foreground">Welcome to your VectorCraft admin panel</p>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p class="text-muted-foreground text-sm sm:text-base">Welcome to your VectorCraft admin panel</p>
     </div>
-    <div class="flex items-center space-x-4">
-        <span class="text-sm text-muted-foreground">Last updated: <span id="lastUpdated" class="font-medium">Loading...</span></span>
-        <button onclick="refreshData()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+    <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+        <span class="text-xs sm:text-sm text-muted-foreground">Last updated: <span id="lastUpdated" class="font-medium">Loading...</span></span>
+        <button onclick="refreshData()" class="w-full sm:w-auto inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
             <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
             Refresh
         </button>
@@ -28,62 +28,62 @@
 </div>
 
 <!-- Metrics Cards -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-    <div class="metric-card bg-card rounded-lg p-6">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+    <div class="metric-card bg-card rounded-lg p-4 sm:p-6">
         <div class="flex items-center justify-between mb-4">
             <div class="p-2 bg-green-100 rounded-lg">
-                <i data-lucide="dollar-sign" class="h-6 w-6 text-green-600"></i>
+                <i data-lucide="dollar-sign" class="h-5 w-5 sm:h-6 sm:w-6 text-green-600"></i>
             </div>
             <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Today</span>
         </div>
         <div>
-            <h3 class="text-2xl font-bold text-card-foreground mb-1" id="todayRevenue">${{ "%.2f"|format(data.today_stats.revenue if data and data.today_stats else 0) }}</h3>
-            <p class="text-sm text-muted-foreground">Revenue</p>
+            <h3 class="text-xl sm:text-2xl font-bold text-card-foreground mb-1" id="todayRevenue">${{ "%.2f"|format(data.today_stats.revenue if data and data.today_stats else 0) }}</h3>
+            <p class="text-xs sm:text-sm text-muted-foreground">Revenue</p>
         </div>
     </div>
     
-    <div class="metric-card bg-card rounded-lg p-6">
+    <div class="metric-card bg-card rounded-lg p-4 sm:p-6">
         <div class="flex items-center justify-between mb-4">
             <div class="p-2 bg-blue-100 rounded-lg">
-                <i data-lucide="receipt" class="h-6 w-6 text-blue-600"></i>
+                <i data-lucide="receipt" class="h-5 w-5 sm:h-6 sm:w-6 text-blue-600"></i>
             </div>
             <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">Today</span>
         </div>
         <div>
-            <h3 class="text-2xl font-bold text-card-foreground mb-1" id="todayTransactions">{{ data.today_stats.transactions if data and data.today_stats else 0 }}</h3>
-            <p class="text-sm text-muted-foreground">Transactions</p>
+            <h3 class="text-xl sm:text-2xl font-bold text-card-foreground mb-1" id="todayTransactions">{{ data.today_stats.transactions if data and data.today_stats else 0 }}</h3>
+            <p class="text-xs sm:text-sm text-muted-foreground">Transactions</p>
         </div>
     </div>
     
-    <div class="metric-card bg-card rounded-lg p-6">
+    <div class="metric-card bg-card rounded-lg p-4 sm:p-6">
         <div class="flex items-center justify-between mb-4">
             <div class="p-2 bg-emerald-100 rounded-lg">
-                <i data-lucide="check-circle" class="h-6 w-6 text-emerald-600"></i>
+                <i data-lucide="check-circle" class="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600"></i>
             </div>
             <span class="px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-800 rounded-full">Today</span>
         </div>
         <div>
-            <h3 class="text-2xl font-bold text-card-foreground mb-1" id="successRate">{{ "%.1f"|format(data.today_stats.success_rate if data and data.today_stats else 0) }}%</h3>
-            <p class="text-sm text-muted-foreground">Success Rate</p>
+            <h3 class="text-xl sm:text-2xl font-bold text-card-foreground mb-1" id="successRate">{{ "%.1f"|format(data.today_stats.success_rate if data and data.today_stats else 0) }}%</h3>
+            <p class="text-xs sm:text-sm text-muted-foreground">Success Rate</p>
         </div>
     </div>
     
-    <div class="metric-card bg-card rounded-lg p-6">
+    <div class="metric-card bg-card rounded-lg p-4 sm:p-6">
         <div class="flex items-center justify-between mb-4">
             <div class="p-2 bg-orange-100 rounded-lg">
-                <i data-lucide="alert-triangle" class="h-6 w-6 text-orange-600"></i>
+                <i data-lucide="alert-triangle" class="h-5 w-5 sm:h-6 sm:w-6 text-orange-600"></i>
             </div>
             <span class="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full">Active</span>
         </div>
         <div>
-            <h3 class="text-2xl font-bold text-card-foreground mb-1" id="activeAlerts">{{ data.alert_summary.total_active if data and data.alert_summary else 0 }}</h3>
-            <p class="text-sm text-muted-foreground">Alerts</p>
+            <h3 class="text-xl sm:text-2xl font-bold text-card-foreground mb-1" id="activeAlerts">{{ data.alert_summary.total_active if data and data.alert_summary else 0 }}</h3>
+            <p class="text-xs sm:text-sm text-muted-foreground">Alerts</p>
         </div>
     </div>
 </div>
 
 <!-- System Health and Recent Activity -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
     <!-- System Health -->
     <div class="bg-card rounded-lg border border-border">
         <div class="flex items-center justify-between p-6 border-b border-border">
@@ -95,7 +95,7 @@
                 <i data-lucide="refresh-cw" class="h-4 w-4"></i>
             </button>
         </div>
-        <div class="p-6">
+        <div class="p-4 sm:p-6">
             <div id="healthStatus">
                 <div class="flex flex-col items-center justify-center py-8">
                     <div class="animate-spin mb-4">
@@ -118,7 +118,7 @@
                 View All
             </a>
         </div>
-        <div class="p-6">
+        <div class="p-4 sm:p-6">
             <div id="recentTransactions">
                 {% if data and data.recent_transactions %}
                     <div class="space-y-4">
@@ -164,7 +164,7 @@
                 View Logs
             </a>
         </div>
-        <div class="p-6">
+        <div class="p-4 sm:p-6">
             {% if data and data.error_summary %}
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div class="text-center">
@@ -215,7 +215,7 @@
                 <h3 class="text-lg font-semibold">Quick Actions</h3>
             </div>
         </div>
-        <div class="p-6">
+        <div class="p-4 sm:p-6">
             <div class="space-y-3">
                 <button onclick="runHealthCheck()" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
                     <i data-lucide="activity" class="mr-2 h-4 w-4"></i>
@@ -237,7 +237,7 @@
             
             <div class="border-t border-border mt-6 pt-6">
                 <h4 class="text-sm font-medium mb-3">System Info</h4>
-                <div class="space-y-2 text-sm text-muted-foreground">
+                <div class="space-y-2 text-xs sm:text-sm text-muted-foreground">
                     <div class="flex justify-between">
                         <span>Version:</span>
                         <span>1.0.0</span>
@@ -309,14 +309,14 @@
                 <p class="text-sm text-muted-foreground">${overallStatus.message}</p>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 gap-3 sm:gap-4">
                 ${Object.entries(healthResults).map(([component, result]) => `
                     <div class="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
                         <span class="health-indicator ${getHealthIndicatorClass(result.status)}"></span>
-                        <div class="flex-1">
+                        <div class="flex-1 min-w-0">
                             <div class="font-medium text-sm">${component.replace('_', ' ').toUpperCase()}</div>
                             ${result.response_time ? `<div class="text-xs text-muted-foreground">${result.response_time}ms</div>` : ''}
-                            ${result.error_message ? `<div class="text-xs text-red-600">${result.error_message}</div>` : ''}
+                            ${result.error_message ? `<div class="text-xs text-red-600 truncate">${result.error_message}</div>` : ''}
                         </div>
                     </div>
                 `).join('')}

@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS Variables */
+:root {
+  --radius: 0.5rem;
+}
+
+/* Admin Dashboard Custom Styles */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* Health Indicators */
+  .health-indicator {
+    @apply w-2 h-2 rounded-full inline-block mr-2;
+  }
+  .health-healthy { 
+    @apply bg-green-500; 
+  }
+  .health-warning { 
+    @apply bg-yellow-500; 
+  }
+  .health-critical { 
+    @apply bg-red-500; 
+  }
+  .health-unknown { 
+    @apply bg-gray-500; 
+  }
+
+  /* Sidebar Navigation */
+  .sidebar-nav-item {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  .sidebar-nav-item:hover {
+    @apply bg-accent;
+  }
+  .sidebar-nav-item.active {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  /* Metric Cards */
+  .metric-card {
+    @apply transition-all duration-200 ease-in-out border border-border;
+  }
+  .metric-card:hover {
+    @apply -translate-y-1 shadow-lg;
+  }
+
+  /* Log Levels */
+  .log-level {
+    @apply text-xs px-2 py-1 rounded-md font-medium;
+  }
+  .log-critical { 
+    @apply bg-red-50 text-red-700 border border-red-200; 
+  }
+  .log-error { 
+    @apply bg-red-50 text-red-700 border border-red-200; 
+  }
+  .log-warning { 
+    @apply bg-yellow-50 text-yellow-700 border border-yellow-200; 
+  }
+  .log-info { 
+    @apply bg-blue-50 text-blue-700 border border-blue-200; 
+  }
+  .log-debug { 
+    @apply bg-gray-50 text-gray-700 border border-gray-200; 
+  }
+
+  /* Primary Button */
+  .btn-primary {
+    @apply bg-primary border-primary text-primary-foreground;
+  }
+  .btn-primary:hover {
+    @apply bg-primary/90 border-primary/90;
+  }
+
+  /* Mobile Menu */
+  .mobile-menu {
+    @apply transform -translate-x-full transition-transform duration-300 ease-in-out;
+  }
+  .mobile-menu.open {
+    @apply translate-x-0;
+  }
+
+  /* Responsive utilities */
+  .table-responsive {
+    @apply overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mobile responsive helpers */
+  @media (max-width: 768px) {
+    .mobile-stack {
+      @apply flex-col;
+    }
+    
+    .mobile-full {
+      @apply w-full mb-2;
+    }
+    
+    .mobile-text-sm {
+      @apply text-sm;
+    }
+    
+    .mobile-hide {
+      @apply hidden;
+    }
+  }
+
+  .mobile-only {
+    @apply hidden;
+  }
+  
+  @media (max-width: 768px) {
+    .mobile-only {
+      @apply block;
+    }
+  }
+}
+
+@layer utilities {
+  /* Touch-friendly interactions */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+  
+  /* Improved focus states for accessibility */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+  }
+  
+  /* Loading animations */
+  .loading-pulse {
+    @apply animate-pulse;
+  }
+  
+  .loading-spin {
+    @apply animate-spin;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-full-width {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}

@@ -4,7 +4,7 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including Rust for VTracer
+# Install system dependencies including Rust for VTracer and Node.js for CSS build
 RUN apt-get update && apt-get install -y \
     build-essential \
     pkg-config \
@@ -20,6 +20,11 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     libssl-dev \
     curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js for CSS build process
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Note: VTracer installation requires Rust compilation which is slow
@@ -40,6 +45,13 @@ RUN pip install --no-cache-dir -r requirements.txt || \
     pip install --no-cache-dir -r requirements_minimal.txt
 # Install VTracer - it should work on most systems with precompiled wheels
 RUN pip install --no-cache-dir vtracer
+
+# Copy package.json and build CSS first
+COPY package.json tailwind.config.js ./
+COPY static/admin/scss/ ./static/admin/scss/
+
+# Install Node dependencies and build CSS
+RUN npm install && npm run build-css-prod
 
 # Copy application code
 COPY . .

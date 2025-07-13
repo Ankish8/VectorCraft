@@ -1,27 +1,42 @@
-# Version control
-.git
-.gitignore
+# VectorCraft Docker Ignore
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
 env/
 venv/
-.venv/
+.venv
 pip-log.txt
 pip-delete-this-directory.txt
 
 # Development files
+.git/
+.gitignore
+README.md
+*.md
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS generated files
+# OS
 .DS_Store
 .DS_Store?
 ._*
@@ -30,31 +45,41 @@ pip-delete-this-directory.txt
 ehthumbs.db
 Thumbs.db
 
-# Application specific
-uploads/*
-results/*
-output/*
-*.db
+# Build artifacts
 *.log
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Temporary files
+tmp/
+temp/
+
+# Development scripts
+dev-css.sh
+quick-update.sh
 
 # Documentation
-README.md
-*.md
 docs/
+CLAUDE.md
+SESSION_PROGRESS.md
+DEPLOYMENT_GUIDE.md
+EMAIL_*.md
+ADMIN_*.md
+DOMAIN_*.md
+GMAIL_*.md
+IMPLEMENTATION_*.md
+PRODUCTION_*.md
+QUICK_START.md
+SETUP_GUIDE.md
+SWITCH_*.md
+TRANSACTIONS_*.md
 
-# Testing
+# Test files
+test_*.py
 tests/
-test_*
-*_test.py
 
-# CI/CD
-.github/
-.gitlab-ci.yml
-Jenkinsfile
-
-# Docker
-docker-compose.override.yml
-.dockerignore
-
-# Local environment
-.env.local
+# Theme files (not needed in container)
+theme/
+vectorcop/

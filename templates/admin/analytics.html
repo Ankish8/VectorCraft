@@ -3,73 +3,79 @@
 {% block title %}Analytics - VectorCraft Admin{% endblock %}
 
 {% block content %}
-<div class="flex justify-between items-center mb-8">
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
     <div>
-        <h1 class="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
-        <p class="text-muted-foreground">Track revenue, transactions, and business performance</p>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+        <p class="text-muted-foreground text-sm sm:text-base">Track revenue, transactions, and business performance</p>
     </div>
-    <button onclick="refreshData()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+    <button onclick="refreshData()" class="w-full sm:w-auto inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
         <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
         Refresh
     </button>
 </div>
 
 <!-- Key Metrics -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="keyMetrics">
-    <div class="col-span-full flex flex-col items-center justify-center py-12">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8" id="keyMetrics">
+    <div class="col-span-full flex flex-col items-center justify-center py-8 sm:py-12">
         <div class="animate-spin mb-4">
-            <i data-lucide="loader" class="h-8 w-8 text-muted-foreground"></i>
+            <i data-lucide="loader" class="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground"></i>
         </div>
-        <p class="text-muted-foreground">Loading analytics...</p>
+        <p class="text-muted-foreground text-sm sm:text-base">Loading analytics...</p>
     </div>
 </div>
 
 <!-- Charts -->
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
     <div class="lg:col-span-2 bg-card rounded-lg border border-border">
-        <div class="flex items-center px-6 py-4 border-b border-border">
+        <div class="flex items-center px-4 sm:px-6 py-4 border-b border-border">
             <i data-lucide="trending-up" class="mr-2 h-5 w-5 text-muted-foreground"></i>
-            <h3 class="text-lg font-semibold">Revenue Trend (Last 7 Days)</h3>
+            <h3 class="text-base sm:text-lg font-semibold">Revenue Trend (Last 7 Days)</h3>
         </div>
-        <div class="p-6">
-            <canvas id="revenueChart" width="400" height="200"></canvas>
+        <div class="p-4 sm:p-6">
+            <div class="relative h-48 sm:h-64">
+                <canvas id="revenueChart" class="w-full h-full"></canvas>
+            </div>
         </div>
     </div>
     
     <div class="bg-card rounded-lg border border-border">
-        <div class="flex items-center px-6 py-4 border-b border-border">
+        <div class="flex items-center px-4 sm:px-6 py-4 border-b border-border">
             <i data-lucide="pie-chart" class="mr-2 h-5 w-5 text-muted-foreground"></i>
-            <h3 class="text-lg font-semibold">Transaction Status</h3>
+            <h3 class="text-base sm:text-lg font-semibold">Transaction Status</h3>
         </div>
-        <div class="p-6">
-            <canvas id="statusChart" width="300" height="300"></canvas>
+        <div class="p-4 sm:p-6">
+            <div class="relative h-48 sm:h-64">
+                <canvas id="statusChart" class="w-full h-full"></canvas>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Additional Metrics -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
     <div class="bg-card rounded-lg border border-border">
-        <div class="flex items-center px-6 py-4 border-b border-border">
+        <div class="flex items-center px-4 sm:px-6 py-4 border-b border-border">
             <i data-lucide="bar-chart-3" class="mr-2 h-5 w-5 text-muted-foreground"></i>
-            <h3 class="text-lg font-semibold">Daily Transactions</h3>
+            <h3 class="text-base sm:text-lg font-semibold">Daily Transactions</h3>
         </div>
-        <div class="p-6">
-            <canvas id="transactionChart" width="400" height="200"></canvas>
+        <div class="p-4 sm:p-6">
+            <div class="relative h-48 sm:h-64">
+                <canvas id="transactionChart" class="w-full h-full"></canvas>
+            </div>
         </div>
     </div>
     
     <div class="bg-card rounded-lg border border-border">
-        <div class="flex items-center px-6 py-4 border-b border-border">
+        <div class="flex items-center px-4 sm:px-6 py-4 border-b border-border">
             <i data-lucide="info" class="mr-2 h-5 w-5 text-muted-foreground"></i>
-            <h3 class="text-lg font-semibold">Summary Stats</h3>
+            <h3 class="text-base sm:text-lg font-semibold">Summary Stats</h3>
         </div>
-        <div class="p-6" id="summaryStats">
-            <div class="flex flex-col items-center justify-center py-8">
+        <div class="p-4 sm:p-6" id="summaryStats">
+            <div class="flex flex-col items-center justify-center py-6 sm:py-8">
                 <div class="animate-spin mb-4">
-                    <i data-lucide="loader" class="h-6 w-6 text-muted-foreground"></i>
+                    <i data-lucide="loader" class="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground"></i>
                 </div>
-                <p class="text-sm text-muted-foreground">Loading...</p>
+                <p class="text-xs sm:text-sm text-muted-foreground">Loading...</p>
             </div>
         </div>
     </div>

@@ -3,12 +3,12 @@
 {% block title %}System Logs - VectorCraft Admin{% endblock %}
 
 {% block content %}
-<div class="flex justify-between items-center mb-8">
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
     <div>
-        <h1 class="text-3xl font-bold tracking-tight">System Logs</h1>
-        <p class="text-muted-foreground">Monitor system events and troubleshoot issues</p>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">System Logs</h1>
+        <p class="text-muted-foreground text-sm sm:text-base">Monitor system events and troubleshoot issues</p>
     </div>
-    <button onclick="refreshData()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+    <button onclick="refreshData()" class="w-full sm:w-auto inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
         <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
         Refresh
     </button>
@@ -16,15 +16,15 @@
 
 <!-- Filters -->
 <div class="bg-card rounded-lg border border-border mb-6">
-    <div class="flex items-center px-6 py-4 border-b border-border">
+    <div class="flex items-center px-4 sm:px-6 py-4 border-b border-border">
         <i data-lucide="filter" class="mr-2 h-5 w-5 text-muted-foreground"></i>
-        <h3 class="text-lg font-semibold">Log Filters</h3>
+        <h3 class="text-base sm:text-lg font-semibold">Log Filters</h3>
     </div>
-    <div class="p-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="p-4 sm:p-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-                <label class="block text-sm font-medium mb-2">Level</label>
-                <select id="levelFilter" class="w-full px-3 py-2 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
+                <label class="block text-xs sm:text-sm font-medium mb-2">Level</label>
+                <select id="levelFilter" class="w-full px-3 py-2 text-sm border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
                     <option value="">All Levels</option>
                     <option value="CRITICAL">Critical</option>
                     <option value="ERROR">Error</option>
@@ -66,14 +66,14 @@
 
 <!-- Logs -->
 <div class="bg-card rounded-lg border border-border">
-    <div class="flex items-center justify-between px-6 py-4 border-b border-border">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-4 border-b border-border space-y-2 sm:space-y-0">
         <div class="flex items-center space-x-2">
             <i data-lucide="file-text" class="h-5 w-5 text-muted-foreground"></i>
-            <h3 class="text-lg font-semibold">Log Entries</h3>
+            <h3 class="text-base sm:text-lg font-semibold">Log Entries</h3>
         </div>
         <span id="logCount" class="px-2 py-1 bg-primary text-primary-foreground rounded-full text-xs font-medium">Loading...</span>
     </div>
-    <div class="p-6">
+    <div class="p-4 sm:p-6">
         <div id="logsContainer">
             <div class="flex flex-col items-center justify-center py-12">
                 <div class="animate-spin mb-4">

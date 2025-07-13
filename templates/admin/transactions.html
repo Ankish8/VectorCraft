@@ -3,12 +3,12 @@
 {% block title %}Transactions - VectorCraft Admin{% endblock %}
 
 {% block content %}
-<div class="flex justify-between items-center mb-8">
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
     <div>
-        <h1 class="text-3xl font-bold tracking-tight">Transaction Monitoring</h1>
-        <p class="text-muted-foreground">View and manage all payment transactions</p>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Transaction Monitoring</h1>
+        <p class="text-muted-foreground text-sm sm:text-base">View and manage all payment transactions</p>
     </div>
-    <button onclick="refreshData()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+    <button onclick="refreshData()" class="w-full sm:w-auto inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
         <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
         Refresh
     </button>
@@ -16,15 +16,15 @@
 
 <!-- Filters -->
 <div class="bg-card rounded-lg border border-border mb-6">
-    <div class="flex items-center px-6 py-4 border-b border-border">
+    <div class="flex items-center px-4 sm:px-6 py-4 border-b border-border">
         <i data-lucide="filter" class="mr-2 h-5 w-5 text-muted-foreground"></i>
-        <h3 class="text-lg font-semibold">Filters</h3>
+        <h3 class="text-base sm:text-lg font-semibold">Filters</h3>
     </div>
-    <div class="p-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="p-4 sm:p-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-                <label class="block text-sm font-medium mb-2">Status</label>
-                <select id="statusFilter" class="w-full px-3 py-2 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
+                <label class="block text-xs sm:text-sm font-medium mb-2">Status</label>
+                <select id="statusFilter" class="w-full px-3 py-2 text-sm border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
                     <option value="">All Statuses</option>
                     <option value="completed">Completed</option>
                     <option value="pending">Pending</option>
@@ -32,12 +32,12 @@
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium mb-2">Email</label>
-                <input type="email" id="emailFilter" placeholder="Search by email" class="w-full px-3 py-2 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
+                <label class="block text-xs sm:text-sm font-medium mb-2">Email</label>
+                <input type="email" id="emailFilter" placeholder="Search by email" class="w-full px-3 py-2 text-sm border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
             </div>
             <div>
-                <label class="block text-sm font-medium mb-2">Limit</label>
-                <select id="limitFilter" class="w-full px-3 py-2 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
+                <label class="block text-xs sm:text-sm font-medium mb-2">Limit</label>
+                <select id="limitFilter" class="w-full px-3 py-2 text-sm border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
                     <option value="50">50 transactions</option>
                     <option value="100">100 transactions</option>
                     <option value="200">200 transactions</option>
@@ -55,14 +55,14 @@
 
 <!-- Transactions Table -->
 <div class="bg-card rounded-lg border border-border">
-    <div class="flex items-center justify-between px-6 py-4 border-b border-border">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-4 border-b border-border space-y-2 sm:space-y-0">
         <div class="flex items-center space-x-2">
             <i data-lucide="table" class="h-5 w-5 text-muted-foreground"></i>
-            <h3 class="text-lg font-semibold">Recent Transactions</h3>
+            <h3 class="text-base sm:text-lg font-semibold">Recent Transactions</h3>
         </div>
         <span id="transactionCount" class="px-2 py-1 bg-primary text-primary-foreground rounded-full text-xs font-medium">Loading...</span>
     </div>
-    <div class="p-6">
+    <div class="p-4 sm:p-6">
         <div id="transactionsTable">
             <div class="flex flex-col items-center justify-center py-12">
                 <div class="animate-spin mb-4">
@@ -100,12 +100,24 @@
         url += params.toString();
         
         fetch(url)
-            .then(response => response.json())
+            .then(response => {
+                if (response.status === 401) {
+                    document.getElementById('transactionsTable').innerHTML = 
+                        '<div class="p-4 border border-red-200 bg-red-50 text-red-800 rounded-lg">Authentication required. Please <a href="/admin" class="underline">login as admin</a> first.</div>';
+                    return { success: false, error: 'Authentication required' };
+                }
+                if (response.status === 403) {
+                    document.getElementById('transactionsTable').innerHTML = 
+                        '<div class="p-4 border border-red-200 bg-red-50 text-red-800 rounded-lg">Admin access required. Please login with admin credentials.</div>';
+                    return { success: false, error: 'Admin access required' };
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     displayTransactions(data.transactions);
                     document.getElementById('transactionCount').textContent = data.count;
-                } else {
+                } else if (data.error) {
                     document.getElementById('transactionsTable').innerHTML = 
                         '<div class="p-4 border border-red-200 bg-red-50 text-red-800 rounded-lg">Error loading transactions: ' + data.error + '</div>';
                 }
@@ -113,31 +125,120 @@
             .catch(error => {
                 console.error('Error:', error);
                 document.getElementById('transactionsTable').innerHTML = 
-                    '<div class="p-4 border border-red-200 bg-red-50 text-red-800 rounded-lg">Error loading transactions</div>';
+                    '<div class="p-4 border border-red-200 bg-red-50 text-red-800 rounded-lg">Network error loading transactions. Check console for details.</div>';
             });
     }
     
     function displayTransactions(transactions) {
+        // Store transactions data for resize handling
+        window.lastTransactionsData = transactions;
+        
         if (transactions.length === 0) {
             document.getElementById('transactionsTable').innerHTML = 
-                '<div class="flex flex-col items-center justify-center py-12"><i data-lucide="inbox" class="h-16 w-16 text-muted-foreground mb-4"></i><p class="text-muted-foreground">No transactions found</p></div>';
+                '<div class="flex flex-col items-center justify-center py-12">' +
+                '<i data-lucide="credit-card" class="h-16 w-16 text-muted-foreground mb-4"></i>' +
+                '<h3 class="text-lg font-semibold text-foreground mb-2">No Transactions Yet</h3>' +
+                '<p class="text-muted-foreground text-center max-w-md">' +
+                'When customers make purchases through PayPal, their transactions will appear here. ' +
+                'This shows only real transaction data.' +
+                '</p>' +
+                '<div class="mt-4 p-4 bg-muted rounded-lg text-sm text-muted-foreground">' +
+                '<strong>Next steps:</strong> Test the payment flow by making a purchase on your landing page.' +
+                '</div>' +
+                '</div>';
             lucide.createIcons();
             return;
         }
         
+        // Check if we're on mobile
+        const isMobile = window.innerWidth < 768;
+        
+        if (isMobile) {
+            // Mobile card layout
+            let html = '<div class="space-y-4">';
+            
+            transactions.forEach(tx => {
+                let statusClass, statusBg;
+                switch(tx.status) {
+                    case 'completed':
+                        statusClass = 'text-green-800';
+                        statusBg = 'bg-green-100';
+                        break;
+                    case 'pending':
+                        statusClass = 'text-yellow-800';
+                        statusBg = 'bg-yellow-100';
+                        break;
+                    case 'failed':
+                        statusClass = 'text-red-800';
+                        statusBg = 'bg-red-100';
+                        break;
+                    default:
+                        statusClass = 'text-gray-800';
+                        statusBg = 'bg-gray-100';
+                }
+                
+                html += `
+                    <div class="bg-card border border-border rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusBg} ${statusClass}">
+                                ${tx.status}
+                            </span>
+                            <span class="text-lg font-semibold">$${parseFloat(tx.amount || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-muted-foreground">Email:</span>
+                                <span class="font-medium truncate ml-2">${tx.email}</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-muted-foreground">Username:</span>
+                                <span class="truncate ml-2">${tx.username || '-'}</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-muted-foreground">Transaction ID:</span>
+                                <code class="text-xs bg-muted px-2 py-1 rounded ml-2">${tx.transaction_id}</code>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-muted-foreground">Created:</span>
+                                <span class="text-xs ml-2">${tx.created_at}</span>
+                            </div>
+                            ${tx.paypal_order_id ? `
+                            <div class="flex justify-between text-sm">
+                                <span class="text-muted-foreground">PayPal Order:</span>
+                                <span class="text-xs truncate ml-2">${tx.paypal_order_id}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-border">
+                            <button onclick="viewTransaction('${tx.transaction_id}')" class="w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                                <i data-lucide="eye" class="mr-2 h-4 w-4"></i>
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            document.getElementById('transactionsTable').innerHTML = html;
+            lucide.createIcons();
+            return;
+        }
+        
+        // Desktop table layout
         let html = `
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto table-responsive">
                 <table class="w-full">
                     <thead>
                         <tr class="border-b border-border">
-                            <th class="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Transaction ID</th>
-                            <th class="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Email</th>
-                            <th class="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Username</th>
-                            <th class="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Amount</th>
-                            <th class="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Status</th>
-                            <th class="text-left py-3 px-4 font-medium text-sm text-muted-foreground">PayPal Order</th>
-                            <th class="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Created</th>
-                            <th class="text-left py-3 px-4 font-medium text-sm text-muted-foreground">Actions</th>
+                            <th class="text-left py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm text-muted-foreground">Transaction ID</th>
+                            <th class="text-left py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm text-muted-foreground">Email</th>
+                            <th class="text-left py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm text-muted-foreground mobile-hide">Username</th>
+                            <th class="text-left py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm text-muted-foreground">Amount</th>
+                            <th class="text-left py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm text-muted-foreground">Status</th>
+                            <th class="text-left py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm text-muted-foreground mobile-hide">PayPal Order</th>
+                            <th class="text-left py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm text-muted-foreground mobile-hide">Created</th>
+                            <th class="text-left py-3 px-3 sm:px-4 font-medium text-xs sm:text-sm text-muted-foreground">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -165,20 +266,24 @@
             
             html += `
                 <tr class="border-b border-border hover:bg-muted/50 transition-colors">
-                    <td class="py-3 px-4">
+                    <td class="py-3 px-3 sm:px-4">
                         <code class="text-xs bg-muted px-2 py-1 rounded">${tx.transaction_id}</code>
                     </td>
-                    <td class="py-3 px-4 text-sm">${tx.email}</td>
-                    <td class="py-3 px-4 text-sm text-muted-foreground">${tx.username || '-'}</td>
-                    <td class="py-3 px-4 text-sm font-medium">$${parseFloat(tx.amount || 0).toFixed(2)}</td>
-                    <td class="py-3 px-4">
+                    <td class="py-3 px-3 sm:px-4 text-xs sm:text-sm">
+                        <div class="truncate max-w-[120px] sm:max-w-none">${tx.email}</div>
+                    </td>
+                    <td class="py-3 px-3 sm:px-4 text-xs sm:text-sm text-muted-foreground mobile-hide">${tx.username || '-'}</td>
+                    <td class="py-3 px-3 sm:px-4 text-xs sm:text-sm font-medium">$${parseFloat(tx.amount || 0).toFixed(2)}</td>
+                    <td class="py-3 px-3 sm:px-4">
                         <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusBg} ${statusClass}">
                             ${tx.status}
                         </span>
                     </td>
-                    <td class="py-3 px-4 text-xs text-muted-foreground">${tx.paypal_order_id || '-'}</td>
-                    <td class="py-3 px-4 text-xs text-muted-foreground">${tx.created_at}</td>
-                    <td class="py-3 px-4">
+                    <td class="py-3 px-3 sm:px-4 text-xs text-muted-foreground mobile-hide">
+                        <div class="truncate max-w-[100px]">${tx.paypal_order_id || '-'}</div>
+                    </td>
+                    <td class="py-3 px-3 sm:px-4 text-xs text-muted-foreground mobile-hide">${tx.created_at}</td>
+                    <td class="py-3 px-3 sm:px-4">
                         <button onclick="viewTransaction('${tx.transaction_id}')" class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
                             <i data-lucide="eye" class="h-3 w-3"></i>
                         </button>
@@ -196,6 +301,18 @@
         alert('Transaction details for: ' + transactionId);
         // In a real implementation, this would open a modal with detailed transaction info
     }
+    
+    // Handle window resize for responsive table
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function() {
+            const lastTransactions = window.lastTransactionsData;
+            if (lastTransactions) {
+                displayTransactions(lastTransactions);
+            }
+        }, 250);
+    });
     
     // Load data on page load
     document.addEventListener('DOMContentLoaded', function() {

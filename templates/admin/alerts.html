@@ -3,35 +3,35 @@
 {% block title %}Alerts - VectorCraft Admin{% endblock %}
 
 {% block content %}
-<div class="flex justify-between items-center mb-8">
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
     <div>
-        <h1 class="text-3xl font-bold tracking-tight">Alert Management</h1>
-        <p class="text-muted-foreground">Monitor and manage system alerts and notifications</p>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Alert Management</h1>
+        <p class="text-muted-foreground text-sm sm:text-base">Monitor and manage system alerts and notifications</p>
     </div>
-    <button onclick="refreshData()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+    <button onclick="refreshData()" class="w-full sm:w-auto inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
         <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
         Refresh
     </button>
 </div>
 
 <!-- Alert Summary -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="alertSummary">
-    <div class="col-span-full flex flex-col items-center justify-center py-12">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8" id="alertSummary">
+    <div class="col-span-full flex flex-col items-center justify-center py-8 sm:py-12">
         <div class="animate-spin mb-4">
-            <i data-lucide="loader" class="h-8 w-8 text-muted-foreground"></i>
+            <i data-lucide="loader" class="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground"></i>
         </div>
-        <p class="text-muted-foreground">Loading alert summary...</p>
+        <p class="text-muted-foreground text-sm sm:text-base">Loading alert summary...</p>
     </div>
 </div>
 
 <!-- Alert Filters -->
 <div class="bg-card rounded-lg border border-border mb-6">
-    <div class="flex items-center px-6 py-4 border-b border-border">
+    <div class="flex items-center px-4 sm:px-6 py-4 border-b border-border">
         <i data-lucide="filter" class="mr-2 h-5 w-5 text-muted-foreground"></i>
-        <h3 class="text-lg font-semibold">Alert Filters</h3>
+        <h3 class="text-base sm:text-lg font-semibold">Alert Filters</h3>
     </div>
-    <div class="p-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="p-4 sm:p-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
                 <label class="block text-sm font-medium mb-2">Status</label>
                 <select id="resolvedFilter" class="w-full px-3 py-2 border border-border rounded-md bg-background focus:ring-2 focus:ring-primary focus:border-transparent">
@@ -52,14 +52,14 @@
 
 <!-- Alerts -->
 <div class="bg-card rounded-lg border border-border">
-    <div class="flex items-center justify-between px-6 py-4 border-b border-border">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-4 border-b border-border space-y-2 sm:space-y-0">
         <div class="flex items-center space-x-2">
             <i data-lucide="alert-triangle" class="h-5 w-5 text-muted-foreground"></i>
-            <h3 class="text-lg font-semibold">Alerts</h3>
+            <h3 class="text-base sm:text-lg font-semibold">Alerts</h3>
         </div>
         <span id="alertCount" class="px-2 py-1 bg-primary text-primary-foreground rounded-full text-xs font-medium">Loading...</span>
     </div>
-    <div class="p-6">
+    <div class="p-4 sm:p-6">
         <div id="alertsContainer">
             <div class="flex flex-col items-center justify-center py-12">
                 <div class="animate-spin mb-4">

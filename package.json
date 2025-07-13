@@ -1,0 +1,13 @@
+{
+  "name": "vectorcraft-admin",
+  "version": "1.0.0",
+  "description": "VectorCraft Admin Dashboard Assets",
+  "scripts": {
+    "build-css": "tailwindcss -i ./static/admin/scss/input.scss -o ./static/admin/css/admin.css --watch",
+    "build-css-prod": "tailwindcss -i ./static/admin/scss/input.scss -o ./static/admin/css/admin.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0",
+    "@tailwindcss/forms": "^0.5.7"
+  }
+}

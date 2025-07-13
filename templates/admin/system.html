@@ -3,34 +3,34 @@
 {% block title %}System Health - VectorCraft Admin{% endblock %}
 
 {% block content %}
-<div class="flex justify-between items-center mb-8">
+<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
     <div>
-        <h1 class="text-3xl font-bold tracking-tight">System Health</h1>
-        <p class="text-muted-foreground">Monitor the health and performance of all system components</p>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">System Health</h1>
+        <p class="text-muted-foreground text-sm sm:text-base">Monitor the health and performance of all system components</p>
     </div>
-    <button onclick="refreshData()" class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+    <button onclick="refreshData()" class="w-full sm:w-auto inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
         <i data-lucide="refresh-cw" class="mr-2 h-4 w-4"></i>
         Refresh
     </button>
 </div>
 
 <!-- Overall Status -->
-<div id="overallStatus" class="mb-8 p-4 rounded-lg border border-border bg-blue-50 text-blue-800">
+<div id="overallStatus" class="mb-6 sm:mb-8 p-4 sm:p-6 rounded-lg border border-border bg-blue-50 text-blue-800">
     <div class="flex items-center">
         <div class="animate-spin mr-3">
             <i data-lucide="loader" class="h-5 w-5"></i>
         </div>
-        <div>Loading system status...</div>
+        <div class="text-sm sm:text-base">Loading system status...</div>
     </div>
 </div>
 
 <!-- Component Health -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="componentHealth">
-    <div class="col-span-full flex flex-col items-center justify-center py-12">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6" id="componentHealth">
+    <div class="col-span-full flex flex-col items-center justify-center py-8 sm:py-12">
         <div class="animate-spin mb-4">
-            <i data-lucide="loader" class="h-12 w-12 text-muted-foreground"></i>
+            <i data-lucide="loader" class="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground"></i>
         </div>
-        <p class="text-muted-foreground">Loading component health status...</p>
+        <p class="text-muted-foreground text-sm sm:text-base">Loading component health status...</p>
     </div>
 </div>
 {% endblock %}
@@ -87,13 +87,13 @@
                 icon = 'info';
         }
         
-        document.getElementById('overallStatus').className = `mb-8 p-4 rounded-lg border border-border ${bgClass} ${textClass}`;
+        document.getElementById('overallStatus').className = `mb-6 sm:mb-8 p-4 sm:p-6 rounded-lg border border-border ${bgClass} ${textClass}`;
         document.getElementById('overallStatus').innerHTML = `
             <div class="flex items-center">
-                <i data-lucide="${icon}" class="mr-3 h-6 w-6"></i>
+                <i data-lucide="${icon}" class="mr-3 h-5 w-5 sm:h-6 sm:w-6"></i>
                 <div>
-                    <div class="font-semibold text-lg">System Status: ${status.status.toUpperCase()}</div>
-                    <div class="text-sm opacity-90">${status.message}</div>
+                    <div class="font-semibold text-base sm:text-lg">System Status: ${status.status.toUpperCase()}</div>
+                    <div class="text-xs sm:text-sm opacity-90">${status.message}</div>
                 </div>
             </div>
         `;
@@ -129,16 +129,16 @@
             }
             
             html += `
-                <div class="bg-card rounded-lg border border-border p-6 text-center">
-                    <div class="flex justify-center mb-4">
-                        <div class="p-3 ${bgColor} rounded-full">
-                            <i data-lucide="${iconName}" class="h-8 w-8 ${statusColor}"></i>
+                <div class="bg-card rounded-lg border border-border p-4 sm:p-6 text-center">
+                    <div class="flex justify-center mb-3 sm:mb-4">
+                        <div class="p-2 sm:p-3 ${bgColor} rounded-full">
+                            <i data-lucide="${iconName}" class="h-6 w-6 sm:h-8 sm:w-8 ${statusColor}"></i>
                         </div>
                     </div>
-                    <h3 class="text-lg font-semibold mb-2">${component.replace('_', ' ').toUpperCase()}</h3>
-                    <p class="text-sm ${statusColor} font-medium mb-2">${result.status.toUpperCase()}</p>
+                    <h3 class="text-base sm:text-lg font-semibold mb-2">${component.replace('_', ' ').toUpperCase()}</h3>
+                    <p class="text-xs sm:text-sm ${statusColor} font-medium mb-2">${result.status.toUpperCase()}</p>
                     ${result.response_time ? `<p class="text-xs text-muted-foreground mb-1">Response: ${result.response_time}ms</p>` : ''}
-                    ${result.error_message ? `<p class="text-xs text-red-600 mt-2">${result.error_message}</p>` : ''}
+                    ${result.error_message ? `<p class="text-xs text-red-600 mt-2 truncate" title="${result.error_message}">${result.error_message}</p>` : ''}
                     <p class="text-xs text-muted-foreground mt-2">Checked: ${new Date(result.checked_at).toLocaleTimeString('en-IN', {timeZone: 'Asia/Kolkata'})}</p>
                 </div>
             `;
